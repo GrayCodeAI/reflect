@@ -135,7 +135,8 @@ func (s *ReviewStore) migrate() error {
 func (s *ReviewStore) Create(sha string) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	res, err := s.db.ExecContext(context.Background(),
+	res, err := s.db.ExecContext(
+		context.Background(),
 		"INSERT INTO reviews (sha, status) VALUES (?, ?)",
 		sha, ReviewStatusPending,
 	)
@@ -153,7 +154,8 @@ func (s *ReviewStore) Update(id int64, status ReviewStatus, result *reviewcontra
 	findingsJSON, _ := json.Marshal(result.Findings)
 	maxSev := result.MaxSeverity().String()
 
-	_, err := s.db.ExecContext(context.Background(),
+	_, err := s.db.ExecContext(
+		context.Background(),
 		`UPDATE reviews SET status=?, findings_json=?, report=?, max_severity=?, tokens_used=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
 		status, string(findingsJSON), result.Report, maxSev, result.Stats.TokensUsed, id,
 	)
@@ -172,7 +174,8 @@ func (s *ReviewStore) SetStatus(id int64, status ReviewStatus) error {
 func (s *ReviewStore) Get(id int64) (*ReviewRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.scanOne(s.db.QueryRowContext(context.Background(),
+	return s.scanOne(s.db.QueryRowContext(
+		context.Background(),
 		"SELECT id, sha, status, findings_json, report, max_severity, tokens_used, created_at, updated_at FROM reviews WHERE id=?", id,
 	))
 }
@@ -181,7 +184,8 @@ func (s *ReviewStore) Get(id int64) (*ReviewRecord, error) {
 func (s *ReviewStore) GetBySHA(sha string) (*ReviewRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.scanOne(s.db.QueryRowContext(context.Background(),
+	return s.scanOne(s.db.QueryRowContext(
+		context.Background(),
 		"SELECT id, sha, status, findings_json, report, max_severity, tokens_used, created_at, updated_at FROM reviews WHERE sha=? ORDER BY created_at DESC LIMIT 1", sha,
 	))
 }

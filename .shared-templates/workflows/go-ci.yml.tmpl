@@ -150,7 +150,15 @@ jobs:
           govulncheck ./...
       - name: gosec (advisory)
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+          # gosec's release still pins an older Go export-data reader.
+          # Build it with Go 1.27-compatible x/tools in an isolated module.
+          tool_dir=$(mktemp -d)
+          (
+            cd "$tool_dir"
+            go mod init graycodeai.local/gosec-tool
+            go get github.com/securego/gosec/v2/cmd/gosec@v2.29.0 golang.org/x/tools@v0.52.0
+            go install github.com/securego/gosec/v2/cmd/gosec
+          )
           gosec -exclude=G104,G301,G302,G304,G306 ./...
 
   # -------------------------------------------------------------------------

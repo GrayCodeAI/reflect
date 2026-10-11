@@ -290,63 +290,63 @@ func (b *Backend) Shutdown(ctx context.Context) error {
 // anyToValue converts the JSON-safe payload subset onto an OTel log Value,
 // matching the AnyValue subset the seam's contract guarantees (DSH
 // `body as AnyValue`). Unsupported kinds fall back to their JSON encoding.
-func anyToValue(v any) log.Value {
+func anyToValue(v any) attribute.Value {
 	switch t := v.(type) {
 	case nil:
-		return log.StringValue("")
+		return attribute.StringValue("")
 	case string:
-		return log.StringValue(t)
+		return attribute.StringValue(t)
 	case bool:
-		return log.BoolValue(t)
+		return attribute.BoolValue(t)
 	case int:
-		return log.IntValue(t)
+		return attribute.IntValue(t)
 	case int64:
-		return log.Int64Value(t)
+		return attribute.Int64Value(t)
 	case uint64:
-		return log.Int64Value(int64(t))
+		return attribute.Int64Value(int64(t))
 	case float64:
-		return log.Float64Value(t)
+		return attribute.Float64Value(t)
 	case []any:
-		values := make([]log.Value, 0, len(t))
+		values := make([]attribute.Value, 0, len(t))
 		for _, elem := range t {
 			values = append(values, anyToValue(elem))
 		}
-		return log.SliceValue(values...)
+		return attribute.SliceValue(values...)
 	case map[string]any:
-		kvs := make([]log.KeyValue, 0, len(t))
+		kvs := make([]attribute.KeyValue, 0, len(t))
 		for k, elem := range t {
-			kvs = append(kvs, log.KeyValue{Key: k, Value: anyToValue(elem)})
+			kvs = append(kvs, attribute.KeyValue{Key: attribute.Key(k), Value: anyToValue(elem)})
 		}
-		return log.MapValue(kvs...)
+		return attribute.MapValue(kvs...)
 	default:
 		if data, err := json.Marshal(v); err == nil {
-			return log.StringValue(string(data))
+			return attribute.StringValue(string(data))
 		}
-		return log.StringValue(fmt.Sprintf("%v", v))
+		return attribute.StringValue(fmt.Sprintf("%v", v))
 	}
 }
 
 // attrsToKeyValues maps the string|number attribute contract onto OTel
 // attributes; unsupported value kinds are skipped.
-func attrsToKeyValues(attrs map[string]any) []log.KeyValue {
+func attrsToKeyValues(attrs map[string]any) []attribute.KeyValue {
 	if len(attrs) == 0 {
 		return nil
 	}
-	out := make([]log.KeyValue, 0, len(attrs))
+	out := make([]attribute.KeyValue, 0, len(attrs))
 	for k, v := range attrs {
 		switch t := v.(type) {
 		case string:
-			out = append(out, log.String(k, t))
+			out = append(out, attribute.String(k, t))
 		case int:
-			out = append(out, log.Int(k, t))
+			out = append(out, attribute.Int(k, t))
 		case int64:
-			out = append(out, log.Int64(k, t))
+			out = append(out, attribute.Int64(k, t))
 		case uint64:
-			out = append(out, log.Int64(k, int64(t)))
+			out = append(out, attribute.Int64(k, int64(t)))
 		case float64:
-			out = append(out, log.Float64(k, t))
+			out = append(out, attribute.Float64(k, t))
 		case bool:
-			out = append(out, log.Bool(k, t))
+			out = append(out, attribute.Bool(k, t))
 		}
 	}
 	return out

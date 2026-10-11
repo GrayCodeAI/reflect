@@ -345,40 +345,21 @@ jobs:
       - name: govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
-          # Fail only on vulnerabilities reachable from our code (findings with a
-          # non-empty call trace). Transitive advisories that our code does not
-          # call are surfaced but do not block CI — they cannot be remediated
-          # without an upstream fix and are not in our attack surface.
-          govulncheck -json ./... > /tmp/vuln.json || true
-          reachable=$(python3 - <<'PY'
-          import json, sys
-          n = 0
-          for line in open("/tmp/vuln.json"):
-              line = line.strip()
-              if not line:
-                  continue
-              try:
-                  o = json.loads(line)
-              except json.JSONDecodeError:
-                  continue
-              if not isinstance(o, dict):
-                  continue
-              if o.get("module") == "finding" and o.get("trace"):
-                  n += 1
-                  print(f"REACHABLE: {o.get('osv', {}).get('id')} in {o.get('package', {}).get('path')}", file=sys.stderr)
-          print(n)
-          PY
-          )
-          echo "Reachable vulnerabilities: $reachable"
-          if [ "$reachable" -gt 0 ]; then
-            echo "::error::govulncheck found $reachable reachable vulnerability(ies) in our code"
-            exit 1
-          fi
-          echo "No reachable vulnerabilities in our code."
+          # The default symbol scan exits nonzero for reachable vulnerabilities
+          # and scanner errors. Verbose output also reports uncalled advisories.
+          govulncheck -show=verbose ./...
       - name: gosec
         continue-on-error: true
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+          # gosec's release still pins an older Go export-data reader.
+          # Build it with Go 1.27-compatible x/tools in an isolated module.
+          tool_dir=$(mktemp -d)
+          (
+            cd "$tool_dir"
+            go mod init graycodeai.local/gosec-tool
+            go get github.com/securego/gosec/v2/cmd/gosec@v2.29.0 golang.org/x/tools@v0.52.0
+            go install github.com/securego/gosec/v2/cmd/gosec
+          )
           # Advisory scan. The blocking gosec gate lives in the `lint` job
           # (see .golangci.yml), which applies the repo's G301/G304
           # exclusions for intentional 0755 dirs and user-supplied file
