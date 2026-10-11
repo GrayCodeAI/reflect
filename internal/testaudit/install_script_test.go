@@ -360,6 +360,14 @@ func TestInstallScriptResolvesLatestRelease(t *testing.T) {
 	}
 }
 
+func TestInstallScriptAcceptsCanonicalVersion(t *testing.T) {
+	v := repoVersion(t)
+	f := newInstallFixture(t)
+	f.addRelease(v, "linux", "amd64")
+	res := f.run("--version", v, "--prefix", f.prefix)
+	f.requireInstalled(res, f.prefix, v)
+}
+
 func TestInstallScriptRefusesPreRenameReleases(t *testing.T) {
 	f := newInstallFixture(t)
 	f.setLatest("v0.2.0")

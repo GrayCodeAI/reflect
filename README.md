@@ -45,27 +45,27 @@ Follow [GrayCode](https://github.com/GrayCodeAI) for progress. When Decoder is r
 
 ## Install
 
-Prebuilt installs are **available from v0.3.0**, the first release published
-under the `decoder` name. Until v0.3.0 appears on the
+The next Decoder release uses the version in [`VERSION`](./VERSION).
+Until a release with `decoder_*` archives appears on the
 [releases page](https://github.com/GrayCodeAI/decoder/releases), build from source
-(see [Quick Start](#quick-start-contributors--from-source)). The older
-`v0.1.0`–`v0.2.0` tags predate the rename: they ship `hawk_*` archives under
-the old module path and cannot be installed as `decoder`.
+(see [Quick Start](#quick-start-contributors--from-source)). Historical
+`v0.1.0`, `v0.1.1` and `v0.2.0` tags ship `hawk_*` archives under the old module
+path and cannot be installed as `decoder`.
 
-From v0.3.0:
+After a Decoder release is published:
 
 ```bash
 # Script: installs ~/.decoder/bin/decoder-<version> and links it as ~/.decoder/bin/decoder.
 # Always checks the archive's SHA-256 against checksums.txt; also verifies the
 # cosign signature of checksums.txt when cosign is installed (it says so when
 # it is not). Set DECODER_REQUIRE_COSIGN=1 to refuse installing without cosign.
-curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/main/install.sh | sh
 
 # Pin a version or choose the install prefix (see: sh install.sh --help)
-curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh -s -- --version 0.3.0 --prefix "$HOME/.decoder"
+curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/main/install.sh | sh -s -- --version "$(cat VERSION)" --prefix "$HOME/.decoder"
 
 # Go toolchain (Go 1.27.2+): builds the tagged module from source
-go install github.com/GrayCodeAI/decoder/cmd/decoder@latest
+go install github.com/GrayCodeAI/decoder/cmd/decoder@v$(cat VERSION)
 ```
 
 Each release carries `decoder_<version>_<os>_<arch>` archives for
@@ -108,10 +108,9 @@ checklist: credentials → model → catalog → ecosystem.
 See [docs/SECURITY-DEVELOPER.md](docs/SECURITY-DEVELOPER.md) for the credential model.
 Do not put API keys in shell env or `.env` for decoder.
 
-Optional: install the current `main` with the Go toolchain. Use `@main` until
-v0.3.0 is tagged: `@latest` still resolves to the hawk-era v0.2.0, which does not
-contain `cmd/decoder`.
-
+Optional: install the current `main` with the Go toolchain. Historical
+higher-numbered hawk tags mean `@latest` cannot be relied on for the reset
+version series. Use `@main` or an explicit Decoder release tag.
 ```bash
 go install github.com/GrayCodeAI/decoder/cmd/decoder@main
 ```
@@ -596,3 +595,10 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) for commit mess
 MIT — see [LICENSE](LICENSE) for details.
 
 © 2026 GrayCode AI
+
+## Project version
+
+[`VERSION`](./VERSION) is the single version source. Edit it once, then run
+`make version-sync` to regenerate package and OpenAPI metadata. CI and release
+workflows run `make version-check` to reject stale metadata. Plain Go builds
+also carry the canonical version when run outside the checkout.

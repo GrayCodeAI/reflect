@@ -7,7 +7,9 @@ that sets `VERSION` and the `CHANGELOG.md` section, then pushes the matching
 builds, signs and publishes the GitHub release. There is no release-please or
 other bot: nothing bumps `VERSION` or writes `CHANGELOG.md` automatically.
 
-The first release under the `decoder` name is **v0.3.0**.
+The next release version comes from [`VERSION`](../VERSION). The new Decoder
+series restarts below the historical hawk versions; use explicit tags for
+Go installation rather than assuming `@latest` selects this series.
 
 ## Tag protection
 
@@ -27,7 +29,7 @@ pushes).
 
 ## Release checklist
 
-1. **Release PR** (conventional title, e.g. `chore(release): v0.3.0`):
+1. **Release PR** (conventional title, e.g. `chore(release): vX.Y.Z`):
    - `VERSION` holds `X.Y.Z` (no leading `v`).
    - `CHANGELOG.md`: rename `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`
      and add a new, empty `## [Unreleased]` above it. This section becomes the
@@ -108,10 +110,10 @@ plainly when it is not, and refuses to install without cosign when
 
 | Channel | Status |
 |---|---|
-| GitHub release archives | From v0.3.0. |
-| `install.sh` | From v0.3.0; refuses older (hawk-era) versions. |
-| `go install github.com/GrayCodeAI/decoder/cmd/decoder@latest` | From v0.3.0. Until then `@main` works; `@latest` resolves to the hawk-era v0.2.0. |
-| GitHub Action (`.github/actions/decoder`) | From v0.3.0; installs through `install.sh` with cosign required. |
+| GitHub release archives | Pending a Decoder release with matching archives. |
+| `install.sh` | Pending a Decoder release; refuses known hawk-era tags. |
+| `go install github.com/GrayCodeAI/decoder/cmd/decoder@latest` | Use an explicit Decoder tag or `@main`; historical higher tags affect `@latest`. |
+| GitHub Action (`.github/actions/decoder`) | Requires Decoder release archives; installs through `install.sh` with cosign required. |
 | systemd unit (`packaging/systemd/decoder-daemon.service`) | Template for running `decoder daemon`; see the troubleshooting guide. |
 | Homebrew | **Not available.** Needs a `GrayCodeAI/homebrew-tap` repository, a fine-grained token with write access to it stored as a secret, and a `homebrew_casks` stanza in `.goreleaser.yml`. |
 | npm | **Not available.** The scaffolding in `npm/` is marked private; see [`npm/README.md`](../npm/README.md). |
@@ -120,16 +122,16 @@ plainly when it is not, and refuses to install without cosign when
 Add a channel to the README only after it has worked end to end for a real
 release.
 
-## Notes for v0.3.0 (first decoder release)
+## Historical tags and the reset version series
 
 - Tags `v0.1.0`, `v0.1.1` and `v0.2.0` were published under the previous
   module path `github.com/GrayCodeAI/hawk`; their assets are `hawk_*` archives
   containing a `hawk` binary. None of them is an ancestor of `main`, and
-  `v0.1.1` has no GitHub release. The Go proxy keeps serving them, so v0.3.0's
+  `v0.1.1` has no GitHub release. The Go proxy keeps serving them, so the current
   `go.mod` retracts `[v0.1.0, v0.2.0]`.
 - Because no earlier tag is reachable from `main`, the release notes come only
   from the `CHANGELOG.md` section and the "Full changelog" compare link is
   omitted.
-- v0.2.0 is the current "Latest" release. Once v0.3.0 is published it becomes
-  Latest. Consider editing the v0.2.0 release notes to say it is the legacy
-  hawk build and cannot be installed as decoder.
+- The historical higher-numbered hawk releases must not be confused with the
+  reset Decoder series. Publishing a lower version does not automatically make
+  it the Go proxy's `@latest`. Use explicit tags; do not rewrite existing tags.

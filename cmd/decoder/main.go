@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/GrayCodeAI/decoder"
+
 	"golang.org/x/term"
 
 	"github.com/GrayCodeAI/decoder/cmd"
@@ -29,10 +31,10 @@ import (
 //	-X main.Commit=$(git rev-parse --short HEAD)
 //	-X main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 //
-// The "dev" / "none" / "unknown" defaults below apply only to local builds
-// without ldflags so it's obvious when running an unreleased binary.
+// Plain go build/go install embeds VERSION too; commit and date remain unknown
+// unless build metadata is supplied.
 var (
-	Version   = "dev"
+	Version   = ""
 	Commit    = "none"
 	BuildDate = "unknown"
 )
@@ -42,6 +44,10 @@ func main() {
 	// fault output are captured before any user code runs. Additive: it never
 	// replaces existing signal handling (Bubble Tea, daemon shutdown).
 	crash.Install()
+
+	if Version == "" {
+		Version = decoder.Version
+	}
 
 	// Handle --version flag immediately
 	if len(os.Args) > 1 && os.Args[1] == "--version" {

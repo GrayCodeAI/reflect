@@ -37,6 +37,13 @@ env:
   GOWORK: "off"
 
 jobs:
+  version:
+    name: Canonical version metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - run: python3 scripts/sync-version.py --check
+
   # -------------------------------------------------------------------------
   # 1. Format — gofumpt + goimports must be clean (zero tolerance).
   # -------------------------------------------------------------------------

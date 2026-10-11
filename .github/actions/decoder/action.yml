@@ -103,9 +103,9 @@ inputs:
     default: ${{ github.workspace }}
   decoder-version:
     description: >-
-      Decoder release to install (e.g. 0.3.0 or v0.3.0), or latest. Defaults to
-      the release tag this action is pinned to (uses: ...@v0.3.0); a branch or
-      commit-SHA pin installs the latest release. Requires Decoder v0.3.0 or later:
+      Decoder release to install (e.g. X.Y.Z or vX.Y.Z), or latest. Defaults to
+      the release tag this action is pinned to (uses: ...@vX.Y.Z); a branch or
+      commit-SHA pin installs the latest release. Requires a release containing Decoder archives:
       earlier tags predate the rename and have no decoder_* archives.
     required: false
     default: ""
@@ -167,7 +167,7 @@ runs:
           version="$(gh release view --repo "${DECODER_REPO}" --json tagName --jq .tagName)"
         fi
         if ! [[ "${version}" =~ ${release_re} ]]; then
-          echo "::error::decoder-version must be a release version such as 0.3.0, or 'latest'." >&2
+          echo "::error::decoder-version must be a release version such as 1.2.3, or 'latest'." >&2
           exit 2
         fi
         version="${version#v}"

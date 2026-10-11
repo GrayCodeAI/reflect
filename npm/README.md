@@ -15,7 +15,7 @@ This directory is scaffolding for a future npm channel:
 - `decoder/scripts/assemble-platform-packages.js` — fills the platform packages
   from GoReleaser's `dist/` output and stamps every package, including the meta
   package's `optionalDependencies`, with the release version (the repository
-  `VERSION` file, or `DECODER_NPM_VERSION`).
+  `VERSION` file; `DECODER_NPM_VERSION`, when set, must match it).
 
 To try the assembly locally without publishing:
 

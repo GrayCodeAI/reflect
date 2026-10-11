@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GrayCodeAI/decoder"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/log"
@@ -122,7 +124,7 @@ func NewBackend(cfg Config) (*Backend, error) {
 	}
 	serviceVersion := cfg.ServiceVersion
 	if serviceVersion == "" {
-		serviceVersion = "0.1.0"
+		serviceVersion = decoder.Version
 	}
 
 	if mode == ModeDisabled {
@@ -361,7 +363,7 @@ func DefaultConfig() Config {
 		Headers:         parseHeaders(os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")),
 		ShutdownTimeout: DefaultShutdownTimeout,
 		ServiceName:     "decoder",
-		ServiceVersion:  "0.1.0",
+		ServiceVersion:  decoder.Version,
 	}
 	if os.Getenv("DECODER_ENABLE_TELEMETRY") == "1" && cfg.URL != "" {
 		cfg.Mode = ModeFull

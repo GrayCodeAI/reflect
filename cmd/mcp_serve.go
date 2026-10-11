@@ -35,10 +35,7 @@ var mcpServeCmd = &cobra.Command{
 func runMCPServe(cmd *cobra.Command, _ []string) error {
 	settings := decoderconfig.LoadSettings()
 
-	serverVersion := version
-	if serverVersion == "" {
-		serverVersion = "dev"
-	}
+	serverVersion := DisplayVersion()
 	server := mcp.NewMCPServer(mcp.ServerInfo{Name: "decoder", Version: serverVersion})
 
 	// Wire decoder's tool registry in as the executor so delegating tools run for

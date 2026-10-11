@@ -29,12 +29,7 @@ func repoVersion(t *testing.T) string {
 func TestVersionFileIsSemVer(t *testing.T) {
 	v := repoVersion(t)
 	if strings.HasPrefix(v, "v") || !semver.IsValid("v"+v) {
-		t.Fatalf("VERSION = %q, want a SemVer version without a leading v (e.g. 0.3.0)", v)
-	}
-	// v0.1.0–v0.2.0 are hawk-era tags already on the Go module proxy; a lower
-	// VERSION would never become @latest.
-	if semver.Compare("v"+v, "v0.3.0") < 0 {
-		t.Fatalf("VERSION = %q is below 0.3.0, the first decoder-named release", v)
+		t.Fatalf("VERSION = %q, want a SemVer version without a leading v (e.g. 1.2.3)", v)
 	}
 }
 

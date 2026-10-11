@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/GrayCodeAI/decoder"
 )
 
 // TelemetryConfig controls OpenTelemetry initialization.
@@ -27,7 +29,7 @@ type TelemetryConfig struct {
 func DefaultTelemetryConfig() TelemetryConfig {
 	cfg := TelemetryConfig{
 		ServiceName:     "decoder",
-		ServiceVersion:  "0.1.0",
+		ServiceVersion:  decoder.Version,
 		ExporterProto:   envOr("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf"),
 		Endpoint:        os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		MetricsInterval: 60 * time.Second,

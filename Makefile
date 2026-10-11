@@ -9,10 +9,10 @@ NAME      := decoder
 MAIN_PKG  := ./cmd/decoder
 
 # ---------------------------------------------------------------------------
-# Versioning — sourced from VERSION file; falls back to git describe.
+# Versioning — sourced only from VERSION.
 # See https://github.com/GrayCodeAI/decoder/blob/main/docs/versioning.md.
 # ---------------------------------------------------------------------------
-VERSION ?= $(shell v=$$(cat VERSION 2>/dev/null | head -n1 | tr -d '[:space:]'); if [ -n "$$v" ]; then echo "$$v"; else git describe --tags --always --dirty 2>/dev/null || echo "dev"; fi)
+VERSION := $(shell tr -d '[:space:]' < VERSION)
 COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE    := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 
@@ -49,7 +49,7 @@ all: lint test build ## Default — lint, test, build.
 # ---------------------------------------------------------------------------
 # Build / install / release.
 # ---------------------------------------------------------------------------
-build: ## Build the binary into bin/$(NAME).
+build: version-sync ## Build the binary into bin/$(NAME).
 	CGO_ENABLED=0 go build -trimpath -ldflags="$(LDFLAGS)" -o bin/$(NAME) $(MAIN_PKG)
 
 install: ## Install the binary to $GOBIN.
@@ -177,7 +177,7 @@ tidy: ## Sync workspace modules and verify checksums.
 # ---------------------------------------------------------------------------
 # Composite gate used by CI and pre-push.
 # ---------------------------------------------------------------------------
-ci: tidy fmt-check vet boundaries lint test-race security api-validate ## Run everything CI runs.
+ci: version-check tidy fmt-check vet boundaries lint test-race security api-validate ## Run everything CI runs.
 	@echo "All CI checks passed."
 
 smoke: ## Quick build + doctor + ecosystem verification.
@@ -284,3 +284,10 @@ size-check: build ## Fail if bin/$(NAME) (release ldflags) exceeds SIZE_LIMIT_MB
 		echo "::error::Binary size $$(( size / 1048576 )) MiB exceeds the $(SIZE_LIMIT_MB) MiB budget (Makefile SIZE_LIMIT_MB)"; \
 		exit 1; \
 	fi
+
+.PHONY: version-sync version-check
+version-sync: ## Regenerate package/API metadata from VERSION.
+	python3 scripts/sync-version.py
+
+version-check: ## Reject stale generated version metadata.
+	python3 scripts/sync-version.py --check

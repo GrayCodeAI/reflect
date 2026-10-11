@@ -8,7 +8,7 @@ info:
 
     This spec is kept in lockstep with the registered routes in
     internal/daemon; the daemon test suite fails if they drift.
-  version: "0.1.0"
+  version: "0.0.1"
   license:
     name: MIT
     url: https://github.com/GrayCodeAI/decoder/blob/main/LICENSE

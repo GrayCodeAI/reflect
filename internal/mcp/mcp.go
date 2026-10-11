@@ -12,13 +12,14 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/GrayCodeAI/decoder"
 )
 
 // clientVersion is the decoder version reported in MCP `initialize` clientInfo.
 // It is wired at startup by main.go from the canonical decoder version (the
-// VERSION file at the repo root, injected via ldflags). The "dev" default
-// applies only to local builds without ldflags.
-var clientVersion = "dev"
+// embedded VERSION file, optionally injected via ldflags).
+var clientVersion = decoder.Version
 
 // SetClientVersion lets main.go propagate the canonical decoder version into
 // this package without creating an import cycle with cmd.

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASING.md).
 
-> **Version history.** The next release, **v0.3.0**, is the first published
+> **Version history.** The next release, versioned by [`VERSION`](./VERSION), is the first published
 > under the `decoder` name and module path `github.com/GrayCodeAI/decoder`. Sections
 > labelled `hawk` below are kept as the historical record of the project
 > before the rename: `hawk 0.2.0` is the `v0.2.0` tag, which (like `v0.1.0`
@@ -18,16 +18,13 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 
 ## [Unreleased]
 
-### Changed
-
-- The module, CLI, environment variables, state paths, integrations and packaging now use Decoder, backed by the renamed Mux module; Go 1.27.2 is required.
-
 ### Added
 - **Release process and guards**: `docs/RELEASING.md` (release PR checklist, tag protection, what the release workflow publishes, how to verify a release, status of every distribution channel); `scripts/check-release-tag.sh`, used by the release workflow and `make release-check`, refuses a tag that is not `v` + `VERSION` or has no `CHANGELOG.md` section; `make release-snapshot` builds every archive locally without publishing or signing.
 - **windows/arm64 release archives**: GoReleaser and the CI build matrix now cover all six linux/darwin/windows × amd64/arm64 targets.
 
 ### Changed
-- **Version 0.3.0**: `VERSION` is `0.3.0`, the first release under the decoder name (the Go proxy already holds the hawk-era v0.1.0–v0.2.0), and the compatibility matrix `stable` entry pins decoder 0.3.0 with mux 0.0.1.
+- The module, CLI, environment variables, state paths, integrations and packaging now use Decoder, backed by the renamed Mux module; Go 1.27.2 is required.
+- The project version resets to the value in `VERSION`. Runtime defaults embed it, and package/API metadata is generated from it with CI drift checks. Historical hawk tags remain intact; explicit tags are required for the reset series.
 - **Release workflow can publish**: it installs syft for the SBOMs, signs `checksums.txt` inside GoReleaser with cosign keyless signing (`checksums.txt.sigstore.json`), re-verifies the published signature, takes the release notes from this file, builds with `GOWORK=off` and `-trimpath`, and drops the unused `packages: write` permission and sibling checkout.
 - **Binary size budget enforced**: `make size-check` fails above `SIZE_LIMIT_MB` (70 MiB; linux/amd64 is 59.6 MiB today) and CI runs it instead of only warning above 98 MB.
 - **`make release` no longer publishes** from a workstation; releases come only from the tag-triggered workflow.
@@ -43,8 +40,8 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Docs truth and housekeeping**: SECURITY.md/CONTRIBUTING.md now describe the actual Go toolchain (golangci-lint, go vet, govulncheck) instead of the polyglot template's ruff/mypy/pip-audit/pnpm-lock language, CONTRIBUTING documents `make setup`/`boundaries`/`test-10x`/`smoke`, and the planning docs (`SPEC_DRIVEN_PLAN.md`, `SPEC_DRIVEN_PHASE2_PLAN.md`, `internal/engine/REFACTOR_PLAN.md`) moved to `docs/plans/`.
 
 ### Security
-- **`install.sh` verifies releases fail-closed**: with cosign installed it verifies `checksums.txt.sigstore.json` against the exact release-workflow identity and aborts on a missing or invalid signature; without cosign it warns and reports the signature as not verified, and `DECODER_REQUIRE_COSIGN=1` makes cosign mandatory. The SHA-256 check always runs, flags are parsed strictly (unknown flags exit 2), and releases older than v0.3.0 (hawk-era archives) are refused.
-- **GitHub Action installs signed release archives** through `install.sh` with cosign required, instead of building an unverified `curl | tar` source tarball; `decoder-version` accepts `0.3.0`, `v0.3.0` or `latest`, and Go is no longer needed.
+- **`install.sh` verifies releases fail-closed**: with cosign installed it verifies `checksums.txt.sigstore.json` against the exact release-workflow identity and aborts on a missing or invalid signature; without cosign it warns and reports the signature as not verified, and `DECODER_REQUIRE_COSIGN=1` makes cosign mandatory. The SHA-256 check always runs, flags are parsed strictly (unknown flags exit 2), and known hawk-era tags are refused.
+- **GitHub Action installs signed release archives** through `install.sh` with cosign required, instead of building an unverified `curl | tar` source tarball; `decoder-version` accepts a release version with or without `v`, or `latest`, and Go is no longer needed.
 - **systemd unit**: runs as a dedicated `decoder` user with state in `StateDirectory`/`CacheDirectory` (the old `%h` paths were hidden by `ProtectHome=true`), reads the daemon API key from an `EnvironmentFile` instead of the command line, and links the troubleshooting guide instead of a dead domain.
 - **Session lock TOCTOU eliminated**: `AcquireLock`'s stat → stale-if->5min → remove → O_EXCL dance could delete a live lock on misjudged staleness and let two instances open the same session. Mutual exclusion now uses an OS advisory lock (`gofrs/flock`, promoted to a direct dependency); a crashed holder's lock is reclaimed instantly because the kernel drops the flock at process death. The lock file keeps PID/timestamps purely as diagnostics.
 - **Hardened atomic writes for state files**: global settings, checkpoint file contents and restores, handovers, and named checkpoints now go through `internal/safewrite` (same 0600 mode as before, plus fsync+rename atomicity and symlink refusal at the destination).

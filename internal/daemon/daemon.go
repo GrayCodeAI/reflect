@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GrayCodeAI/decoder"
+
 	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
 	"github.com/GrayCodeAI/decoder/internal/engine"
@@ -74,7 +76,7 @@ func (e *InvalidChatRequestError) Error() string {
 func (e *InvalidChatRequestError) Unwrap() error { return e.Err }
 
 // version is set via SetVersion from main.go at startup.
-var version = "0.0.0"
+var version = decoder.Version
 
 // SetVersion propagates the canonical decoder version into the daemon.
 func SetVersion(v string) { version = v }

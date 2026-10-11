@@ -15,25 +15,10 @@ repository that follows this layout. Adopted 2026-05-14.
 ### Go binaries (`decoder`)
 
 - `VERSION` at the repo root.
-- A version package (`internal/version` for binaries, or `main` itself) declares
-  three settable variables defaulting to `"dev"` / `"none"` / `"unknown"`:
-  ```go
-  var (
-      Version = "dev"   // overridden by ldflags at release time
-      Commit  = "none"
-      Date    = "unknown"
-  )
-  ```
-- The `Makefile` reads `VERSION` and injects all three via ldflags:
-  ```make
-  VERSION := $(shell cat VERSION 2>/dev/null | tr -d '[:space:]' || echo "dev")
-  COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
-  DATE    := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
-  LDFLAGS := -s -w \
-      -X main.Version=$(VERSION) \
-      -X main.Commit=$(COMMIT) \
-      -X main.BuildDate=$(DATE)
-  ```
+- The root `decoder` package embeds `VERSION` at compile time. The CLI, daemon,
+  MCP client and telemetry defaults read this value. A standalone binary does
+  not search the filesystem for version files.
+- The `Makefile` reads `VERSION` and injects it alongside commit and build date.
 - `goreleaser` injects from the git tag at release time. The release workflow
   refuses a tag that is not exactly `v` + `VERSION`
   (`scripts/check-release-tag.sh`), so the two cannot disagree.
@@ -119,3 +104,11 @@ For decoder the full procedure, tag protection and verification steps are in
 Versions are independent per repo. A future `compatibility-matrix.json` (at
 the eco root) will record which combinations are tested together (similar to
 the AWS SDK / Hashicorp release matrices).
+
+### Generated distribution metadata
+
+Edit only the root `VERSION`, then run `make version-sync`. The generator stamps
+OpenAPI metadata, npm packages and optional dependency pins, SDK manifests,
+and Mux's lower-layer Go version default. These checked-in outputs are generated
+copies, not independent settings. `make version-check` and both CI/release
+workflows fail on drift. Each repository remains independently buildable.

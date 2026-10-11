@@ -14,8 +14,8 @@
 // `optionalDependencies` pins with the same version, so npm resolves the
 // matching platform package.
 //
-// The release version is DECODER_NPM_VERSION when set, otherwise the repository's
-// VERSION file (which release.yml requires to match the tag).
+// The release version comes only from VERSION. DECODER_NPM_VERSION, if set,
+// must match it (release.yml also requires the tag to match).
 //
 // Why brotli? npm's tarball ceiling is ~200 MB. Brotli at max quality shrinks
 // the ~60 MB stripped Go binary substantially and is decoded by Node's
@@ -48,10 +48,13 @@ const META_PKG_JSON = path.resolve(__dirname, '..', 'package.json');
 const REPO_VERSION_FILE = path.resolve(npmRoot, '..', 'VERSION');
 
 function releaseVersion() {
-    const raw = process.env.DECODER_NPM_VERSION || fs.readFileSync(REPO_VERSION_FILE, 'utf8');
+    const raw = fs.readFileSync(REPO_VERSION_FILE, 'utf8');
     const version = raw.trim().replace(/^v/, '');
     if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
         throw new Error(`invalid release version ${JSON.stringify(raw.trim())} (want MAJOR.MINOR.PATCH)`);
+    }
+    if (process.env.DECODER_NPM_VERSION && process.env.DECODER_NPM_VERSION.replace(/^v/, '') !== version) {
+        throw new Error('DECODER_NPM_VERSION must match VERSION');
     }
     return version;
 }
@@ -171,7 +174,7 @@ async function main() {
     }
 
     // Pin the meta package and its optionalDependencies to the same version;
-    // otherwise npm would resolve the sub-packages at 0.0.0-development.
+    // otherwise npm could resolve a different platform-package version.
     const meta = JSON.parse(fs.readFileSync(META_PKG_JSON, 'utf8'));
     meta.version = VERSION;
     for (const name of Object.keys(meta.optionalDependencies || {})) {

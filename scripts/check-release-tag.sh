@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Release guard: refuse to release a tag that disagrees with the repository.
 #
-# Usage: scripts/check-release-tag.sh [--notes <file>] <tag>   (e.g. v0.3.0)
+# Usage: scripts/check-release-tag.sh [--notes <file>] <tag>   (e.g. vX.Y.Z)
 #
 # Checks, relative to the repository root (or RELEASE_CHECK_ROOT when set):
 #   1. VERSION holds a SemVer 2.0.0 version (no leading "v").
@@ -24,7 +24,7 @@ if [ "${1:-}" = "--notes" ]; then
   shift 2
 fi
 if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-  echo "usage: $0 [--notes <file>] <tag>   (for example: $0 v0.3.0)" >&2
+  echo "usage: $0 [--notes <file>] <tag>   (for example: $0 vX.Y.Z)" >&2
   exit 2
 fi
 tag="$1"

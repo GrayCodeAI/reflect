@@ -32,6 +32,9 @@ jobs:
           fetch-depth: 0   # goreleaser needs full history for changelog
           persist-credentials: false
 
+      - name: Verify canonical version metadata
+        run: python3 scripts/sync-version.py --check
+
       # Refuses a tag that disagrees with VERSION or has no CHANGELOG section,
       # and extracts that section as the release notes.
       - name: Check tag against VERSION and CHANGELOG

@@ -1,6 +1,6 @@
 {
     "name": "@graycodeai/decoder",
-    "version": "0.0.0-development",
+    "version": "0.0.1",
     "private": true,
     "description": "Bring Decoder into your terminal",
     "license": "MIT",
@@ -24,11 +24,11 @@
         "node": ">=18"
     },
     "optionalDependencies": {
-        "@graycodeai/decoder-darwin-arm64": "0.0.0-development",
-        "@graycodeai/decoder-darwin-x64": "0.0.0-development",
-        "@graycodeai/decoder-linux-arm64": "0.0.0-development",
-        "@graycodeai/decoder-linux-x64": "0.0.0-development",
-        "@graycodeai/decoder-win32-arm64": "0.0.0-development",
-        "@graycodeai/decoder-win32-x64": "0.0.0-development"
+        "@graycodeai/decoder-darwin-arm64": "0.0.1",
+        "@graycodeai/decoder-darwin-x64": "0.0.1",
+        "@graycodeai/decoder-linux-arm64": "0.0.1",
+        "@graycodeai/decoder-linux-x64": "0.0.1",
+        "@graycodeai/decoder-win32-arm64": "0.0.1",
+        "@graycodeai/decoder-win32-x64": "0.0.1"
     }
 }

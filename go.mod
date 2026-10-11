@@ -16,7 +16,7 @@ require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/lipgloss/v2 v2.0.5
-	github.com/GrayCodeAI/mux v0.0.2-0.20261011020616-83a218603087
+	github.com/GrayCodeAI/mux v0.0.2-0.20261011023222-e418cdb5eb91
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/charmbracelet/x/ansi v0.11.7

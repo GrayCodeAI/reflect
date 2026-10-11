@@ -1,12 +1,12 @@
 #!/bin/sh
 # Install decoder (the GrayCode terminal AI coding agent) from a GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh -s -- --version 0.3.0 --prefix "$HOME/.decoder"
+#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/main/install.sh | sh -s -- --version "$(cat VERSION)" --prefix "$HOME/.decoder"
 #
 # Steps:
 #   1. Resolve the version: --version / DECODER_VERSION, otherwise the latest
-#      GitHub release. Releases before v0.3.0 predate the rename to decoder (they
+#      GitHub release. Historical hawk-era releases predate the rename to decoder (they
 #      ship hawk_* archives) and are refused.
 #   2. Download decoder_<version>_<os>_<arch>.tar.gz (.zip on Windows) and
 #      checksums.txt from the release.
@@ -21,7 +21,7 @@
 #      at it (a copy named decoder.exe on Windows).
 #
 # Options:
-#   --version <ver>   install this version (e.g. 0.3.0 or v0.3.0)
+#   --version <ver>   install this version (e.g. X.Y.Z or vX.Y.Z)
 #   --prefix <dir>    install under <dir>/bin (default: $DECODER_HOME or ~/.decoder)
 #   -h, --help        show this help
 #
@@ -33,7 +33,6 @@
 #                            the cosign identity follows the chosen repository
 set -eu
 
-MIN_VERSION="0.3.0"
 BINARY="decoder"
 OIDC_ISSUER="https://token.actions.githubusercontent.com"
 REPO="${DECODER_INSTALL_REPO:-GrayCodeAI/decoder}"
@@ -51,7 +50,7 @@ Install decoder from a GitHub release.
 
 Usage: install.sh [--version <ver>] [--prefix <dir>]
 
-  --version <ver>   install this version (e.g. 0.3.0); default: latest release
+  --version <ver>   install this version (e.g. 1.2.3); default: latest release
   --prefix <dir>    install under <dir>/bin; default: $DECODER_HOME or ~/.decoder
   -h, --help        show this help
 
@@ -82,17 +81,7 @@ sha256_of() {
   fi
 }
 
-# version_core_ge A B — true when MAJOR.MINOR.PATCH of A >= that of B.
-version_core_ge() {
-  awk -v a="$1" -v b="$2" 'BEGIN {
-    split(a, x, /[.+-]/); split(b, y, /[.+-]/)
-    for (i = 1; i <= 3; i++) {
-      if (x[i] + 0 > y[i] + 0) exit 0
-      if (x[i] + 0 < y[i] + 0) exit 1
-    }
-    exit 0
-  }'
-}
+
 
 # --- Arguments -----------------------------------------------------------------
 VERSION_PIN="${DECODER_VERSION:-}"
@@ -176,11 +165,13 @@ else
 fi
 
 if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-  die "invalid version '$VERSION' (expected MAJOR.MINOR.PATCH, e.g. 0.3.0)"
+  die "invalid version '$VERSION' (expected MAJOR.MINOR.PATCH, e.g. 1.2.3)"
 fi
-if ! version_core_ge "$VERSION" "$MIN_VERSION"; then
-  die "v${VERSION} predates the rename to decoder: releases before v${MIN_VERSION} ship hawk_* archives that this script cannot install. Install v${MIN_VERSION} or later, or build from source (https://github.com/${REPO}#readme)."
-fi
+case "$VERSION" in
+  0.1.0 | 0.1.1 | 0.2.0)
+    die "v${VERSION} predates the rename to decoder: this historical tag ships hawk_* archives. Choose a decoder release or build from source (https://github.com/${REPO}#readme)."
+    ;;
+esac
 
 TAG="v${VERSION}"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
