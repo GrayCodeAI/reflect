@@ -176,7 +176,7 @@ func countTasks(content string) (total, complete int) {
 }
 
 func runGitCmd(dir string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := exec.CommandContext(context.Background(), "git", args...) // #nosec G204 -- internal callers supply git argv directly, without a shell
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	return string(out), err

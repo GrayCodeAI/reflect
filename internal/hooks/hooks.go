@@ -463,7 +463,7 @@ func yamlUnmarshal(data []byte, v interface{}) error {
 }
 
 func runCommand(ctx context.Context, name string, args []string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) // #nosec G204 -- hook commands are explicitly configured by the host and executed as argv
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

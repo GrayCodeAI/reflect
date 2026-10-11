@@ -209,7 +209,7 @@ type CallbackResult struct {
 // call shutdown() once (after receiving a result, or on timeout) to
 // release the listener.
 func StartLoopbackCallback(ctx context.Context, timeout time.Duration) (redirectURI string, resultCh <-chan CallbackResult, shutdown func(), err error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, nil, err
 	}

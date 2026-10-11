@@ -27,7 +27,7 @@ LDFLAGS := -s -w \
 GOBIN_DIR    := $(shell go env GOPATH)/bin
 GOLANGCI     := $(GOBIN_DIR)/golangci-lint
 # Keep in sync with the pin in .github/workflows/ci.yml (lint job).
-GOLANGCI_VERSION := v2.1.0
+GOLANGCI_VERSION := v2.14.0
 GOFUMPT      := $(GOBIN_DIR)/gofumpt
 GOIMPORTS    := $(GOBIN_DIR)/goimports
 GOVULNCHECK  := $(GOBIN_DIR)/govulncheck

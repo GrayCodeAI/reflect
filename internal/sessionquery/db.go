@@ -1,6 +1,7 @@
 package sessionquery
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -58,7 +59,7 @@ func OpenDB(dbPath string) (*DB, error) {
 	// Single writer connection pool
 	conn.SetMaxOpenConns(1)
 
-	if _, err := conn.Exec(schemaDDL); err != nil {
+	if _, err := conn.ExecContext(context.Background(), schemaDDL); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("failed to initialize session query schema: %w", err)
 	}

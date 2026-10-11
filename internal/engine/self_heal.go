@@ -433,7 +433,7 @@ func (sh *SelfHealer) RunScript(ctx context.Context, path string) (stdout, stder
 	// metacharacters would be executed as shell code (double evaluation).
 	// /bin/sh treats a leading `#!` shebang line as a comment, so script
 	// semantics are unchanged.
-	cmd := exec.CommandContext(ctx, "/bin/sh", path)
+	cmd := exec.CommandContext(ctx, "/bin/sh", path) // #nosec G204 -- executing the caller-requested script is this API's purpose; path is a single argument, not shell-evaluated text
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf

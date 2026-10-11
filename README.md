@@ -89,7 +89,6 @@ This development revision uses `DECODER_*` environment variables, `.decoder`
 state paths, and the `decoder` keychain namespace. Configure credentials and
 migrate any existing settings to these names before using the new binary.
 
-
 ```bash
 git clone https://github.com/GrayCodeAI/decoder && cd decoder
 make setup   # generates go.work referencing sibling support repos in the graycode-eco workspace

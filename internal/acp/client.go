@@ -93,7 +93,7 @@ func Start(ctx context.Context, command string, args []string, opts ...ClientOpt
 		o(&opt)
 	}
 
-	cmd := exec.Command(command, args...)
+	cmd := exec.CommandContext(context.Background(), command, args...) // #nosec G204 -- host-configured ACP executable and argv; process lifetime is managed by Client.Close
 	setCmdProcessGroup(cmd)
 	if len(opt.Env) > 0 {
 		cmd.Env = append(cmd.Environ(), opt.Env...)

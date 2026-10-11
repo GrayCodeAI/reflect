@@ -244,7 +244,7 @@ func checkNetworkReachability(settings decoderconfig.Settings) string {
 	if host == "" {
 		return ""
 	}
-	if _, err := net.LookupHost(host); err != nil {
+	if _, err := net.DefaultResolver.LookupHost(context.Background(), host); err != nil {
 		return fmt.Sprintf("Cannot resolve %s. Check your internet connection.", host)
 	}
 	return ""

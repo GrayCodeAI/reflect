@@ -50,16 +50,16 @@ func (v *voiceSubcommand) recordAndTranscribe() tea.Cmd {
 		tmpFile := filepath.Join(os.TempDir(), "decoder_voice_input.wav")
 		var recordCmd *exec.Cmd
 		if _, err := exec.LookPath("sox"); err == nil {
-			recordCmd = exec.Command("sox", "-d", tmpFile, "trim", "0", "10") // #nosec G204 -- fixed command 'sox' resolved via exec.LookPath
+			recordCmd = exec.CommandContext(context.Background(), "sox", "-d", tmpFile, "trim", "0", "10") // #nosec G204 -- fixed command 'sox' resolved via exec.LookPath
 		} else if _, err := exec.LookPath("ffmpeg"); err == nil {
-			recordCmd = exec.Command("ffmpeg", "-y", "-f", "avfoundation", "-i", ":0", "-t", "10", tmpFile) // #nosec G204 -- fixed command 'ffmpeg' resolved via exec.LookPath
+			recordCmd = exec.CommandContext(context.Background(), "ffmpeg", "-y", "-f", "avfoundation", "-i", ":0", "-t", "10", tmpFile) // #nosec G204 -- fixed command 'ffmpeg' resolved via exec.LookPath
 		} else {
 			return voiceResultMsg{info: "No audio recorder found. Install sox (brew install sox) or use: whisper --model base -f recording.wav"}
 		}
 		if err := recordCmd.Run(); err != nil {
 			return voiceResultMsg{err: fmt.Sprintf("Recording failed: %v", err)}
 		}
-		transcribeCmd := exec.Command("whisper", "--model", "base", "--output_format", "txt", "--output_dir", os.TempDir(), tmpFile) // #nosec G204 -- fixed command 'whisper' with internal args
+		transcribeCmd := exec.CommandContext(context.Background(), "whisper", "--model", "base", "--output_format", "txt", "--output_dir", os.TempDir(), tmpFile) // #nosec G204 -- fixed command 'whisper' with internal args
 		if err := transcribeCmd.Run(); err != nil {
 			return voiceResultMsg{err: fmt.Sprintf("Transcription failed: %v", err)}
 		}

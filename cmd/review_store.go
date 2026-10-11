@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -76,11 +77,11 @@ func OpenReviewStore(projectDir string) (*ReviewStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open review db: %w", err)
 	}
-	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+	if _, err := db.ExecContext(context.Background(), "PRAGMA journal_mode=WAL"); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
-	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+	if _, err := db.ExecContext(context.Background(), "PRAGMA foreign_keys=ON"); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -94,18 +95,18 @@ func OpenReviewStore(projectDir string) (*ReviewStore, error) {
 }
 
 func (s *ReviewStore) migrate() error {
-	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS review_schema_version (version INTEGER PRIMARY KEY)`)
+	_, err := s.db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS review_schema_version (version INTEGER PRIMARY KEY)`)
 	if err != nil {
 		return err
 	}
 	var current int
-	if err := s.db.QueryRow("SELECT COALESCE(MAX(version), 0) FROM review_schema_version").Scan(&current); err != nil {
+	if err := s.db.QueryRowContext(context.Background(), "SELECT COALESCE(MAX(version), 0) FROM review_schema_version").Scan(&current); err != nil {
 		return fmt.Errorf("read review schema version: %w", err)
 	}
 
 	migrations := []string{reviewSchema}
 	for i := current; i < len(migrations); i++ {
-		tx, err := s.db.Begin()
+		tx, err := s.db.BeginTx(context.Background(), nil)
 		if err != nil {
 			return err
 		}
@@ -114,12 +115,12 @@ func (s *ReviewStore) migrate() error {
 			if stmt == "" {
 				continue
 			}
-			if _, err := tx.Exec(stmt); err != nil {
+			if _, err := tx.ExecContext(context.Background(), stmt); err != nil {
 				_ = tx.Rollback()
 				return fmt.Errorf("migration %d: %w", i+1, err)
 			}
 		}
-		if _, err := tx.Exec("INSERT INTO review_schema_version (version) VALUES (?)", i+1); err != nil {
+		if _, err := tx.ExecContext(context.Background(), "INSERT INTO review_schema_version (version) VALUES (?)", i+1); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
@@ -134,7 +135,7 @@ func (s *ReviewStore) migrate() error {
 func (s *ReviewStore) Create(sha string) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	res, err := s.db.Exec(
+	res, err := s.db.ExecContext(context.Background(),
 		"INSERT INTO reviews (sha, status) VALUES (?, ?)",
 		sha, ReviewStatusPending,
 	)
@@ -152,7 +153,7 @@ func (s *ReviewStore) Update(id int64, status ReviewStatus, result *reviewcontra
 	findingsJSON, _ := json.Marshal(result.Findings)
 	maxSev := result.MaxSeverity().String()
 
-	_, err := s.db.Exec(
+	_, err := s.db.ExecContext(context.Background(),
 		`UPDATE reviews SET status=?, findings_json=?, report=?, max_severity=?, tokens_used=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
 		status, string(findingsJSON), result.Report, maxSev, result.Stats.TokensUsed, id,
 	)
@@ -163,7 +164,7 @@ func (s *ReviewStore) Update(id int64, status ReviewStatus, result *reviewcontra
 func (s *ReviewStore) SetStatus(id int64, status ReviewStatus) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, err := s.db.Exec("UPDATE reviews SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", status, id)
+	_, err := s.db.ExecContext(context.Background(), "UPDATE reviews SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", status, id)
 	return err
 }
 
@@ -171,7 +172,7 @@ func (s *ReviewStore) SetStatus(id int64, status ReviewStatus) error {
 func (s *ReviewStore) Get(id int64) (*ReviewRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.scanOne(s.db.QueryRow(
+	return s.scanOne(s.db.QueryRowContext(context.Background(),
 		"SELECT id, sha, status, findings_json, report, max_severity, tokens_used, created_at, updated_at FROM reviews WHERE id=?", id,
 	))
 }
@@ -180,7 +181,7 @@ func (s *ReviewStore) Get(id int64) (*ReviewRecord, error) {
 func (s *ReviewStore) GetBySHA(sha string) (*ReviewRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.scanOne(s.db.QueryRow(
+	return s.scanOne(s.db.QueryRowContext(context.Background(),
 		"SELECT id, sha, status, findings_json, report, max_severity, tokens_used, created_at, updated_at FROM reviews WHERE sha=? ORDER BY created_at DESC LIMIT 1", sha,
 	))
 }
@@ -203,7 +204,7 @@ func (s *ReviewStore) ListAll(limit int) ([]*ReviewRecord, error) {
 func (s *ReviewStore) Summary() (map[ReviewStatus]int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	rows, err := s.db.Query("SELECT status, COUNT(*) FROM reviews GROUP BY status")
+	rows, err := s.db.QueryContext(context.Background(), "SELECT status, COUNT(*) FROM reviews GROUP BY status")
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +228,7 @@ func (s *ReviewStore) Summary() (map[ReviewStatus]int, error) {
 func (s *ReviewStore) Close() error {
 	// Checkpoint WAL to flush all data into the main db and truncate
 	// the WAL file, so no .db-wal / .db-shm files linger on disk.
-	if _, err := s.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+	if _, err := s.db.ExecContext(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
 		_ = s.db.Close()
 		return fmt.Errorf("checkpoint review WAL: %w", err)
 	}
@@ -249,7 +250,7 @@ func (s *ReviewStore) scanOne(row *sql.Row) (*ReviewRecord, error) {
 }
 
 func (s *ReviewStore) query(q string) ([]*ReviewRecord, error) {
-	rows, err := s.db.Query(q)
+	rows, err := s.db.QueryContext(context.Background(), q)
 	if err != nil {
 		return nil, err
 	}

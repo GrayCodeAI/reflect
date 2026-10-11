@@ -30,6 +30,7 @@ func TestCreateWorktreeCleansUpOnFailure(t *testing.T) {
 	for _, args := range [][]string{
 		{"git", "-C", tmpRepo, "config", "user.email", "decoder-test@example.com"},
 		{"git", "-C", tmpRepo, "config", "user.name", "decoder test"},
+		{"git", "-C", tmpRepo, "config", "commit.gpgsign", "false"},
 	} {
 		if out, err := exec.CommandContext(context.Background(), args[0], args[1:]...).CombinedOutput(); err != nil {
 			t.Fatalf("git config failed: %v\n%s", err, out)
@@ -63,9 +64,8 @@ func TestCreateWorktreeCleansUpOnFailure(t *testing.T) {
 	// random names, we can't check a specific path. The key assertion is
 	// that the error path in createWorktree calls os.RemoveAll(wtPath)
 	// before returning the error.
-	if err != nil && !strings.Contains(err.Error(), "nonexistent-branch-xyz") {
-		// The error should mention the branch name or be a git error.
-		// This is a loose check — the important thing is that it failed.
+	if !strings.Contains(err.Error(), "nonexistent-branch-xyz") {
+		t.Fatalf("worktree failure should identify the invalid base branch: %v", err)
 	}
 }
 

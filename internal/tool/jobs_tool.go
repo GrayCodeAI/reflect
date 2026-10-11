@@ -193,7 +193,7 @@ func (JobsTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 func bashJobRun(ctx context.Context, command string, outputLimit int) func() jobs.Hooks {
 	return func() jobs.Hooks {
 		lw := &limitedWriter{maxBytes: outputLimit}
-		cmd := exec.Command("bash", "-c", command) // #nosec G204 -- model-issued command, same surface as Bash
+		cmd := exec.CommandContext(context.Background(), "bash", "-c", command) // #nosec G204 -- model-issued command, same surface as Bash
 		cmd.Env = env.SubprocessEnv()
 		setCmdProcessGroup(cmd)
 		if tc := GetToolContext(ctx); tc != nil && tc.WorkingDir != "" {

@@ -94,6 +94,6 @@ linters:
           # Tests conventionally compare errors for exact identity (err != sentinel)
           # or type-assert with a concrete type; enforcing errors.Is/As there is noise.
           - errorlint
-    issues:
+issues:
   max-issues-per-linter: 0
   max-same-issues: 0

@@ -69,7 +69,7 @@ jobs:
           fi
       - name: goimports
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.30.0
+          go install golang.org/x/tools/cmd/goimports@v0.52.0
           out=$(git ls-files -- '*.go' | xargs goimports -l)
           if [ -n "$out" ]; then
             echo "::error::goimports would reformat:"
@@ -228,7 +228,7 @@ jobs:
           cache: true
       - name: Run golangci-lint
         run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
           golangci-lint run --timeout=5m
 
   # -------------------------------------------------------------------------
@@ -344,7 +344,7 @@ jobs:
           cache: true
       - name: govulncheck
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
           # Fail only on vulnerabilities reachable from our code (findings with a
           # non-empty call trace). Transitive advisories that our code does not
           # call are surfaced but do not block CI — they cannot be remediated
@@ -452,7 +452,7 @@ jobs:
           cache: true
       - name: deadcode
         run: |
-          go install golang.org/x/tools/cmd/deadcode@v0.30.0
+          go install golang.org/x/tools/cmd/deadcode@v0.52.0
           output=$(mktemp)
           trap 'rm -f "$output"' EXIT
           deadcode ./... >"$output"
