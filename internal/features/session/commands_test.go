@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/decoder/internal/session"
 )
 
 func TestFormatHistory(t *testing.T) {

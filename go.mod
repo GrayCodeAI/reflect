@@ -1,10 +1,10 @@
-module github.com/GrayCodeAI/rho
+module github.com/GrayCodeAI/decoder
 
-go 1.26.6
+go 1.27.2
 
 // v0.1.0, v0.1.1 and v0.2.0 were tagged before the rename: their go.mod
-// declares module github.com/GrayCodeAI/hawk and they contain no cmd/rho, so
-// they cannot be used as github.com/GrayCodeAI/rho.
+// declares module github.com/GrayCodeAI/hawk and they contain no cmd/decoder, so
+// they cannot be used as github.com/GrayCodeAI/decoder.
 retract [v0.1.0, v0.2.0]
 
 // The charmbracelet v2 modules (bubbles, bubbletea, lipgloss, glamour, huh) have
@@ -16,7 +16,7 @@ require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/lipgloss/v2 v2.0.5
-	github.com/GrayCodeAI/flux v0.0.1
+	github.com/GrayCodeAI/mux v0.0.2-0.20261011020616-83a218603087
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/charmbracelet/x/ansi v0.11.7

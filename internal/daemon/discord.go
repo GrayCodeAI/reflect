@@ -11,7 +11,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// DiscordGateway bridges rho to Discord via the official Gateway (WebSocket),
+// DiscordGateway bridges decoder to Discord via the official Gateway (WebSocket),
 // using bwmarrin/discordgo. Unlike a REST-poll bridge it receives message events
 // in real time — guild @mentions and direct messages — with reconnection,
 // heartbeats, and rate limiting handled by the library. Authorized prompts are
@@ -21,7 +21,7 @@ type DiscordGateway struct {
 	cfg        DiscordConfig
 	daemonAddr string
 	apiKey     string
-	client     *http.Client // for forwardToRho
+	client     *http.Client // for forwardToDecoder
 	auth       *authorizer
 	dispatch   *asyncDispatcher
 
@@ -140,7 +140,7 @@ func (g *DiscordGateway) handleMessage(ctx context.Context, senderID, channelID,
 
 	if isPair, ok := g.auth.tryPair(senderID, text); isPair {
 		if ok {
-			reply("Paired. You can now chat with rho.")
+			reply("Paired. You can now chat with decoder.")
 		} else {
 			reply("Pairing failed: invalid code.")
 		}
@@ -151,7 +151,7 @@ func (g *DiscordGateway) handleMessage(ctx context.Context, senderID, channelID,
 		return
 	}
 
-	resp, err := forwardToRho(ctx, g.client, g.daemonAddr, g.apiKey, text)
+	resp, err := forwardToDecoder(ctx, g.client, g.daemonAddr, g.apiKey, text)
 	if err != nil {
 		resp = fmt.Sprintf("Error: %v", err)
 	}

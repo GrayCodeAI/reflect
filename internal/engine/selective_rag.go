@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
 )
 
 // SelectiveRAG implements the Repoformer-style selective retrieval mechanism.

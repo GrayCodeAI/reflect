@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // SynthesisPrompt is appended when forcing a sub-agent to summarize.
@@ -16,15 +16,15 @@ const SynthesisPrompt = "You have reached your turn limit. Provide a concise sum
 // The function builds messages from the conversation so far, appends a user
 // message with SynthesisPrompt, and calls the provider with Tools=nil (disabled)
 // to force a text-only response.
-func SynthesizeSubAgent(ctx context.Context, llm LLMClient, model string, conversationSoFar []types.FluxMessage) (string, error) {
+func SynthesizeSubAgent(ctx context.Context, llm LLMClient, model string, conversationSoFar []types.MuxMessage) (string, error) {
 	if llm == nil {
 		return "", fmt.Errorf("subagent synthesis: LLM client is nil")
 	}
 
 	// Build messages: conversation so far + synthesis prompt.
-	msgs := make([]types.FluxMessage, len(conversationSoFar)+1)
+	msgs := make([]types.MuxMessage, len(conversationSoFar)+1)
 	copy(msgs, conversationSoFar)
-	msgs[len(msgs)-1] = types.FluxMessage{
+	msgs[len(msgs)-1] = types.MuxMessage{
 		Role:    "user",
 		Content: SynthesisPrompt,
 	}

@@ -1,12 +1,12 @@
 package session
 
-import "github.com/GrayCodeAI/rho/internal/types"
+import "github.com/GrayCodeAI/decoder/internal/types"
 
 // RemoveLastExchanges removes up to count user/assistant exchanges using the
 // same role-aware rule as the live engine session. Tool messages are skipped;
 // truncation occurs at the point where the pair is found. The returned count
 // is the number of complete exchanges removed.
-func RemoveLastExchanges(messages []types.FluxMessage, count int) ([]types.FluxMessage, int) {
+func RemoveLastExchanges(messages []types.MuxMessage, count int) ([]types.MuxMessage, int) {
 	if count <= 0 {
 		return messages, 0
 	}

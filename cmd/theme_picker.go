@@ -7,7 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
-	internaltheme "github.com/GrayCodeAI/rho/internal/theme"
+	internaltheme "github.com/GrayCodeAI/decoder/internal/theme"
 )
 
 // detectAutoIsDark returns whether "auto" theme currently resolves to dark.
@@ -167,7 +167,7 @@ func (tp *ThemePicker) View() tea.View {
 	palette := themePickerPalette(tp.entries[tp.sel].Name)
 
 	titleStyle := lipgloss.NewStyle().
-		Background(rhoColor).
+		Background(decoderColor).
 		Foreground(lipgloss.Color(palette.OnAccent)).
 		Bold(true).
 		Padding(0, 1)

@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/safewrite"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/safewrite"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // TokenStore manages authentication tokens.
@@ -43,7 +43,7 @@ func (t *TokenStore) Has(provider string) bool {
 	return ok
 }
 
-// SecureStorage stores secrets in the OS credential store where rho has one:
+// SecureStorage stores secrets in the OS credential store where decoder has one:
 // the macOS Keychain and the Windows Credential Manager. On every other
 // platform (Linux included; there is no Secret Service integration yet) it
 // falls back to a plaintext JSON file at TokenFilePath, written atomically

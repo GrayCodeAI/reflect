@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/textutil"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/textutil"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // EngineWorker returns a WorkerFunc that runs an actual engine session
@@ -56,11 +56,11 @@ func EngineWorker(provider, model, systemPrompt string) WorkerFunc {
 
 		// Create engine session with tools
 		registry := tool.NewRegistry(baseWorkerTools()...)
-		selection := rhoconfig.EffectiveSelection(ctx, rhoconfig.SelectionOptions{
+		selection := decoderconfig.EffectiveSelection(ctx, decoderconfig.SelectionOptions{
 			ProviderOverride: provider,
 			ModelOverride:    model,
 		})
-		sess := engine.NewRhoSession(ctx, selection, provider, model, systemPrompt, registry)
+		sess := engine.NewDecoderSession(ctx, selection, provider, model, systemPrompt, registry)
 
 		// Configure for autonomous operation
 		level := safety.AutonomyLevel(cfg.AutonomyLevel)
@@ -106,7 +106,7 @@ func EngineWorker(provider, model, systemPrompt string) WorkerFunc {
 		defer func() { _ = writer.Close() }()
 
 		// Persist the initial user prompt.
-		_ = writer.Write(types.FluxMessage{Role: "user", Content: workerPrompt})
+		_ = writer.Write(types.MuxMessage{Role: "user", Content: workerPrompt})
 		sess.AddUser(workerPrompt)
 
 		events, err := sess.Stream(ctx)
@@ -120,9 +120,9 @@ func EngineWorker(provider, model, systemPrompt string) WorkerFunc {
 			switch ev.Type {
 			case "content":
 				response.WriteString(ev.Content)
-				_ = writer.Write(types.FluxMessage{Role: "assistant", Content: ev.Content})
+				_ = writer.Write(types.MuxMessage{Role: "assistant", Content: ev.Content})
 			case "tool_use":
-				_ = writer.Write(types.FluxMessage{
+				_ = writer.Write(types.MuxMessage{
 					Role: "assistant", Content: "",
 					ToolUse: []types.ToolCall{{Name: ev.ToolName, ID: ev.ToolID}},
 				})
@@ -169,7 +169,7 @@ func checkExistingTranscript(path string) *Handoff {
 // incompleteTranscriptMessages returns the messages from an incomplete
 // transcript (one without a completion marker). Returns false if the transcript
 // is missing or complete.
-func incompleteTranscriptMessages(path string) ([]types.FluxMessage, bool) {
+func incompleteTranscriptMessages(path string) ([]types.MuxMessage, bool) {
 	exists, complete, err := IsTranscriptComplete(path)
 	if err != nil || !exists || complete {
 		return nil, false
@@ -245,11 +245,11 @@ func ReadOnlyValidationWorker(provider, model, systemPrompt string) WorkerFunc {
 		)
 
 		registry := tool.NewRegistry(readOnlyWorkerTools()...)
-		selection := rhoconfig.EffectiveSelection(ctx, rhoconfig.SelectionOptions{
+		selection := decoderconfig.EffectiveSelection(ctx, decoderconfig.SelectionOptions{
 			ProviderOverride: provider,
 			ModelOverride:    model,
 		})
-		sess := engine.NewRhoSession(ctx, selection, provider, model, systemPrompt, registry)
+		sess := engine.NewDecoderSession(ctx, selection, provider, model, systemPrompt, registry)
 
 		level := safety.AutonomyLevel(cfg.AutonomyLevel)
 		if level < safety.AutonomyFull {
@@ -389,7 +389,7 @@ func truncate(s string, max int) string {
 }
 
 // attemptFromBranch extracts the attempt number from an attempt-suffixed
-// mission branch ("rho-mission/<id>/<feat>/attempt-N"), or 0 when the
+// mission branch ("decoder-mission/<id>/<feat>/attempt-N"), or 0 when the
 // branch does not carry an attempt suffix.
 func attemptFromBranch(branch string) int {
 	idx := strings.LastIndex(branch, "/attempt-")

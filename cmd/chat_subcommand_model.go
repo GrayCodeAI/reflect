@@ -6,7 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 )
 
 // modelSubcommand implements the /model slash command. It shows the
@@ -60,15 +60,15 @@ func (mo *modelSubcommand) Handle(m *chatModel, args []string, text string) (tea
 			return m, nil
 		}
 	}
-	if rhoconfig.DeploymentRoutingEnabled(m.settings) {
-		arg = rhoconfig.ResolveCanonicalModel(arg)
+	if decoderconfig.DeploymentRoutingEnabled(m.settings) {
+		arg = decoderconfig.ResolveCanonicalModel(arg)
 	}
 	prevModel := m.session.Model()
 	if strings.EqualFold(strings.TrimSpace(prevModel), strings.TrimSpace(arg)) {
 		m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Already using %s — no change.", prevModel)})
 		return m, nil
 	}
-	if err := rhoconfig.SetGlobalSetting("model", arg); err != nil {
+	if err := decoderconfig.SetGlobalSetting("model", arg); err != nil {
 		m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 		return m, nil
 	}
@@ -81,15 +81,15 @@ func (mo *modelSubcommand) Handle(m *chatModel, args []string, text string) (tea
 		if m.session != nil {
 			provider = m.session.Provider()
 		}
-		m.session.SetThinkingEnabled(rhoconfig.ResolveThinkingForModel(rhoconfig.LoadSettings(), arg, provider))
+		m.session.SetThinkingEnabled(decoderconfig.ResolveThinkingForModel(decoderconfig.LoadSettings(), arg, provider))
 	}
-	thinkLabel := rhoconfig.FormatModelThinkingLabel(
-		selected != nil && rhoconfig.ModelCapabilitySupportsThinking(selected.Capabilities),
-		rhoconfig.ThinkingPrefForModel(rhoconfig.LoadSettings(), arg),
+	thinkLabel := decoderconfig.FormatModelThinkingLabel(
+		selected != nil && decoderconfig.ModelCapabilitySupportsThinking(selected.Capabilities),
+		decoderconfig.ThinkingPrefForModel(decoderconfig.LoadSettings(), arg),
 		m.session.Provider(),
 	)
 	m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf(
-		"Model switched: %s → %s (Think: %s)\nConversation history preserved (%d messages); new requests use the new model.\nSaved in flux (provider.json). Use /model and press t to toggle Think.",
+		"Model switched: %s → %s (Think: %s)\nConversation history preserved (%d messages); new requests use the new model.\nSaved in mux (provider.json). Use /model and press t to toggle Think.",
 		prevModel, m.session.Model(), thinkLabel, msgCount,
 	)})
 	return m, nil

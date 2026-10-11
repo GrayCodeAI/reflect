@@ -1,0 +1,60 @@
+[Unit]
+Description=Decoder daemon (local HTTP API for the Decoder coding agent)
+Documentation=https://github.com/GrayCodeAI/decoder/blob/main/docs/troubleshooting-guide.md#systemd-issues
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Runs as a dedicated system user. Create it once:
+#   sudo useradd --system --home-dir /var/lib/decoder --shell /usr/sbin/nologin decoder
+User=decoder
+Group=decoder
+
+# All decoder data lives in directories systemd creates and chowns to User=:
+#   /var/lib/decoder/config  settings (DECODER_CONFIG_DIR)
+#   /var/lib/decoder/state   sessions, security log, run/daemon.log (DECODER_STATE_DIR)
+#   /var/cache/decoder       disposable cache (DECODER_CACHE_DIR)
+# HOME points at /var/lib/decoder so anything else resolved from the home
+# directory (for example Mux's provider config under ~/.config/mux) lands
+# there too. Home directories stay hidden by ProtectHome=true below.
+StateDirectory=decoder
+StateDirectoryMode=0750
+CacheDirectory=decoder
+WorkingDirectory=/var/lib/decoder
+Environment=HOME=/var/lib/decoder
+Environment=DECODER_CONFIG_DIR=/var/lib/decoder/config
+Environment=DECODER_STATE_DIR=/var/lib/decoder/state
+Environment=DECODER_CACHE_DIR=/var/cache/decoder
+Environment=DECODER_ENABLE_TELEMETRY=0
+Environment=DECODER_DAEMON_MAX_CONCURRENT=4
+
+# Optional, root-owned, mode 0600: DECODER_DAEMON_API_KEY=<key> and any other
+# settings. The daemon reads the key from its environment, so it never appears
+# on the command line (visible in `ps`). Without a key the daemon generates one.
+EnvironmentFile=-/etc/decoder/daemon.env
+
+# Point this at your decoder binary (install.sh installs to ~/.decoder/bin/decoder; copy
+# that file to /usr/local/bin/decoder for a system service).
+ExecStart=/usr/local/bin/decoder daemon start --host 127.0.0.1 --port 4590 --log-level INFO
+# To serve other hosts, prefer a TLS-terminating reverse proxy, or run
+#   decoder daemon start --host 0.0.0.0 --port 4590 --tls-cert /etc/decoder/tls.crt --tls-key /etc/decoder/tls.key
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+# Hardening. The file system is read-only except the directories above and a
+# private /tmp. Grant access to project checkouts the agent may edit with, e.g.:
+#   ReadWritePaths=/srv/projects
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+# Resource limits.
+LimitNOFILE=65536
+MemoryMax=4G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

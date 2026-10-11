@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/decoder/internal/spec"
 )
 
 // ConvergeTool assesses the gap between the active spec and the current

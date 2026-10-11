@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/GrayCodeAI/rho/internal/terminal/tape"
+	"github.com/GrayCodeAI/decoder/internal/terminal/tape"
 )
 
 // watchTerminalResize records terminal resize (SIGWINCH) events into the tape

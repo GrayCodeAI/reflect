@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	contracts "github.com/GrayCodeAI/rho/internal/contracts/events"
+	contracts "github.com/GrayCodeAI/decoder/internal/contracts/events"
 )
 
 // LangfuseClient sends traces to Langfuse for LLM observability.

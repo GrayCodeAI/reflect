@@ -1,37 +1,37 @@
-rho is an AI coding agent that reads, writes, and runs code in your terminal.
+decoder is an AI coding agent that reads, writes, and runs code in your terminal.
 
-It connects to 28 first-class LLM providers through flux, executes tools (file I/O, shell,
+It connects to 28 first-class LLM providers through mux, executes tools (file I/O, shell,
 git, web search), and manages sessions — all from a keyboard-driven TUI or
 headless mode for scripts and CI.
 
 Quick orientation:
-  rho                     Start interactive TUI
-  rho -p "prompt"         One-shot: send prompt, print response, exit
-  rho exec "task"         Autonomous multi-turn execution
-  rho path                Check environment readiness
-  rho doctor              Run diagnostics
-  rho config              Manage settings and credentials
+  decoder                     Start interactive TUI
+  decoder -p "prompt"         One-shot: send prompt, print response, exit
+  decoder exec "task"         Autonomous multi-turn execution
+  decoder path                Check environment readiness
+  decoder doctor              Run diagnostics
+  decoder config              Manage settings and credentials
 
 API keys are stored in the OS keychain (macOS Keychain / Linux keyring).
-Run rho and use /config to set up your first provider.
+Run decoder and use /config to set up your first provider.
 
 Usage:
-  rho [prompt] [flags]
-  rho [command]
+  decoder [prompt] [flags]
+  decoder [command]
 
 Examples:
-  rho
-  rho -p "explain this repo"
-  rho exec "fix failing tests"
-  rho preflight
-  rho path
+  decoder
+  decoder -p "explain this repo"
+  decoder exec "fix failing tests"
+  decoder preflight
+  decoder path
 
 Core:
-  acp         Run rho as an Agent Client Protocol (ACP) server
+  acp         Run decoder as an Agent Client Protocol (ACP) server
   agent       Manage custom agent personas
   attach      Attach to a running background session
   bg          Run a session in the background
-  daemon      Manage the rho background server
+  daemon      Manage the decoder background server
   exec        Execute a single command non-interactively
   init        Interactive onboarding wizard for first-time setup
   mission     Run a multi-agent mission (parallel feature execution)
@@ -65,8 +65,8 @@ Configure:
   credentials Manage secure API key storage (macOS Keychain / Linux secret service)
   features    List and manage feature flags
   governance  Inspect and validate the governance policy ceiling
-  mcp         Show MCP configuration; run or register rho as an MCP server
-  models      Deployment-aware model catalog (via flux)
+  mcp         Show MCP configuration; run or register decoder as an MCP server
+  models      Deployment-aware model catalog (via mux)
   permissions List and manage exact permission rules
   plugin      Manage plugins
   rules       Detect, import, and export AI coding rules between tool formats
@@ -80,7 +80,7 @@ Diagnose:
   bug-report  Print a redacted diagnostic report for bug reports
   cost        [Experimental] Analyze and optimize LLM API spend
   doctor      Run local diagnostics
-  ecosystem   Show flux and token-pipeline integration status
+  ecosystem   Show mux and token-pipeline integration status
   path        Developer path readiness (setup, security, ecosystem)
   preflight   Check local readiness; use --live to verify the selected provider
   securitylog Inspect the tamper-evident security event log
@@ -90,13 +90,13 @@ Diagnose:
 
 Reference:
   completion  Generate shell completion script
-  feedback    Submit feedback about rho
+  feedback    Submit feedback about decoder
   graph       Export a portable execution graph
   history     Search and browse command history
   manpage     Generate man page in roff format
   research    Autonomous research loop (Karpathy autoresearch pattern)
-  update      Check for rho updates
-  version     Print rho version
+  update      Check for decoder updates
+  version     Print decoder version
 
 Additional Commands:
   help        Help about any command
@@ -115,14 +115,14 @@ Flags:
       --disallowed-tools stringArray       comma or space-separated tool permission rules to deny (e.g. "Bash(git:*) Edit")
       --dry-run                            deny every tool call unconditionally (preview only, nothing executes)
       --fork-session                       when resuming, create a new session ID instead of reusing the original
-  -h, --help                               help for rho
+  -h, --help                               help for decoder
       --input-format string                input format for --print: "text" or "stream-json" (default "text")
       --map-tokens int                     token budget for the --repo-map overview (default 1024)
       --markdown                           render --print text output as styled markdown (needs color; ignored for json/stream-json)
       --max-budget-usd float               maximum estimated API spend in USD
       --max-turns int                      maximum number of agentic turns in non-interactive mode
       --mcp stringArray                    MCP server command
-  -m, --model string                       model to use (from flux catalog; see /models)
+  -m, --model string                       model to use (from mux catalog; see /models)
       --no-auto-catalog-refresh            disable automatic catalog refresh when cache is missing, empty, or stale
       --no-session-persistence             disable session persistence in print mode
       --output-fields string               comma-separated field whitelist for --output-format json (e.g. "result,session_id")
@@ -134,7 +134,7 @@ Flags:
   -q, --quiet                              suppress non-essential output (spinners, progress, decoration); machine-parseable output only
       --record string                      record interactive REPL output to an fxtape file (fx --record parity)
       --recover                            scan for interrupted sessions and offer to resume
-      --refresh-catalog                    refresh the flux model catalog before starting
+      --refresh-catalog                    refresh the mux model catalog before starting
       --repl                               start interactive REPL mode (like aider) for multi-turn conversation without TUI
       --repo-map                           inject an AST-ranked repository map (Aider-style) into the system prompt
   -r, --resume string                      resume a saved session by ID
@@ -150,4 +150,4 @@ Flags:
   -v, --version                            output the version number
       --watch                              watch the working directory for file changes and re-run on changes
 
-Use "rho [command] --help" for more information about a command.
+Use "decoder [command] --help" for more information about a command.

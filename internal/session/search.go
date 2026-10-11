@@ -14,10 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/GrayCodeAI/rho/internal/textutil"
+	"github.com/GrayCodeAI/decoder/internal/textutil"
 )
 
-// SearchEngine provides full-text search across rho sessions/conversations.
+// SearchEngine provides full-text search across decoder sessions/conversations.
 type SearchEngine struct {
 	SessionDir string
 	Index      map[string]*SessionIndex

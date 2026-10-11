@@ -1,11 +1,11 @@
 # Binaries
-/rho
+/decoder
 # Ignore build output in bin/, but track committed source scripts like bin/buf.
 bin/*
 !bin/buf
 # GoReleaser output (goreleaser release --snapshot / make release).
 /dist/
-rho_bin
+decoder_bin
 *.exe
 *.dll
 *.so
@@ -14,7 +14,7 @@ rho_bin
 .claude/
 .codegraph/
 .commandcode/
-.rho/
+.decoder/
 .harrier/
 .openclaude/
 .pi/
@@ -49,11 +49,11 @@ go.work.sum
 # Lefthook-generated git hook wrappers
 .githooks/
 __pycache__/
-rho_bin
+decoder_bin
 
 # Logs
 *.log
-rho-sec105b.log
+decoder-sec105b.log
 
 # Compiled Go test binaries
 *.test
@@ -63,7 +63,7 @@ rho-sec105b.log
 # for tools that prefer it; keep the regenerated copy out of git.
 /CLAUDE.md
 
-# Local module overlay for building against a sibling checkout (e.g. flux).
+# Local module overlay for building against a sibling checkout (e.g. mux).
 # go.local.mod carries a `replace` directive pointing at ../<repo>; committing
 # it would break CI, which builds against the pinned published module.
 /go.local.mod

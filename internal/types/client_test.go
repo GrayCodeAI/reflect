@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/llm"
+	"github.com/GrayCodeAI/mux/llm"
 )
 
 func TestContentPartJSONContract(t *testing.T) {
-	in := FluxMessage{
+	in := MuxMessage{
 		Role: "user",
 		ContentParts: []ContentPart{
 			{Type: "text", Text: "hello"},
@@ -22,7 +22,7 @@ func TestContentPartJSONContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal() error = %v", err)
 	}
-	var got FluxMessage
+	var got MuxMessage
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("Unmarshal() error = %v", err)
 	}

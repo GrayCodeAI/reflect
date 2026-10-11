@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.26.6"
-  # Module resolution: flux is the only GrayCodeAI module dependency and it is
+  GO_VERSION: "1.27.2"
+  # Module resolution: mux is the only GrayCodeAI module dependency and it is
   # published on the public proxy. Direct-VCS fallback is retained for anything
   # else.
   GOPROXY: "https://proxy.golang.org,direct"
@@ -29,7 +29,7 @@ env:
   # Go's reference is explicit that a committed go.work "may cause a continuous
   # integration (CI) system to select and thus test the wrong versions of a
   # module's dependencies" and that "CI systems should generally not be allowed to
-  # use the go.work file". Because ./.github/actions/checkout-flux clones the
+  # use the go.work file". Because ./.github/actions/checkout-mux clones the
   # siblings at branch HEAD into the workspace parent, workspace mode would silently
   # hide version skew (e.g. a shared pin that no longer matches).
   # The `module` job opts back in (GOWORK: "auto") since `go work sync` and the
@@ -73,13 +73,13 @@ jobs:
         run: bash ./scripts/check-ecosystem-boundaries.sh
       - name: internal layer boundary guard
         run: bash ./scripts/check-internal-layer-imports.sh
-      - name: flux client boundary guard
-        run: bash ./scripts/check-flux-client-imports.sh
-      - name: flux engine facade boundary guard
-        run: bash ./scripts/check-flux-engine-boundary.sh
+      - name: mux client boundary guard
+        run: bash ./scripts/check-mux-client-imports.sh
+      - name: mux engine facade boundary guard
+        run: bash ./scripts/check-mux-engine-boundary.sh
 
   # -------------------------------------------------------------------------
-  # 2. Module hygiene — tidy, verify Rho plus the sibling Go modules via go.work.
+  # 2. Module hygiene — tidy, verify Decoder plus the sibling Go modules via go.work.
   # -------------------------------------------------------------------------
   module:
     name: module hygiene
@@ -94,7 +94,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - name: Generate ecosystem workspace
@@ -109,7 +109,7 @@ jobs:
           # go mod tidy can mis-resolve workspace modules here; go work sync is
           # the supported workspace hygiene step.
           go work sync
-          go build -mod=readonly -o /dev/null ./cmd/rho
+          go build -mod=readonly -o /dev/null ./cmd/decoder
           if ! git diff --quiet -- go.mod go.sum go.work go.work.sum; then
             echo "::error::go.mod / go.sum / go.work files out of date — run 'go work sync' locally and commit"
             git diff -- go.mod go.sum go.work go.work.sum
@@ -121,7 +121,7 @@ jobs:
         run: |
           workspace_file="${GITHUB_WORKSPACE}/../go.work"
           while IFS= read -r module; do
-            [ "$module" = rho ] && continue
+            [ "$module" = decoder ] && continue
             if ! grep -q "./${module}" "$workspace_file"; then
               echo "::error::go.work must include ./${module}."
               cat "$workspace_file"
@@ -145,7 +145,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -158,7 +158,7 @@ jobs:
         run: |
           go mod download
           go mod verify
-          go build -mod=readonly ./cmd/rho
+          go build -mod=readonly ./cmd/decoder
           go test ./... -count=1 -timeout=300s
 
   release-parity:
@@ -168,7 +168,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -187,7 +187,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -196,8 +196,8 @@ jobs:
           cache: true
       - name: go vet
         run: go vet ./...
-      - name: rho harness evaluation audit
-        run: go run ./cmd/rho harness --out-dir .rho/harness
+      - name: decoder harness evaluation audit
+        run: go run ./cmd/decoder harness --out-dir .decoder/harness
       - name: support repo coupling guard
         run: bash ./scripts/check-support-repo-coupling.sh
 
@@ -212,7 +212,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     # NOTE: depends only on `format`, deliberately NOT on `vet`.
     # A `vet` (or upstream) failure must never skip the test job — that
-    # historically masked real test regressions (see rho PR #155, where
+    # historically masked real test regressions (see decoder PR #155, where
     # DrainAlerts code shipped with failing tests because `test` was skipped
     # when `vet` failed on the trailer-strip force-push). Tests must always
     # run so regressions surface instead of being hidden.
@@ -241,7 +241,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -313,7 +313,7 @@ jobs:
             echo ""
             echo "Policy: Every t.Skip() should have a comment linking to a GitHub issue."
             echo "Example:"
-            echo "  // TODO: https://github.com/GrayCodeAI/rho/issues/123"
+            echo "  // TODO: https://github.com/GrayCodeAI/decoder/issues/123"
             echo "  t.Skip(\"not yet implemented\")"
           fi
 
@@ -328,7 +328,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -436,7 +436,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
@@ -491,7 +491,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -506,7 +506,7 @@ jobs:
         run: go build -trimpath -v ./...
       - name: Binary size budget (linux/amd64 only)
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
-        # Builds bin/rho with the release ldflags (-s -w) and fails when it
+        # Builds bin/decoder with the release ldflags (-s -w) and fails when it
         # exceeds SIZE_LIMIT_MB in the Makefile — the single source of the budget.
         run: make size-check
 
@@ -521,7 +521,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -544,7 +544,7 @@ jobs:
           go test -run='^$' -fuzz=FuzzParseToolCallResult -fuzztime=60s ./internal/mcp
 
   # -------------------------------------------------------------------------
-  # 10. Smoke — build rho and verify ecosystem CLI wiring.
+  # 10. Smoke — build decoder and verify ecosystem CLI wiring.
   # -------------------------------------------------------------------------
   smoke:
     name: smoke
@@ -554,12 +554,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-flux
+      - uses: ./.github/actions/checkout-mux
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: smoke-rho.sh
-        run: ./scripts/smoke-rho.sh
+      - name: smoke-decoder.sh
+        run: ./scripts/smoke-decoder.sh

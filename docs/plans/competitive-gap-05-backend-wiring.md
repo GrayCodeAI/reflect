@@ -5,11 +5,11 @@ Source: field comparison vs Qwen `computer_use`, Codex browser/screenshot, Goose
 
 Constraints (non-negotiable):
 
-- Provider ownership lives in `../flux`; rho consumes only the stable engine facade (`AGENTS.md`, `docs/SECURITY-DEVELOPER.md:51-56`).
-- Boundary guards must stay green: `make boundaries` (incl. `flux-client-guard`, `flux-engine-guard`).
+- Provider ownership lives in `../mux`; decoder consumes only the stable engine facade (`AGENTS.md`, `docs/SECURITY-DEVELOPER.md:51-56`).
+- Boundary guards must stay green: `make boundaries` (incl. `mux-client-guard`, `mux-engine-guard`).
 - Tools fail safe today with explicit errors when unwired — preserve that behavior when disabled.
 
-## Existing rho capabilities (verified)
+## Existing decoder capabilities (verified)
 
 - `ComputerUseTool` reports "no computer backend installed" without `SetComputerBackend` (`internal/tool/computer_use.go:67-94`).
 - `GenerateMediaTool` backend nil by default via `SetMediaEngine` (`internal/tool/media_generation.go:69-71`).
@@ -20,18 +20,18 @@ Constraints (non-negotiable):
 
 Adopt: opt-in host wiring through the router facade, env-gated, off by default.
 
-Do not adopt: direct `flux/client` production imports, new secrets paths, always-on media/computer-use.
+Do not adopt: direct `mux/client` production imports, new secrets paths, always-on media/computer-use.
 
 ## Priority model
 
 - P0: design note mapping each tool seam → facade method (media/image, STT/audio, computer backend) with guard-safe import path.
-- P1: env-gated wiring (e.g. `RHO_MEDIA=1`) + docs; unwired default error text unchanged.
-- P2: `rho doctor` reports backend status (wired/unwired) without leaking secrets.
+- P1: env-gated wiring (e.g. `DECODER_MEDIA=1`) + docs; unwired default error text unchanged.
+- P2: `decoder doctor` reports backend status (wired/unwired) without leaking secrets.
 
 ## Steps
 
-1. Confirm facade methods exist in sibling `../flux/engine`; if missing, file the change there first (router repo owns providers).
-2. Implement wiring in rho behind env gates; keep `Set*` seams for tests.
+1. Confirm facade methods exist in sibling `../mux/engine`; if missing, file the change there first (router repo owns providers).
+2. Implement wiring in decoder behind env gates; keep `Set*` seams for tests.
 3. Run `make boundaries` + `make vet` + targeted `go test ./internal/tool/ -run 'TestComputer|TestMedia'`.
 
 ## Verification

@@ -1,12 +1,12 @@
 # Project Rules (AGENTS.md)
 
-Project rules let you configure Rho per project or directory. By placing an AGENTS.md file in your repository, you can set coding conventions, build instructions, and style guides that Rho follows automatically.
+Project rules let you configure Decoder per project or directory. By placing an AGENTS.md file in your repository, you can set coding conventions, build instructions, and style guides that Decoder follows automatically.
 
 ---
 
 ## Supported File Names
 
-Rho checks for these filenames in each directory (from repo root to CWD):
+Decoder checks for these filenames in each directory (from repo root to CWD):
 
 - `AGENTS.md`
 - `Agents.md`
@@ -14,26 +14,26 @@ Rho checks for these filenames in each directory (from repo root to CWD):
 - `Claude.md`
 - `AGENT.md`
 
-Rho loads all matching files. Deeper files take precedence when instructions conflict.
+Decoder loads all matching files. Deeper files take precedence when instructions conflict.
 
 ---
 
 ## Rules Directories
 
-Rho also scans for `*.md` files in rules directories:
+Decoder also scans for `*.md` files in rules directories:
 
 | Location | Purpose |
 |----------|---------|
-| `<dir>/.rho/rules/` | Always scanned |
+| `<dir>/.decoder/rules/` | Always scanned |
 | `<dir>/.claude/rules/` | Claude compatibility |
 
 ---
 
 ## How Discovery Works
 
-Rho scans rules in this order:
+Decoder scans rules in this order:
 
-1. **Global rules**: `~/.rho/AGENTS.md` (applies to all projects)
+1. **Global rules**: `~/.decoder/AGENTS.md` (applies to all projects)
 2. **Repo rules**: Every directory from git root to CWD (inclusive)
 3. **CWD-only**: If not in a git repo, only current directory
 
@@ -49,7 +49,7 @@ my-monorepo/
       AGENTS.md             # "Use Express. Follow REST conventions."
 ```
 
-When Rho runs in `packages/frontend/`, it loads all instructions. The frontend-specific rules appear later and take precedence.
+When Decoder runs in `packages/frontend/`, it loads all instructions. The frontend-specific rules appear later and take precedence.
 
 ---
 
@@ -108,7 +108,7 @@ my-monorepo/
 For one-off rules without editing files:
 
 ```bash
-rho --rules "Always use TypeScript" -p "Implement feature"
+decoder --rules "Always use TypeScript" -p "Implement feature"
 ```
 
 ---

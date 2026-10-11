@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
 )
 
 // PreparationPhase tracks the lifecycle of one cached entry.

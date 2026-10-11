@@ -15,7 +15,7 @@ var (
 )
 
 // SendDeliveryContext uploads repository and delivery metadata for the
-// connected project. It backs the explicit `rho cloud context` command, so
+// connected project. It backs the explicit `decoder cloud context` command, so
 // validation failures, transport errors and non-2xx responses are all
 // returned; nothing is reported as synced unless GrayCode Cloud accepted it.
 func (c *Client) SendDeliveryContext(ctx context.Context, event DeliveryContext) error {

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/catalog"
-	"github.com/GrayCodeAI/flux/credentials"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/decoder/internal/testutil"
+	"github.com/GrayCodeAI/mux/catalog"
+	"github.com/GrayCodeAI/mux/credentials"
 )
 
 func TestHasConfiguredDeployment_FromStore(t *testing.T) {

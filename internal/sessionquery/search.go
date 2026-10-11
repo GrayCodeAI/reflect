@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/session"
 )
 
 // ErrUnauthorized indicates the caller is not authorized to access sessions in the requested workspace.

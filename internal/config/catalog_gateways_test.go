@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/catalog"
-	"github.com/GrayCodeAI/flux/credentials"
-	"github.com/GrayCodeAI/rho/internal/catalogtest"
+	"github.com/GrayCodeAI/decoder/internal/catalogtest"
+	"github.com/GrayCodeAI/mux/catalog"
+	"github.com/GrayCodeAI/mux/credentials"
 )
 
 func TestIsCatalogCacheRequired(t *testing.T) {
@@ -30,7 +30,7 @@ func TestAllSetupGateways_RegistryOnly(t *testing.T) {
 			t.Fatalf("owner slug %q should not be a gateway", id)
 		}
 	}
-	// Required gateways that exist in the published flux v0.1.3.
+	// Required gateways that exist in the published mux v0.1.3.
 	want := map[string]bool{"azure": true, "bedrock": true, "gemini": true, "grok": true, "openrouter": true, "kimi": true, "vertex": true, "xiaomi_mimo_payg": true, "xiaomi_mimo_token_plan": true, "deepseek": true, "minimax_token_plan": true, "minimax_payg": true, "zai_payg": true, "zai_coding": true, "agnes": true}
 	for id := range want {
 		found := false
@@ -44,12 +44,12 @@ func TestAllSetupGateways_RegistryOnly(t *testing.T) {
 			t.Fatalf("missing setup gateway %q in %v", id, gws)
 		}
 	}
-	// Newly-added gateways (groq, poolside) present in the local Flux checkout
-	// but not yet in a published flux release — log if present, don't
+	// Newly-added gateways (groq, poolside) present in the local Mux checkout
+	// but not yet in a published mux release — log if present, don't
 	// require them so the test passes with both GOWORK=on and GOWORK=off.
 	for _, extra := range []string{"groq", "poolside"} {
 		if containsString(gws, extra) {
-			t.Logf("extra gateway %q present (local flux build)", extra)
+			t.Logf("extra gateway %q present (local mux build)", extra)
 		}
 	}
 	if containsString(gws, "google") || containsString(gws, "xai") {
@@ -140,7 +140,7 @@ func TestGatewayDisplayName(t *testing.T) {
 	}
 }
 
-func TestCachedModelCountForProvider_MatchesFluxList(t *testing.T) {
+func TestCachedModelCountForProvider_MatchesMuxList(t *testing.T) {
 	catalogtest.Install(t)
 	compiled := CompiledCatalogV1()
 	for _, gw := range AllSetupGateways() {

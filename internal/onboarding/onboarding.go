@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	internaltheme "github.com/GrayCodeAI/rho/internal/theme"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	internaltheme "github.com/GrayCodeAI/decoder/internal/theme"
 	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 var (
@@ -48,9 +48,9 @@ func initColorCodes() {
 	brand = internaltheme.BrandANSI
 }
 
-// Welcome prints the rho welcome banner.
+// Welcome prints the decoder welcome banner.
 func Welcome(version string) {
-	rhoC := brand
+	decoderC := brand
 
 	totalW := 80
 	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 40 {
@@ -80,7 +80,7 @@ func Welcome(version string) {
 	fmt.Println()
 	for _, line := range art {
 		w := runewidth.StringWidth(line)
-		fmt.Println(center(rhoC+line+reset, w))
+		fmt.Println(center(decoderC+line+reset, w))
 	}
 
 	fmt.Println()
@@ -88,28 +88,28 @@ func Welcome(version string) {
 	fmt.Println(center(dim+verLine+reset, len(verLine)))
 
 	fmt.Println()
-	fmt.Println(center(bold+"Welcome to Rho!"+reset, 16))
+	fmt.Println(center(bold+"Welcome to Decoder!"+reset, 16))
 	fmt.Println(center(dim+"Built for developers — one machine, keychain credentials"+reset, 48))
 
 	fmt.Println()
 	fmt.Println(center(bold+"Quick start:"+reset, 12))
-	fmt.Println(center(rhoC+"rho"+reset+"                            interactive REPL (/config on first run)", 58))
-	fmt.Println(center(rhoC+"rho path"+reset+"                       check readiness", 49))
-	fmt.Println(center(rhoC+"rho exec"+reset+" \"explain this repo\"   headless / CI (add --json --ephemeral)", 58))
-	fmt.Println(center(rhoC+"rho"+reset+" -c                          continue last session", 54))
-	fmt.Println(center(rhoC+"/config"+reset+"                         API key (keychain) + model", 54))
+	fmt.Println(center(decoderC+"decoder"+reset+"                            interactive REPL (/config on first run)", 58))
+	fmt.Println(center(decoderC+"decoder path"+reset+"                       check readiness", 49))
+	fmt.Println(center(decoderC+"decoder exec"+reset+" \"explain this repo\"   headless / CI (add --json --ephemeral)", 58))
+	fmt.Println(center(decoderC+"decoder"+reset+" -c                          continue last session", 54))
+	fmt.Println(center(decoderC+"/config"+reset+"                         API key (keychain) + model", 54))
 
 	fmt.Println()
 	fmt.Println(center(bold+"Control plane (in chat):"+reset, 24))
-	fmt.Println(center(rhoC+"/start"+reset+"  ·  "+rhoC+"/mode plan|act"+reset+"  ·  "+rhoC+"/isolation"+reset+"  ·  "+rhoC+"/trust"+reset, 52))
+	fmt.Println(center(decoderC+"/start"+reset+"  ·  "+decoderC+"/mode plan|act"+reset+"  ·  "+decoderC+"/isolation"+reset+"  ·  "+decoderC+"/trust"+reset, 52))
 
 	fmt.Println()
-	fmt.Println(center(rhoC+"? for shortcuts"+reset, 15))
+	fmt.Println(center(decoderC+"? for shortcuts"+reset, 15))
 	fmt.Println()
 }
 
-// NeedsSetup returns true only when rho setup is explicitly requested.
-// Normal rho startup uses /config inside the TUI instead of blocking setup.
+// NeedsSetup returns true only when decoder setup is explicitly requested.
+// Normal decoder startup uses /config inside the TUI instead of blocking setup.
 func NeedsSetup() bool {
 	return false
 }
@@ -120,7 +120,7 @@ func RunSetup() error {
 
 	fmt.Println(teal + bold + "  Developer setup" + reset)
 	fmt.Println()
-	fmt.Println(dim + "  Keys are stored in " + rhoconfig.CredentialStoreName() + ", not .env or shell env." + reset)
+	fmt.Println(dim + "  Keys are stored in " + decoderconfig.CredentialStoreName() + ", not .env or shell env." + reset)
 	fmt.Println()
 
 	// Provider selection
@@ -174,7 +174,7 @@ func RunSetup() error {
 	fmt.Printf("  Selected: %s%s%s\n", teal, selected.name, reset)
 
 	// API key input
-	if selected.envKey != "" && !rhoconfig.HasStoredCredentialForProvider(context.Background(), selected.name) {
+	if selected.envKey != "" && !decoderconfig.HasStoredCredentialForProvider(context.Background(), selected.name) {
 		fmt.Println()
 		fmt.Printf("  Enter your %s API key:\n", selected.name)
 		fmt.Printf("  %s(Get one at the provider's website)%s\n", dim, reset)
@@ -184,7 +184,7 @@ func RunSetup() error {
 		apiKey = strings.TrimSpace(apiKey)
 
 		if apiKey == "" {
-			fmt.Println(red + "  No API key entered. Run rho and use /config to save a key securely." + reset)
+			fmt.Println(red + "  No API key entered. Run decoder and use /config to save a key securely." + reset)
 			return fmt.Errorf("no API key")
 		}
 
@@ -198,23 +198,23 @@ func RunSetup() error {
 		}
 
 		ctx := context.Background()
-		if err := rhoconfig.PersistAPIKey(ctx, selected.envKey, apiKey); err != nil {
+		if err := decoderconfig.PersistAPIKey(ctx, selected.envKey, apiKey); err != nil {
 			fmt.Printf("  %sWarning: couldn't save API key: %s%s\n", dim, err, reset)
 			return err
 		}
 
-		if err := rhoconfig.SetActiveProvider(context.Background(), selected.name); err != nil {
+		if err := decoderconfig.SetActiveProvider(context.Background(), selected.name); err != nil {
 			fmt.Printf("  %sWarning: couldn't save provider: %s%s\n", dim, err, reset)
 		}
 
 		fmt.Println()
-		fmt.Printf("  %s"+icons.CheckBold()+" API key saved to %s%s\n", teal, rhoconfig.CredentialStoreName(), reset)
+		fmt.Printf("  %s"+icons.CheckBold()+" API key saved to %s%s\n", teal, decoderconfig.CredentialStoreName(), reset)
 	} else if selected.name == "ollama" {
-		_ = rhoconfig.SetActiveProvider(context.Background(), "ollama")
+		_ = decoderconfig.SetActiveProvider(context.Background(), "ollama")
 		fmt.Printf("  %s"+icons.CheckBold()+" Ollama selected (make sure ollama is running)%s\n", teal, reset)
 	} else {
-		_ = rhoconfig.SetActiveProvider(context.Background(), selected.name)
-		fmt.Printf("  %s"+icons.CheckBold()+" Using %s (credential already in %s)%s\n", teal, selected.name, rhoconfig.CredentialStoreName(), reset)
+		_ = decoderconfig.SetActiveProvider(context.Background(), selected.name)
+		fmt.Printf("  %s"+icons.CheckBold()+" Using %s (credential already in %s)%s\n", teal, selected.name, decoderconfig.CredentialStoreName(), reset)
 	}
 
 	// Security notes
@@ -222,8 +222,8 @@ func RunSetup() error {
 	fmt.Println(dim + "  ─────────────────────────────────────────" + reset)
 	fmt.Println()
 	fmt.Println("  " + bold + "Security notes:" + reset)
-	fmt.Println("  1. rho can make mistakes — always review changes")
-	fmt.Println("  2. rho will ask before running commands or writing files")
+	fmt.Println("  1. decoder can make mistakes — always review changes")
+	fmt.Println("  2. decoder will ask before running commands or writing files")
 	fmt.Println("  3. Use /autonomy allow <tool> to auto-approve tools")
 	fmt.Println()
 	fmt.Println(dim + "  ─────────────────────────────────────────" + reset)
@@ -231,7 +231,7 @@ func RunSetup() error {
 	fmt.Print("  Press Enter to start... ")
 	_, _ = reader.ReadString('\n')
 
-	rhoconfig.DiscoverCatalogAfterSetup(context.Background(), os.Stdout)
+	decoderconfig.DiscoverCatalogAfterSetup(context.Background(), os.Stdout)
 
 	return nil
 }

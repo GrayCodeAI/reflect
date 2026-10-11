@@ -14,7 +14,7 @@ import (
 func initManagerTestRepo(t *testing.T) string {
 	t.Helper()
 
-	dir, err := os.MkdirTemp("", "rho-wm-test-*")
+	dir, err := os.MkdirTemp("", "decoder-wm-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,8 +38,8 @@ func initManagerTestRepo(t *testing.T) string {
 	}
 
 	run("git", "init", "-b", "main")
-	run("git", "config", "user.email", "test@rho.dev")
-	run("git", "config", "user.name", "Rho Test")
+	run("git", "config", "user.email", "test@decoder.dev")
+	run("git", "config", "user.name", "Decoder Test")
 	run("git", "config", "commit.gpgsign", "false")
 	run("git", "config", "tag.gpgsign", "false")
 
@@ -557,10 +557,10 @@ func runGitIn(t *testing.T, dir string, args ...string) {
 	cmd.Dir = dir
 	cmd.Env = append(
 		os.Environ(),
-		"GIT_AUTHOR_NAME=Rho Test",
-		"GIT_AUTHOR_EMAIL=test@rho.dev",
-		"GIT_COMMITTER_NAME=Rho Test",
-		"GIT_COMMITTER_EMAIL=test@rho.dev",
+		"GIT_AUTHOR_NAME=Decoder Test",
+		"GIT_AUTHOR_EMAIL=test@decoder.dev",
+		"GIT_COMMITTER_NAME=Decoder Test",
+		"GIT_COMMITTER_EMAIL=test@decoder.dev",
 		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=commit.gpgsign",
 		"GIT_CONFIG_VALUE_0=false",

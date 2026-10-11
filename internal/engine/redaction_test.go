@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestRedactToolResultRedactsKnownSecrets(t *testing.T) {

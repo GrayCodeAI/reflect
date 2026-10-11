@@ -1,6 +1,6 @@
 # Dashboard and HUD
 
-The Rho dashboard provides system status and monitoring information.
+The Decoder dashboard provides system status and monitoring information.
 
 ---
 
@@ -9,7 +9,7 @@ The Rho dashboard provides system status and monitoring information.
 In the TUI:
 
 ```
-/ecosystem         # Ecosystem status (Flux and token pipeline)
+/ecosystem         # Ecosystem status (Mux and token pipeline)
 /path              # Developer path readiness
 /preflight         # Quick health check
 ```
@@ -18,11 +18,11 @@ In the TUI:
 
 ## Ecosystem Status
 
-Shows the status of all Rho components:
+Shows the status of all Decoder components:
 
 | Component | Status |
 |-----------|--------|
-| Flux (providers) | Ready / Error |
+| Mux (providers) | Ready / Error |
 | token pipeline | Available |
 | memory | Ready |
 
@@ -33,7 +33,7 @@ Shows the status of all Rho components:
 Check readiness to chat:
 
 ```bash
-rho path
+decoder path
 ```
 
 This verifies:

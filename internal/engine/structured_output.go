@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // structured_output.go implements JSON-schema-constrained responses (Task A).
 //
-// The session-level option Session.OutputSchema is plumbed into flux's
+// The session-level option Session.OutputSchema is plumbed into mux's
 // ChatOptions.ResponseFormat (json_schema) on the streaming path (see
 // stream.go). On the non-streaming ChatStructured path below, the response is
 // validated against the schema and, on mismatch, retried exactly once with a
@@ -36,7 +36,7 @@ func (e *SchemaError) Error() string { return "schema validation failed: " + e.R
 //
 // schema must be a JSON Schema document (as a string). A blank schema disables
 // validation and behaves like an ordinary Chat call.
-func (s *Session) ChatStructured(ctx context.Context, msgs []types.FluxMessage, opts types.ChatOptions, schema string) (*types.FluxResponse, error) {
+func (s *Session) ChatStructured(ctx context.Context, msgs []types.MuxMessage, opts types.ChatOptions, schema string) (*types.MuxResponse, error) {
 	chat := s.ChatLLM()
 	if chat == nil {
 		return nil, fmt.Errorf("session: no chat service configured")
@@ -57,11 +57,11 @@ func (s *Session) ChatStructured(ctx context.Context, msgs []types.FluxMessage, 
 		return resp, nil
 	} else {
 		// Retry once with a corrective instruction.
-		retryMsgs := append([]types.FluxMessage(nil), msgs...)
+		retryMsgs := append([]types.MuxMessage(nil), msgs...)
 		retryMsgs = append(
 			retryMsgs,
-			types.FluxMessage{Role: "assistant", Content: responseText(resp)},
-			types.FluxMessage{Role: "user", Content: fmt.Sprintf(
+			types.MuxMessage{Role: "assistant", Content: responseText(resp)},
+			types.MuxMessage{Role: "user", Content: fmt.Sprintf(
 				"Your previous response did not conform to the required JSON schema (%s). "+
 					"Respond again with ONLY valid JSON that matches the schema. Schema:\n%s",
 				vErr.Error(), schema,
@@ -79,7 +79,7 @@ func (s *Session) ChatStructured(ctx context.Context, msgs []types.FluxMessage, 
 }
 
 // responseText returns the textual content of a response, tolerating nil.
-func responseText(resp *types.FluxResponse) string {
+func responseText(resp *types.MuxResponse) string {
 	if resp == nil {
 		return ""
 	}

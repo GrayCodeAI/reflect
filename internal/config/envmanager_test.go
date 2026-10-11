@@ -174,8 +174,8 @@ func TestListForDisplay(t *testing.T) {
 		Source: "env",
 		Secret: true,
 	}
-	em.Vars["RHO_MODEL"] = &EnvVar{
-		Key:    "RHO_MODEL",
+	em.Vars["DECODER_MODEL"] = &EnvVar{
+		Key:    "DECODER_MODEL",
 		Value:  "claude-sonnet-4-6",
 		Source: ".env.local",
 		Secret: false,
@@ -195,8 +195,8 @@ func TestListForDisplay(t *testing.T) {
 	if !strings.Contains(output, "from: env") {
 		t.Fatal("output should show source")
 	}
-	if !strings.Contains(output, "RHO_MODEL") {
-		t.Fatal("output should contain RHO_MODEL")
+	if !strings.Contains(output, "DECODER_MODEL") {
+		t.Fatal("output should contain DECODER_MODEL")
 	}
 	if !strings.Contains(output, "claude-sonnet-4-6") {
 		t.Fatal("output should show non-secret value in full")

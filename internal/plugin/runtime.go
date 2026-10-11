@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/hooks"
+	"github.com/GrayCodeAI/decoder/internal/hooks"
 )
 
 // Runtime manages loaded plugins and their execution.
@@ -101,7 +101,7 @@ func (r *Runtime) ExecuteCommand(name string, args []string) (string, error) {
 // RegisterHooks registers all plugin hooks with the hook registry.
 func pluginHookEnvKey(key string) string {
 	var b strings.Builder
-	b.WriteString("RHO_")
+	b.WriteString("DECODER_")
 	for _, r := range strings.ToUpper(key) {
 		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
 			b.WriteRune(r)
@@ -109,7 +109,7 @@ func pluginHookEnvKey(key string) string {
 			b.WriteByte('_')
 		}
 	}
-	if b.Len() == len("RHO_") {
+	if b.Len() == len("DECODER_") {
 		b.WriteString("DATA")
 	}
 	return b.String()

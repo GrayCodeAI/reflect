@@ -9,23 +9,23 @@ import (
 
 	"github.com/mattn/go-runewidth"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 type welcomeStatusSnapshot struct {
-	setup    rhoconfig.SetupState
+	setup    decoderconfig.SetupState
 	agentsOK bool
 }
 
 func loadWelcomeStatusSnapshot() welcomeStatusSnapshot {
 	ctx := context.Background()
 	return welcomeStatusSnapshot{
-		setup:    rhoconfig.EvaluateSetupCached(ctx),
-		agentsOK: rhoconfig.LoadAgentsMD() != "",
+		setup:    decoderconfig.EvaluateSetupCached(ctx),
+		agentsOK: decoderconfig.LoadAgentsMD() != "",
 	}
 }
 
@@ -71,8 +71,8 @@ func (m *chatModel) rebuildWelcomeCache(opts ...any) {
 	m.welcomeCache = buildWelcomeMessageWithSnapshotAndMascot(m.session, m.sessionID, m.registry, nil, m.settings, skillsCount, connectedMCPCount(m.registry), frame, width, height, m.welcomeStatusSnapshot(), m.lastCommand, m.mascotEnabled)
 }
 
-// buildWelcomeMessage renders the branded inline RHO welcome block.
-func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount int, blinkClosed bool, width, height int) string {
+// buildWelcomeMessage renders the branded inline DECODER welcome block.
+func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings decoderconfig.Settings, skillsCount int, blinkClosed bool, width, height int) string {
 	frame := 0
 	if blinkClosed {
 		frame = 2
@@ -80,12 +80,12 @@ func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.
 	return buildWelcomeMessageWithSnapshot(sess, sessionID, registry, saved, settings, skillsCount, connectedMCPCount(registry), frame, width, height, loadWelcomeStatusSnapshot(), "")
 }
 
-func buildWelcomeMessageWithSnapshot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string) string {
+func buildWelcomeMessageWithSnapshot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings decoderconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string) string {
 	return buildWelcomeMessageWithSnapshotAndMascot(sess, sessionID, registry, saved, settings, skillsCount, mcpCount, eyeFrame, width, height, snapshot, lastCommand, false)
 }
 
-func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string, useMascot bool) string {
-	// Talon Gold is used for the RHO wordmark. All escapes come from the
+func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings decoderconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string, useMascot bool) string {
+	// Talon Gold is used for the DECODER wordmark. All escapes come from the
 	// theme palette (theme.go) so a rebrand stays a one-file change.
 	logoC := ansiOrange
 	dimC := ansiDim
@@ -123,7 +123,7 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 		return strings.Repeat(" ", pad) + styled
 	}
 
-	art := rhoLogoArtLines
+	art := decoderLogoArtLines
 	useMascot = useMascot && !tight
 	// Keep the text wordmark even when a graphical mascot is requested. The
 	// mascot is a best-effort terminal escape sequence; hiding the canonical
@@ -137,13 +137,13 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 		eyeGlyph = "|-\\/-|"
 	}
 	if eyeGlyph != "" && !useMascot {
-		art = append([]string(nil), rhoLogoArtLines...)
+		art = append([]string(nil), decoderLogoArtLines...)
 		for i, line := range art {
 			art[i] = strings.Replace(line, "|0\\/0|", eyeGlyph, 1)
 		}
 	}
 
-	// Inject the version into the rho's body — centered in the lower gap.
+	// Inject the version into the decoder's body — centered in the lower gap.
 	verStr := DisplayVersion()
 	if verStr != "" && !strings.HasPrefix(verStr, "v") && !strings.HasPrefix(verStr, "V") {
 		verStr = "v" + verStr
@@ -166,13 +166,13 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 
 	if tight {
 		// Compact single-line wordmark for small terminals — version sits
-		// inline so it's always visible even when the full rho is hidden.
+		// inline so it's always visible even when the full decoder is hidden.
 		verDisplay := DisplayVersion()
 		if verDisplay != "" && !strings.HasPrefix(verDisplay, "v") && !strings.HasPrefix(verDisplay, "V") {
 			verDisplay = "v" + verDisplay
 		}
-		compactArt := logoC + "RHO" + rst + "  " + verDisplay
-		b.WriteString(center(runewidth.StringWidth("RHO   "+verDisplay), compactArt) + "\n")
+		compactArt := logoC + "DECODER" + rst + "  " + verDisplay
+		b.WriteString(center(runewidth.StringWidth("DECODER   "+verDisplay), compactArt) + "\n")
 	} else {
 		artW := blockLinesWidth(art)
 		for _, line := range art {
@@ -204,7 +204,7 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 	// short lines rather than a panel: the input remains the primary action,
 	// while the empty state explains what to type without consuming the chat.
 	b.WriteString("\n")
-	guidance := dimC + "Inspect, change, or test this codebase with rho." + rst
+	guidance := dimC + "Inspect, change, or test this codebase with decoder." + rst
 	examples := dimC + `Try: "explain this repo"  ·  "run the tests"  ·  "/help"` + rst
 	b.WriteString(center(visibleWidth(guidance), guidance) + "\n")
 	b.WriteString(center(visibleWidth(examples), examples) + "\n")
@@ -321,7 +321,7 @@ func welcomeIndicatorRow(skillsCount int, agentsOK bool, mcpCount int, activeC, 
 	)
 }
 
-// welcomeModeBadge is intentionally absent; rho uses host permission tiers.
+// welcomeModeBadge is intentionally absent; decoder uses host permission tiers.
 
 func actLine(saved *session.Session, sessionID string) string {
 	if saved != nil && len(sessionID) >= 8 {
@@ -334,7 +334,7 @@ func toolListSummary(registry *tool.Registry) string {
 	if registry == nil {
 		return "No tools enabled."
 	}
-	tools := registry.FluxTools()
+	tools := registry.MuxTools()
 	registered := len(registry.PrimaryTools())
 	if len(tools) == 0 {
 		return "No tools enabled."
@@ -364,7 +364,7 @@ func envSummary(provider, model string) string {
 
 func envSummaryWithSelection(provider, model string, includeSelection bool) string {
 	var providers []string
-	for _, gateway := range rhoconfig.GatewayStatuses(context.Background(), provider, model) {
+	for _, gateway := range decoderconfig.GatewayStatuses(context.Background(), provider, model) {
 		providers = append(providers, gateway.ID)
 	}
 	sort.Strings(providers)
@@ -372,17 +372,17 @@ func envSummaryWithSelection(provider, model string, includeSelection bool) stri
 	if includeSelection {
 		b.WriteString(fmt.Sprintf("Provider: %s\nModel: %s\n\n", provider, model))
 	}
-	b.WriteString(fmt.Sprintf("Credentials (%s):\n", rhoconfig.CredentialStoreName()))
+	b.WriteString(fmt.Sprintf("Credentials (%s):\n", decoderconfig.CredentialStoreName()))
 	for _, providerID := range providers {
-		b.WriteString(fmt.Sprintf("  %s: %s\n", providerID, rhoconfig.EnvKeyStatus(providerID)))
+		b.WriteString(fmt.Sprintf("  %s: %s\n", providerID, decoderconfig.EnvKeyStatus(providerID)))
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func configCommandSummary(settings rhoconfig.Settings) string {
+func configCommandSummary(settings decoderconfig.Settings) string {
 	_ = settings
-	providerName := displayConfigValue(rhoconfig.ActiveProvider(context.Background()))
-	modelName := displayConfigValue(rhoconfig.ActiveModel(context.Background()))
+	providerName := displayConfigValue(decoderconfig.ActiveProvider(context.Background()))
+	modelName := displayConfigValue(decoderconfig.ActiveModel(context.Background()))
 	keys := configuredKeyList()
 	keysColor := infoSky
 	if keys == "(none)" {
@@ -392,15 +392,15 @@ func configCommandSummary(settings rhoconfig.Settings) string {
 
   /config  → paste API key (OS keychain) + pick model
   /path    → verify readiness in TUI
-  rho path (CLI)
+  decoder path (CLI)
 
 %s:
   %s %s
   %s %s
   %s %s
 
-Model catalog and routing live in flux — rho is the UI only.`,
-		auditTint("Setup (flux)", textPrimary),
+Model catalog and routing live in mux — decoder is the UI only.`,
+		auditTint("Setup (mux)", textPrimary),
 		auditTint("Current", textPrimary),
 		auditTint("provider:", textMuted), auditTint(providerName, infoSky),
 		auditTint("model:", textMuted), auditTint(modelName, infoSky),
@@ -408,7 +408,7 @@ Model catalog and routing live in flux — rho is the UI only.`,
 }
 
 func apiKeyConfigSummary() string {
-	return auditTint("API keys ("+rhoconfig.CredentialStoreName()+")", textPrimary) + "\n" + indentedAPIKeyLines()
+	return auditTint("API keys ("+decoderconfig.CredentialStoreName()+")", textPrimary) + "\n" + indentedAPIKeyLines()
 }
 
 func configuredKeyList() string {
@@ -454,11 +454,11 @@ func apiKeyStatusColor(status string) color.Color {
 }
 
 func apiKeyStatusLines() []string {
-	providers := rhoconfig.AllSetupGateways()
+	providers := decoderconfig.AllSetupGateways()
 	sort.Strings(providers)
 	var lines []string
 	for _, provider := range providers {
-		lines = append(lines, fmt.Sprintf("%s: %s", provider, rhoconfig.EnvKeyStatus(provider)))
+		lines = append(lines, fmt.Sprintf("%s: %s", provider, decoderconfig.EnvKeyStatus(provider)))
 	}
 	return lines
 }

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 )
 
 // TestCheckTool_SpecStageBlocksEvenYOLO verifies the core guarantee documented
@@ -47,7 +47,7 @@ func TestCheckTool_SpecStageAllowsWorkflowAndReadTools(t *testing.T) {
 	os.Chdir(tmpDir)
 	t.Cleanup(func() { os.Chdir(origDir) })
 
-	constitutionDir := filepath.Join(tmpDir, ".rho", "specs", "test-spec")
+	constitutionDir := filepath.Join(tmpDir, ".decoder", "specs", "test-spec")
 	os.MkdirAll(constitutionDir, 0o700)
 	os.WriteFile(filepath.Join(constitutionDir, "constitution.md"), []byte("## Constitution\n"), 0o600)
 

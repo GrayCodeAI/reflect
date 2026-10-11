@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -325,7 +325,7 @@ func FormatRecoveryCandidates(candidates []RecoveryCandidate) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("Interrupted sessions (rho recover <id> to resume):\n")
+	b.WriteString("Interrupted sessions (decoder recover <id> to resume):\n")
 	b.WriteString(strings.Repeat("─", 60) + "\n")
 
 	for i, c := range candidates {

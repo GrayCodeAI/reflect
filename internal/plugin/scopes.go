@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/trust"
+	"github.com/GrayCodeAI/decoder/internal/fsutil"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/trust"
 )
 
 // Scope identifies a plugin discovery scope.
@@ -18,7 +18,7 @@ const (
 	ScopeManaged Scope = "managed"
 	// ScopeUser is the per-user plugins directory.
 	ScopeUser Scope = "user"
-	// ScopeProject is project-local .rho/plugins (requires folder trust).
+	// ScopeProject is project-local .decoder/plugins (requires folder trust).
 	ScopeProject Scope = "project"
 )
 
@@ -47,8 +47,8 @@ type ScopeDir struct {
 func DiscoverScopeDirs(projectRoot string) []ScopeDir {
 	var out []ScopeDir
 
-	// Managed: RHO_MANAGED_PLUGINS or config managed/plugins
-	if m := os.Getenv("RHO_MANAGED_PLUGINS"); m != "" {
+	// Managed: DECODER_MANAGED_PLUGINS or config managed/plugins
+	if m := os.Getenv("DECODER_MANAGED_PLUGINS"); m != "" {
 		for _, p := range filepath.SplitList(m) {
 			if p == "" {
 				continue
@@ -72,7 +72,7 @@ func DiscoverScopeDirs(projectRoot string) []ScopeDir {
 		projectRoot, _ = os.Getwd()
 	}
 	if projectRoot != "" {
-		proj := filepath.Join(projectRoot, ".rho", "plugins")
+		proj := filepath.Join(projectRoot, ".decoder", "plugins")
 		if st, err := os.Stat(proj); err == nil && st.IsDir() {
 			if err := trust.AllowLoadPath(proj); err == nil {
 				out = append(out, ScopeDir{Scope: ScopeProject, Path: proj})

@@ -11,15 +11,15 @@ import (
 	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/viewport"
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/GrayCodeAI/rho/internal/bridge/sessioncapture"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/bridge/sessioncapture"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	chatfeature "github.com/GrayCodeAI/decoder/internal/features/chat"
+	"github.com/GrayCodeAI/decoder/internal/features/shellmode"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 func newTestChatModel() *chatModel {
@@ -44,7 +44,7 @@ func newTestChatModel() *chatModel {
 		hintsLoader:       engine.NewHintsLoader(),
 		selfImprover:      engine.NewSelfImprover(),
 		codingSoul:        engine.LoadCodingSoul(),
-		brailleSpinner:    NewBrailleSpinner(SpinnerRho, "Thinking"),
+		brailleSpinner:    NewBrailleSpinner(SpinnerDecoder, "Thinking"),
 		testStreamStarter: func() {},
 	}
 	return m
@@ -63,12 +63,12 @@ func isolateChatCommandSweepEnv(t *testing.T) {
 	root := t.TempDir()
 	storage.SetTestDirs(t, root)
 	isolateCredentialHome(t)
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	gateway.SetDefaultStore(&gateway.MapStore{})
 	restoreThemeGlobals(t)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 }
 
@@ -78,7 +78,7 @@ func isolateChatCommandSweepEnv(t *testing.T) {
 // (e.g. TestAdaptiveNeutralsPreserveDarkAppearance).
 func restoreThemeGlobals(t *testing.T) {
 	t.Helper()
-	savedRho, savedSuccess, savedWarn, savedErr, savedInfo := rhoColor, successTeal, warnAmber, errorCoral, infoSky
+	savedDecoder, savedSuccess, savedWarn, savedErr, savedInfo := decoderColor, successTeal, warnAmber, errorCoral, infoSky
 	savedTool, savedAgent, savedDone, savedFileHeader := toolGold, agentGold, doneGreen, fileHeaderBlue
 	savedInspect, savedEdit, savedRun, savedTrust := tierInspect, tierEdit, tierRun, tierTrust
 	savedHudBorder, savedHudLabel := hudBorderPurple, hudLabelPink
@@ -100,7 +100,7 @@ func restoreThemeGlobals(t *testing.T) {
 	savedMinimalChrome := minimalChrome
 	hasDark := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 	t.Cleanup(func() {
-		rhoColor, successTeal, warnAmber, errorCoral, infoSky = savedRho, savedSuccess, savedWarn, savedErr, savedInfo
+		decoderColor, successTeal, warnAmber, errorCoral, infoSky = savedDecoder, savedSuccess, savedWarn, savedErr, savedInfo
 		toolGold, agentGold, doneGreen, fileHeaderBlue = savedTool, savedAgent, savedDone, savedFileHeader
 		tierInspect, tierEdit, tierRun, tierTrust = savedInspect, savedEdit, savedRun, savedTrust
 		hudBorderPurple, hudLabelPink = savedHudBorder, savedHudLabel
@@ -170,7 +170,7 @@ func TestChatModel_SlashClear(t *testing.T) {
 
 func TestFormatQuitResumeMessage(t *testing.T) {
 	got := formatQuitResumeMessage("44418bdd52745678")
-	want := "Thank you for using Rho!\n\nTo resume this session, run: rho --resume 44418bdd52745678\n"
+	want := "Thank you for using Decoder!\n\nTo resume this session, run: decoder --resume 44418bdd52745678\n"
 	if got != want {
 		t.Fatalf("quit message mismatch:\nwant %q\ngot  %q", want, got)
 	}
@@ -178,7 +178,7 @@ func TestFormatQuitResumeMessage(t *testing.T) {
 
 func TestFormatQuitResumeMessage_NoSession(t *testing.T) {
 	got := formatQuitResumeMessage("")
-	want := "Thank you for using Rho!\n"
+	want := "Thank you for using Decoder!\n"
 	if got != want {
 		t.Fatalf("quit message mismatch:\nwant %q\ngot  %q", want, got)
 	}

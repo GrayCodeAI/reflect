@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 	"golang.org/x/term"
 )
 

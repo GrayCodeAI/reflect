@@ -8,8 +8,8 @@ import (
 
 	lipgloss "charm.land/lipgloss/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 func modelStatusMeta(gateway, modelID string) (displayName, contextLabel string) {
@@ -61,7 +61,7 @@ func (m *chatModel) invalidateConnStatus() {
 
 func (m chatModel) connStatusFingerprint() string {
 	gw, modelName := m.sessionGatewayModel()
-	creds := strings.Join(rhoconfig.ConfiguredCredentialProviders(), ",")
+	creds := strings.Join(decoderconfig.ConfiguredCredentialProviders(), ",")
 	api := 0
 	if m.session != nil {
 		api = m.session.LastPromptTokens()
@@ -83,7 +83,7 @@ func (m chatModel) sessionGatewayModel() (gateway, model string) {
 		model = explicitModel
 	}
 	if gateway == "" && model != "" {
-		gateway = strings.TrimSpace(rhoconfig.ProviderOfModel(model))
+		gateway = strings.TrimSpace(decoderconfig.ProviderOfModel(model))
 	}
 	if explicitGateway == "" && explicitModel == "" && model == "" {
 		switch strings.TrimSpace(gateway) {
@@ -96,10 +96,10 @@ func (m chatModel) sessionGatewayModel() (gateway, model string) {
 
 func (m *chatModel) chatConnectionStatus() string {
 	ctx := context.Background()
-	if !rhoconfig.CredentialSnapshotReady() {
+	if !decoderconfig.CredentialSnapshotReady() {
 		return ""
 	}
-	if !rhoconfig.HasConfiguredDeploymentCached(ctx) {
+	if !decoderconfig.HasConfiguredDeploymentCached(ctx) {
 		return ""
 	}
 	m.syncSessionSelection()
@@ -138,7 +138,7 @@ func (m chatModel) buildConnectionStatusPlain() string {
 
 func (m chatModel) connectionStatusParts() (gateway, model, contextLabel string) {
 	gw, modelID := m.sessionGatewayModel()
-	gateway = rhoconfig.GatewayDisplayName(gw)
+	gateway = decoderconfig.GatewayDisplayName(gw)
 	if gateway == "" {
 		gateway = gw
 	}
@@ -196,10 +196,10 @@ func trimRepeatedGatewayPrefix(gateway, model string) string {
 // footer segments so context can sit flush on the right edge.
 func (m chatModel) renderConnectionStatusSplit() (modelRendered string, modelVis int, ctxRendered string, ctxVis int) {
 	ctx := context.Background()
-	if !rhoconfig.CredentialSnapshotReady() {
+	if !decoderconfig.CredentialSnapshotReady() {
 		return "", 0, "", 0
 	}
-	if !rhoconfig.HasConfiguredDeploymentCached(ctx) {
+	if !decoderconfig.HasConfiguredDeploymentCached(ctx) {
 		return "", 0, "", 0
 	}
 

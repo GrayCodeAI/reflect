@@ -5,14 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // Env vars exported to plugin hooks and child processes (Year 0 PACK-04).
 const (
-	EnvPluginRoot = "RHO_PLUGIN_ROOT"
-	EnvPluginData = "RHO_PLUGIN_DATA"
-	EnvPluginName = "RHO_PLUGIN_NAME"
+	EnvPluginRoot = "DECODER_PLUGIN_ROOT"
+	EnvPluginData = "DECODER_PLUGIN_DATA"
+	EnvPluginName = "DECODER_PLUGIN_NAME"
 )
 
 // PluginDataDir returns the durable data directory for a plugin.
@@ -37,7 +37,7 @@ func pluginHookEnv(pluginRoot, pluginName string, data map[string]interface{}) [
 		EnvPluginName+"="+pluginName,
 	)
 	for k, v := range data {
-		env = append(env, fmt.Sprintf("RHO_%s=%v", k, v))
+		env = append(env, fmt.Sprintf("DECODER_%s=%v", k, v))
 	}
 	return env
 }

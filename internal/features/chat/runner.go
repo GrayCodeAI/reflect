@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 // StreamSource is the provider/session boundary needed to run one assistant

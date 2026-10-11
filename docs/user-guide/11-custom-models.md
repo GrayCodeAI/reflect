@@ -1,12 +1,12 @@
 # Custom Models
 
-Rho connects to custom model endpoints through Flux for alternative providers, self-hosted models, and overriding built-in settings.
+Decoder connects to custom model endpoints through Mux for alternative providers, self-hosted models, and overriding built-in settings.
 
 ---
 
 ## Supported Providers
 
-Rho works with any LLM provider. Built-in support includes:
+Decoder works with any LLM provider. Built-in support includes:
 
 | Provider | ID | Key |
 |----------|-----|-----|
@@ -24,7 +24,7 @@ Rho works with any LLM provider. Built-in support includes:
 ### CLI Flag
 
 ```bash
-rho -m gpt-4o -p "Hello"
+decoder -m gpt-4o -p "Hello"
 ```
 
 ### Slash Command
@@ -39,7 +39,7 @@ In the TUI:
 ### Config Default
 
 ```json
-// ~/.rho/settings.json
+// ~/.decoder/settings.json
 {
   "default_provider": "openai",
   "default_model": "gpt-4o"
@@ -50,7 +50,7 @@ In the TUI:
 
 ## Configuring Custom Models
 
-Add custom models in `~/.rho/settings.json`:
+Add custom models in `~/.decoder/settings.json`:
 
 ```json
 {
@@ -73,7 +73,7 @@ Add custom models in `~/.rho/settings.json`:
 
 ### Credential Resolution
 
-Rho resolves credentials in this order:
+Decoder resolves credentials in this order:
 
 1. Per-model `api_key` field
 2. Environment variable (`env_key`)
@@ -127,11 +127,11 @@ ollama pull llama-3.1-70b
 
 ## Deployment-Aware Routing
 
-Enable deployment-aware routing to use Flux's model catalog:
+Enable deployment-aware routing to use Mux's model catalog:
 
 ```bash
-export RHO_DEPLOYMENT_ROUTING=true
-rho
+export DECODER_DEPLOYMENT_ROUTING=true
+decoder
 ```
 
 Or in settings:

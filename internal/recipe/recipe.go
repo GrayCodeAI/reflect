@@ -11,7 +11,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 	"gopkg.in/yaml.v3"
 )
 

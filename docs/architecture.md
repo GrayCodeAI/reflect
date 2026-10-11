@@ -1,10 +1,10 @@
 <div align="center">
 
-# <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bird.svg" width="16" height="16" alt="bird" /> rho Architecture
+# <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bird.svg" width="16" height="16" alt="bird" /> decoder Architecture
 
 **AI Coding Agent for Your Terminal**
 
-[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.27.2+-00ADD8?logo=go)](https://go.dev/)
 [![Port](https://img.shields.io/badge/Port-4590-orange)](https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml)
 [![Protocol](https://img.shields.io/badge/Protocol-REST-blue)](https://swagger.io/specification/)
 
@@ -14,19 +14,19 @@
 
 ## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/target.svg" width="16" height="16" alt="target" /> Overview
 
-rho is an AI-powered coding agent for the terminal. It reads codebases, writes and edits files, runs tests, and manages git — all through natural language. Zero CGO, single static binary for linux/darwin/windows on amd64/arm64.
+decoder is an AI-powered coding agent for the terminal. It reads codebases, writes and edits files, runs tests, and manages git — all through natural language. Zero CGO, single static binary for linux/darwin/windows on amd64/arm64.
 
-Detailed planning docs for the Rho product architecture live in [`docs/architecture/`](architecture/README.md).
+Detailed planning docs for the Decoder product architecture live in [`docs/architecture/`](architecture/README.md).
 
 ---
 
 ## <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/blocks.svg" width="16" height="16" alt="blocks" /> Layered Architecture
 
 ```
-rho/
+decoder/
 ├── api/openapi.yaml           <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/file-text.svg" width="16" height="16" alt="file-text" /> Daemon REST API contract (OpenAPI 3.1)
 ├── cmd/                       <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/terminal.svg" width="16" height="16" alt="terminal" /> Cobra CLI commands (200+ files)
-│   ├── rho/main.go           <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/zap.svg" width="16" height="16" alt="zap" /> Entry point — calls cmd.Execute()
+│   ├── decoder/main.go           <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/zap.svg" width="16" height="16" alt="zap" /> Entry point — calls cmd.Execute()
 │   ├── root.go                <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/settings.svg" width="16" height="16" alt="settings" /> Root command, flag definitions
 │   ├── daemon.go              <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/server.svg" width="16" height="16" alt="server" /> Daemon start/stop/status
 │   ├── chat.go                <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/message-square.svg" width="16" height="16" alt="message-square" /> Interactive TUI chat
@@ -61,8 +61,8 @@ rho/
 | | |
 |---|---|
 | **Contract** | [`api/openapi.yaml`](../api/openapi.yaml) |
-| **Port** | `:4590` (default). Override: `RHO_DAEMON_PORT` |
-| **Auth** | Bearer token or `X-API-Key`. Set via `RHO_DAEMON_API_KEY` |
+| **Port** | `:4590` (default). Override: `DECODER_DAEMON_PORT` |
+| **Auth** | Bearer token or `X-API-Key`. Set via `DECODER_DAEMON_API_KEY` |
 
 <details>
 <summary><b><img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/radio.svg" width="16" height="16" alt="radio" /> Endpoint Summary</b></summary>
@@ -86,7 +86,7 @@ rho/
 
 | Service | Role | Connection |
 |---------|------|------------|
-| <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bird.svg" width="16" height="16" alt="bird" /> **flux** | LLM provider runtime | Library — all LLM calls routed through its engine facade |
+| <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/bird.svg" width="16" height="16" alt="bird" /> **mux** | LLM provider runtime | Library — all LLM calls routed through its engine facade |
 | <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/scissors.svg" width="16" height="16" alt="scissors" /> **token** | Token optimization | Embedded — counting, compression, secrets, usage tracking |
 
 ### Client SDKs
@@ -99,7 +99,7 @@ rho/
 
 All three SDKs share types from **eagle** and consume the daemon REST API (:4590).
 
-> <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/lightbulb.svg" width="16" height="16" alt="lightbulb" /> **rho never talks to LLM APIs directly** — all calls go through flux.
+> <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/icons/lightbulb.svg" width="16" height="16" alt="lightbulb" /> **decoder never talks to LLM APIs directly** — all calls go through mux.
 
 ---
 
@@ -117,9 +117,9 @@ Tool Call → <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/i
 
 | Decision | Rationale |
 |----------|-----------|
-| `cmd/rho/main.go` entry point | Standard Go layout — goreleaser builds with `main: ./cmd/rho` producing `rho` binary |
+| `cmd/decoder/main.go` entry point | Standard Go layout — goreleaser builds with `main: ./cmd/decoder` producing `decoder` binary |
 | `cmd/` is CLI library | Not a binary sub-directory — holds 200+ cobra command files |
 | Zero CGO | Pure Go, cross-compilable. Tree-sitter is optional |
 | `internal/` is private | Other repos should not import `internal/*` |
 | `go.work` | Resolves the ecosystem siblings (`../<repo>`) for local and CI workspace integration |
-| `eagle` | Shared cross-repo severity, findings, review, verify, tools, events, and policy contracts — engines import this instead of `rho/internal` |
+| `eagle` | Shared cross-repo severity, findings, review, verify, tools, events, and policy contracts — engines import this instead of `decoder/internal` |

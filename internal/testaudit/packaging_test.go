@@ -39,7 +39,7 @@ func parseSystemdUnit(t *testing.T, data string) map[string][]string {
 }
 
 func TestSystemdUnitStateIsReachableUnderHardening(t *testing.T) {
-	unit := parseSystemdUnit(t, string(readRepoFile(t, "packaging/systemd/rho-daemon.service")))
+	unit := parseSystemdUnit(t, string(readRepoFile(t, "packaging/systemd/decoder-daemon.service")))
 	one := func(key string) string {
 		t.Helper()
 		if len(unit[key]) != 1 {
@@ -72,11 +72,11 @@ func TestSystemdUnitStateIsReachableUnderHardening(t *testing.T) {
 		k, v, _ := strings.Cut(e, "=")
 		env[k] = v
 	}
-	if want := "/var/lib/" + state; env["HOME"] != want || !strings.HasPrefix(env["RHO_STATE_DIR"], want) || !strings.HasPrefix(env["RHO_CONFIG_DIR"], want) {
-		t.Errorf("HOME/RHO_STATE_DIR/RHO_CONFIG_DIR must live in the StateDirectory %s, got %v", want, env)
+	if want := "/var/lib/" + state; env["HOME"] != want || !strings.HasPrefix(env["DECODER_STATE_DIR"], want) || !strings.HasPrefix(env["DECODER_CONFIG_DIR"], want) {
+		t.Errorf("HOME/DECODER_STATE_DIR/DECODER_CONFIG_DIR must live in the StateDirectory %s, got %v", want, env)
 	}
-	if _, ok := env["RHO_DAEMON_API_KEY"]; ok {
-		t.Error("do not set RHO_DAEMON_API_KEY inline; load it from the EnvironmentFile")
+	if _, ok := env["DECODER_DAEMON_API_KEY"]; ok {
+		t.Error("do not set DECODER_DAEMON_API_KEY inline; load it from the EnvironmentFile")
 	}
 
 	exec := one("ExecStart")
@@ -88,8 +88,8 @@ func TestSystemdUnitStateIsReachableUnderHardening(t *testing.T) {
 	}
 
 	for _, doc := range strings.Fields(one("Documentation")) {
-		if !strings.HasPrefix(doc, "https://github.com/GrayCodeAI/rho/") {
-			t.Errorf("Documentation=%s must point at the rho repository", doc)
+		if !strings.HasPrefix(doc, "https://github.com/GrayCodeAI/decoder/") {
+			t.Errorf("Documentation=%s must point at the decoder repository", doc)
 		}
 	}
 }

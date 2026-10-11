@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	// DefaultEndpoint is the hosted GrayCode Cloud API. `rho cloud login` and
-	// `rho cloud connect` use it when neither --endpoint nor EndpointEnv is
+	// DefaultEndpoint is the hosted GrayCode Cloud API. `decoder cloud login` and
+	// `decoder cloud connect` use it when neither --endpoint nor EndpointEnv is
 	// set. It is never applied to an existing connection: a saved device
 	// token stays bound to the endpoint that issued it.
 	DefaultEndpoint = "https://cloud.graycodeai.com"
 	// EndpointEnv overrides DefaultEndpoint for new connections.
-	EndpointEnv = "RHO_CLOUD_URL"
+	EndpointEnv = "DECODER_CLOUD_URL"
 )
 
 // ErrInsecureEndpoint reports a GrayCode Cloud URL that would send the device
@@ -23,7 +23,7 @@ const (
 var ErrInsecureEndpoint = errors.New("GrayCode Cloud endpoints must use https:// (plain http:// is allowed only for localhost, 127.0.0.1 and [::1])")
 
 // ResolveEndpoint returns the validated endpoint for a new connection: the
-// --endpoint flag value when set, else $RHO_CLOUD_URL, else DefaultEndpoint.
+// --endpoint flag value when set, else $DECODER_CLOUD_URL, else DefaultEndpoint.
 func ResolveEndpoint(flagValue string) (string, error) {
 	raw, source := strings.TrimSpace(flagValue), "--endpoint"
 	if raw == "" {

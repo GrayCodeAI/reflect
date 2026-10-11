@@ -25,7 +25,7 @@ type GitBranchInfo struct {
 	Detached  bool
 	HasRepo   bool
 	Dirty     bool
-	Suggested string // rho/agent-<timestamp> when OnDefault
+	Suggested string // decoder/agent-<timestamp> when OnDefault
 }
 
 // InspectGitBranch reads branch and dirty state for repoDir ("" = cwd).
@@ -62,7 +62,7 @@ func InspectGitBranch(repoDir string) GitBranchInfo {
 	}
 	info.OnDefault = !info.Detached && defaultBranchNames[info.Branch]
 	if info.OnDefault {
-		info.Suggested = fmt.Sprintf("rho/agent-%s", time.Now().Format("20060102-150405"))
+		info.Suggested = fmt.Sprintf("decoder/agent-%s", time.Now().Format("20060102-150405"))
 	}
 
 	st := exec.CommandContext(ctx, "git", "status", "--porcelain")
@@ -73,7 +73,7 @@ func InspectGitBranch(repoDir string) GitBranchInfo {
 	return info
 }
 
-// EnsureAgentBranch creates and checks out a rho/agent-* branch when currently
+// EnsureAgentBranch creates and checks out a decoder/agent-* branch when currently
 // on a default branch. No-op if already on a feature branch or not a git repo.
 // Returns the branch name after the operation.
 func EnsureAgentBranch(repoDir string) (string, error) {
@@ -89,11 +89,11 @@ func EnsureAgentBranch(repoDir string) (string, error) {
 	}
 	name := info.Suggested
 	if name == "" {
-		name = fmt.Sprintf("rho/agent-%d", time.Now().Unix())
+		name = fmt.Sprintf("decoder/agent-%d", time.Now().Unix())
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	// #nosec G204 -- fixed git subcommand; branch name is generated internally (rho/agent-*)
+	// #nosec G204 -- fixed git subcommand; branch name is generated internally (decoder/agent-*)
 	cmd := exec.CommandContext(ctx, "git", "checkout", "-b", name)
 	cmd.Dir = info.RepoDir
 	if out, err := cmd.CombinedOutput(); err != nil {

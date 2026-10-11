@@ -7,23 +7,23 @@ Linux Foundation / Agentic AI Foundation)
 
 ## Executive Decision
 
-Goose's audit against rho found that most of its runtime concepts already have
-a native rho implementation (providers via flux, sessions, MCP, ACP, skills,
-host-native policy, permissions). The genuinely novel, rho-relevant ideas are
+Goose's audit against decoder found that most of its runtime concepts already have
+a native decoder implementation (providers via mux, sessions, MCP, ACP, skills,
+host-native policy, permissions). The genuinely novel, decoder-relevant ideas are
 adopted here in Go, without copying Rust code or adding a second execution
 sandbox runtime.
 
-## Existing Rho Capabilities
+## Existing Decoder Capabilities
 
-| Goose package/concept | Rho implementation | Decision |
+| Goose package/concept | Decoder implementation | Decision |
 |---|---|---|
-| Provider abstraction (~36) | sibling `flux` (28 built-in + 75+ live) | Keep rho |
-| Sessions (SQLite WAL) | `internal/session` JSONL+WAL+zstd + sibling `swift` (Swift) | Keep rho |
-| MCP (client+server) | `internal/mcp` + sibling `falcon` | Keep rho |
-| ACP | `internal/acp` | Keep rho |
-| Extensions/skills | `internal/plugin`, skills registry | Keep rho |
+| Provider abstraction (~36) | sibling `mux` (28 built-in + 75+ live) | Keep decoder |
+| Sessions (SQLite WAL) | `internal/session` JSONL+WAL+zstd + sibling `swift` (Swift) | Keep decoder |
+| MCP (client+server) | `internal/mcp` + sibling `falcon` | Keep decoder |
+| ACP | `internal/acp` | Keep decoder |
+| Extensions/skills | `internal/plugin`, skills registry | Keep decoder |
 | Execution safety | `internal/engine/safety`, path guards, trust policy | Host-native, fail-closed |
-| OSV malware gate | `internal/permissions/osv_checker.go` (`CheckCommand`/`CheckPackage`) | Keep rho |
+| OSV malware gate | `internal/permissions/osv_checker.go` (`CheckCommand`/`CheckPackage`) | Keep decoder |
 | Hints / AGENTS.md | `internal/config` AGENTS.md loader | **Adopt** @file references + subdir hints |
 | Context compaction | sibling `shrike` (Shrike) + `internal/engine/compaction` | **Adopt** structured-summary retry ladder |
 | Extension env safety | none (only OSV gate) | **Adopt** disallowed-env-var filter |
@@ -31,7 +31,7 @@ sandbox runtime.
 
 ## Priority Model
 
-- **P0:** Security-relevant, bounded, rho-native adoptions.
+- **P0:** Security-relevant, bounded, decoder-native adoptions.
 - **P1:** High-value product improvements.
 - **Defer:** Larger or cross-cutting changes needing an RFC.
 
@@ -50,7 +50,7 @@ or MCP stdio processes by filtering dangerous environment overrides
   checker) — a `sanitizeEnv` / `SafeEnv` helper.
 - Consumers: `internal/mcp` stdio launch path and `internal/plugin` package
   execution.
-- No changes to sibling `flux`.
+- No changes to sibling `mux`.
 
 ### Required behavior
 
@@ -114,7 +114,7 @@ strict size/depth budgets — matching goose `hints/import_files.rs`.
 
 ### Goal
 
-Upgrade rho's context compaction to a structured summary with a progressive
+Upgrade decoder's context compaction to a structured summary with a progressive
 tool-response-dropping retry ladder on overflow, and token-estimator-backed
 accounting, matching `goose-context-management`.
 
@@ -142,18 +142,18 @@ accounting, matching `goose-context-management`.
 
 ## Deliberately Deferred
 
-- Goose's SQLite session store (`usage_ledger`, token/cost schema): rho's
+- Goose's SQLite session store (`usage_ledger`, token/cost schema): decoder's
   JSONL/WAL + swift + cost tracker cover it; a schema migration is a larger
   change and is tracked separately.
 - MCP Apps / agent-provided HTML UIs: novel but requires UI-layer design.
 - ACP-as-provider wrapping other CLIs: larger provider abstraction change.
-- Local-inference tool emulation / toolshim: depends on flux's local-model
+- Local-inference tool emulation / toolshim: depends on mux's local-model
   path.
-- Recipe security scanner / cron recipes: rho already has schedule/cron.
+- Recipe security scanner / cron recipes: decoder already has schedule/cron.
 
 ## Verification
 
 - `go test ./...` full suite.
-- `make vet`, `make lint`, `rho verify`.
+- `make vet`, `make lint`, `decoder verify`.
 - Focused tests for the env filter, AGENTS.md references, and compaction retry.
 - markdownlint on this document.

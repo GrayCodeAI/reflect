@@ -1,5 +1,5 @@
 // Package recipe also provides declarative provider configuration.
-// This file implements YAML-based provider definitions compatible with flux.
+// This file implements YAML-based provider definitions compatible with mux.
 package recipe
 
 import (
@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 	"gopkg.in/yaml.v3"
 )
 

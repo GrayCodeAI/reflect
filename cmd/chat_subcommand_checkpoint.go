@@ -3,7 +3,7 @@ package cmd
 import (
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 // checkpointSubcommand implements the /checkpoint slash command.

@@ -1,6 +1,6 @@
 # Terminal Support and Troubleshooting
 
-Rho runs as a full-screen TUI powered by Bubble Tea. This covers terminal compatibility and common fixes.
+Decoder runs as a full-screen TUI powered by Bubble Tea. This covers terminal compatibility and common fixes.
 
 ---
 
@@ -24,7 +24,7 @@ set -as terminal-features ",*:RGB"
 
 ## Terminal Detection
 
-Rho detects these terminals:
+Decoder detects these terminals:
 
 - Apple Terminal
 - iTerm2
@@ -61,7 +61,7 @@ Run `/terminal-setup` for diagnostics.
 
 **Cause**: Zellij, tmux control mode, or config.
 
-**Fix**: Set in `~/.rho/settings.json`:
+**Fix**: Set in `~/.decoder/settings.json`:
 
 ```json
 { "terminal": { "alt_screen": "always" } }
@@ -128,7 +128,7 @@ set -g set-clipboard on
 
 ## Diagnostics
 
-Run in Rho:
+Run in Decoder:
 
 ```
 /terminal-setup

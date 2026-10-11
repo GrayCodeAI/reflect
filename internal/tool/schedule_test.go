@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/schedule"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/schedule"
 )
 
 func TestScheduleTools_RoundTrip(t *testing.T) {

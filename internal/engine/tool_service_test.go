@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestToolServiceNormalizeOutputKeepsSmallResults(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/types"
+	store "github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // DisplayMessage is the presentation-neutral transcript shape used by the
@@ -26,7 +26,7 @@ type ExportRequest struct {
 	ID              string
 	Model           string
 	Provider        string
-	RuntimeMessages []types.FluxMessage
+	RuntimeMessages []types.MuxMessage
 	DisplayMessages []DisplayMessage
 	Format          string
 	Redact          bool
@@ -103,7 +103,7 @@ func renderJSON(req ExportRequest) ([]byte, error) {
 
 func renderText(req ExportRequest) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Rho Session: %s\n", req.ID)
+	fmt.Fprintf(&b, "Decoder Session: %s\n", req.ID)
 	fmt.Fprintf(&b, "Model: %s/%s\n", req.Provider, req.Model)
 	fmt.Fprintf(&b, "Exported: %s\n\n", time.Now().Format(time.RFC3339))
 	b.WriteString(strings.Repeat("=", 60) + "\n\n")

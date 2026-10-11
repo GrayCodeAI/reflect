@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/attachment"
+	"github.com/GrayCodeAI/decoder/internal/attachment"
 )
 
 // pngFixture encodes a 4x3 NRGBA raster as PNG bytes.

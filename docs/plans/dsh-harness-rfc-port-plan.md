@@ -1,6 +1,6 @@
-# Wave 2 — high-value deepseek-harness RFC ports for rho
+# Wave 2 — high-value deepseek-harness RFC ports for decoder
 
-> **Sandbox phases are obsolete.** Rho no longer contains `internal/sandbox`,
+> **Sandbox phases are obsolete.** Decoder no longer contains `internal/sandbox`,
 > Docker execution, or an OS/container sandbox backend. Do not implement Phase
 > 2.3 or 2.11 as written; any future policy work must target the host-native
 > permission, path, trust, and environment controls.
@@ -36,7 +36,7 @@ Reference source: `deepseek-ai/deepseek-harness` at `dsh-v0.1.0-rc.7`
 
 ## Wave 2 gap inventory
 
-| # | DSH source | Rho gap | Status |
+| # | DSH source | Decoder gap | Status |
 | --- | --- | --- | --- |
 | 2.1 | `guard/timeout-policy` | no per-tool declared timeout enforced at dispatch | **implemented** on `feat/dsh-harness-rfc-2.1-timeout-policy` |
 | 2.2 | `compaction/compaction` tool-pairing helpers | compact strategies can cut across open tool call/result pairs | proposed |
@@ -64,7 +64,7 @@ Port of DSH `guard/timeout-policy` (`dsh-tool-call-timeout-policy`) + the
 the tool's own declaration, not from a policy table.
 
 - `tool.Tool` gains an optional `TimeoutProvider` interface (`Timeout()
-  time.Duration`, 0 = no declaration) — the rho-native form of DSH's
+  time.Duration`, 0 = no declaration) — the decoder-native form of DSH's
   `ToolDefinition.timeoutMs`, consistent with the existing optional-provider
   pattern (`RiskLevelProvider`, `RetryPolicyProvider`, `SchemaProvider`).
   `tool.TimeoutOf(t Tool) time.Duration` reads it.
@@ -94,7 +94,7 @@ TOOL_TIMEOUT).
 ## Phase 2.2 — Compaction tool-pairing boundaries (`internal/engine/compact` + `internal/eventlog`)
 
 Port of DSH `compaction/compaction` surface contract + the
-`toolPairingBalancedBefore` / `toolPairingBalancedAfter` helpers. Rho's
+`toolPairingBalancedBefore` / `toolPairingBalancedAfter` helpers. Decoder's
 `internal/engine/compact/` already does LLM summarization
 (`strategy.go`, `micro.go`, `session_memory.go`) and `internal/eventlog` already
 journals `tool.call` / `tool.result` / `session.compacted` (Wave 1 Phase 0). The
@@ -125,14 +125,14 @@ detection and adoption on load; deterministic replay after replace.
 ## Phase 2.3 — Sandbox mode vocabulary + model-facing policy (`internal/sandbox` + `internal/eventlog` + `internal/engine`)
 
 > **Obsolete specification — retained for historical provenance only.** Do not
-> implement this phase. Rho's current product boundary is host-native
+> implement this phase. Decoder's current product boundary is host-native
 > permission, path, trust, and environment policy; there is no sandbox mode or
 > `internal/sandbox` package to extend.
 
 Port of DSH `sandbox/sandbox-policy` semantics
 (`SandboxMode` read-only / workspace-write / danger-full-access,
 `ctx.sandboxPolicy.resolve()`, `setSandboxMode`, the `sandbox:policy` context
-contribution). Rho already has the vocabulary — `internal/sandbox/mode.go`
+contribution). Decoder already has the vocabulary — `internal/sandbox/mode.go`
 `Mode` strict / workspace / off — so this phase ports the **policy resolution
 and durability** around it.
 
@@ -153,7 +153,7 @@ and durability** around it.
   durable context message on the first request and on each effective policy
   change; unchanged requests add nothing. `workspace` carries only the canonical
   workspace path (no host-dependent temp paths — summarize them). Rendered by
-  the prompt assembler exactly like DSH's three templates, but with rho's
+  the prompt assembler exactly like DSH's three templates, but with decoder's
   vocabulary:
   - `strict` — read-only; do not refuse a required modification from this policy
     alone; try the tool and follow denial/escalation guidance.
@@ -234,7 +234,7 @@ discovery; runtime provider registration/disposal.
 
 Revives gap `#21` in **query-only** scope (no migration of the JSONL store; the
 JSONL file stays the source of truth). Port of DSH
-`session-query/session-query-sqlite` semantics over rho's session logs.
+`session-query/session-query-sqlite` semantics over decoder's session logs.
 
 - New `internal/sessionquery` package:
   - FTS5 index (external content or contentless) over the session store,
@@ -282,9 +282,9 @@ resume of overdue work, no external channel, create/list/delete round-trip.
 ## Phase 2.8 — ACP client + external-agent subagent providers (`internal/acp` + `internal/multiagent`)
 
 Port of DSH `acp/` (client side) + `subagent/subagent-acp`, `subagent-claude-code`,
-`subagent-codex`. Rho has the ACP **server** (Wave 1 `internal/acp/server.go` —
+`subagent-codex`. Decoder has the ACP **server** (Wave 1 `internal/acp/server.go` —
 initialize, session/new, session/prompt, streamed updates,
-session/request_permission); this phase adds the client so rho's mission mode
+session/request_permission); this phase adds the client so decoder's mission mode
 can **delegate to** other ACP agents, Claude Code, and Codex.
 
 - `internal/acp/client.go`:
@@ -327,7 +327,7 @@ tool calls and supports interactive stdin.
   - Local backend over the sandbox executor: PTY allocation with zero-CGO on
     Linux (`syscall`-based pty or a maintained pure-Go pty; verify
     `github.com/creack/pty`'s CGO status before adoption — zero-CGO is a hard
-    rho constraint); Windows via `ConPTY` later, outside this phase.
+    decoder constraint); Windows via `ConPTY` later, outside this phase.
   - Sandbox enforcement: the backend applies the resolved Phase 2.3 policy
     (mode + workspace root) before exec, fail-closed.
   - Bounded reads: per-read byte cap; no unbounded buffering in model-facing
@@ -377,12 +377,12 @@ pre-publication failure.
 ## Phase 2.11 — Native Windows ACL sandbox (`internal/sandbox`)
 
 > **Obsolete specification — retained for historical provenance only.** Do not
-> implement this phase. Rho no longer provides a local OS/container sandbox or
+> implement this phase. Decoder no longer provides a local OS/container sandbox or
 > Docker fallback on any platform.
 
 The original proposal ported DSH `sandbox/sandbox-windows-acl` and assumed a
 cross-platform confinement backend. That assumption is no longer part of
-Rho's local product architecture.
+Decoder's local product architecture.
 
 - `internal/sandbox/windows_acl.go` (`//go:build windows`):
   - Implements the same `Sandbox` interface as `landlock.go`
@@ -409,7 +409,7 @@ Port of DSH `lsp/lsp-stdio` operational semantics. `internal/lsp/` currently has
 `client.go`/`manager.go`/`config.go`; this phase audits and aligns the client
 lifecycle with DSH's:
 - **Transient-open sequence**: per query — resolve and byte-bound the source
-  through rho's fs, `textDocument/didOpen` (version 1, full text), the
+  through decoder's fs, `textDocument/didOpen` (version 1, full text), the
   requested request, then `textDocument/didClose` in `finally`. No document
   cache, no LRU, no `didChange`; a failed/canceled `didOpen` write terminates
   the server instance before the pool can reuse it.
@@ -439,7 +439,7 @@ scrubbing (KEY/PASSWORD/SECRET/TOKEN absent from child env); processId null.
 ## Gates (each phase)
 
 `gofmt`/`go vet`/`go test -race` on the touched packages, then `make lint` and
-`rho verify`, run **twice** (second pass re-runs the full touched suite after
+`decoder verify`, run **twice** (second pass re-runs the full touched suite after
 any fixes). `scripts/check-internal-layer-imports.sh` must stay green. No direct
 commits to `main` — each phase is its own feature branch
 (`feat/dsh-harness-rfc-<phase>`), opened from `main`, with a PR and green CI.

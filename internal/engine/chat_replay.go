@@ -4,29 +4,29 @@ import (
 	"context"
 	"os"
 
-	"github.com/GrayCodeAI/rho/internal/replaycache"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/replaycache"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // replayCacheDirEnv opts a run into the disk-persisted replay cache: when set,
 // every non-streaming completion is looked up by its canonicalized request and
 // replayed from disk on a hit, giving deterministic, offline regression runs.
 // Unset (the default) leaves the chat path untouched.
-const replayCacheDirEnv = "RHO_REPLAY_CACHE_DIR"
+const replayCacheDirEnv = "DECODER_REPLAY_CACHE_DIR"
 
 // replayFingerprintEnv optionally folds an extra string (e.g. a fixture
 // version) into replay cache keys so whole suites can be invalidated at once.
-const replayFingerprintEnv = "RHO_REPLAY_FINGERPRINT"
+const replayFingerprintEnv = "DECODER_REPLAY_FINGERPRINT"
 
 // replayKey builds the cache key for one completion request.
-func replayKey(opts types.ChatOptions, messages []types.FluxMessage) string {
+func replayKey(opts types.ChatOptions, messages []types.MuxMessage) string {
 	return replaycache.Key(replaycache.Fingerprint(os.Getenv(replayFingerprintEnv)),
 		opts.Provider, opts.Model, messages, opts.MaxTokens)
 }
 
 // chatWithReplay wraps client.Chat with the replay cache when
-// RHO_REPLAY_CACHE_DIR is set; otherwise it calls straight through.
-func chatWithReplay(ctx context.Context, client ChatClient, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+// DECODER_REPLAY_CACHE_DIR is set; otherwise it calls straight through.
+func chatWithReplay(ctx context.Context, client ChatClient, messages []types.MuxMessage, opts types.ChatOptions) (*types.MuxResponse, error) {
 	dir := os.Getenv(replayCacheDirEnv)
 	if dir == "" {
 		return client.Chat(ctx, messages, opts)

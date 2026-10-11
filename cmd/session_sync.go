@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 func (m *chatModel) ensureDeferredSystemContext() {
@@ -32,12 +32,12 @@ func explicitSelection(ctx context.Context) (provider, model string) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return strings.TrimSpace(rhoconfig.ActiveGateway(ctx)), strings.TrimSpace(rhoconfig.ActiveModel(ctx))
+	return strings.TrimSpace(decoderconfig.ActiveGateway(ctx)), strings.TrimSpace(decoderconfig.ActiveModel(ctx))
 }
 
-// syncSessionFromPersistedSelection copies explicit flux provider.json
+// syncSessionFromPersistedSelection copies explicit mux provider.json
 // selection into the live session when the session fields are empty.
-// It intentionally avoids runtime defaults so Rho can preserve the
+// It intentionally avoids runtime defaults so Decoder can preserve the
 // "gateway selected, model still missing" setup state.
 func syncSessionFromPersistedSelection(sess *engine.Session) {
 	if sess == nil {

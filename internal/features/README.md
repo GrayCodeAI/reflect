@@ -1,4 +1,4 @@
-# Rho feature modules
+# Decoder feature modules
 
 This directory is the migration boundary for product features.
 

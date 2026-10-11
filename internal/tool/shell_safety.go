@@ -99,8 +99,8 @@ func validateShellCommand(ctx context.Context, command string) error {
 	if envDumpRe.MatchString(command) {
 		return fmt.Errorf("blocked: dumping environment variables can expose API keys")
 	}
-	if rhoEnvReadRe.MatchString(command) {
-		return fmt.Errorf("blocked: reading ~/.rho env files can expose API keys")
+	if decoderEnvReadRe.MatchString(command) {
+		return fmt.Errorf("blocked: reading ~/.decoder env files can expose API keys")
 	}
 	if apiKeyEchoRe.MatchString(command) {
 		return fmt.Errorf("blocked: echoing API key environment variables is not allowed")

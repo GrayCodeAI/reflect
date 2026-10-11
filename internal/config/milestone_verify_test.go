@@ -8,23 +8,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/catalog"
-	fluxcfg "github.com/GrayCodeAI/flux/config"
-	"github.com/GrayCodeAI/flux/credentials"
+	"github.com/GrayCodeAI/mux/catalog"
+	muxcfg "github.com/GrayCodeAI/mux/config"
+	"github.com/GrayCodeAI/mux/credentials"
 )
 
-// isolateMilestoneTest uses a temp HOME and RHO_CONFIG_DIR so verification does not touch the user machine.
+// isolateMilestoneTest uses a temp HOME and DECODER_CONFIG_DIR so verification does not touch the user machine.
 func isolateMilestoneTest(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
-	rhoDir := filepath.Join(home, ".rho")
-	if err := os.MkdirAll(rhoDir, 0o700); err != nil {
+	decoderDir := filepath.Join(home, ".decoder")
+	if err := os.MkdirAll(decoderDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
-	t.Setenv("RHO_CONFIG_DIR", rhoDir)
-	t.Setenv("FLUX_CONFIG_DIR", rhoDir)
-	return rhoDir
+	t.Setenv("DECODER_CONFIG_DIR", decoderDir)
+	t.Setenv("MUX_CONFIG_DIR", decoderDir)
+	return decoderDir
 }
 
 func TestVerify_ProviderJSONOnDiskHasNoSecrets(t *testing.T) {
@@ -34,19 +34,19 @@ func TestVerify_ProviderJSONOnDiskHasNoSecrets(t *testing.T) {
 		t.Fatal("compiled catalog required")
 	}
 	env := map[string]string{"ANTHROPIC_API_KEY": "sk-ant-verify-test-key-1234567890"}
-	cfg := fluxcfg.SyncProviderConfigFromCatalog(compiled, env)
-	path, err := fluxcfg.GetProviderConfigPath()
+	cfg := muxcfg.SyncProviderConfigFromCatalog(compiled, env)
+	path, err := muxcfg.GetProviderConfigPath()
 	if err != nil {
 		t.Fatalf("GetProviderConfigPath: %v", err)
 	}
-	if err := fluxcfg.SaveProviderConfig(cfg, path); err != nil {
+	if err := muxcfg.SaveProviderConfig(cfg, path); err != nil {
 		t.Fatal(err)
 	}
 	assertProviderJSONFileHasNoSecrets(t, path)
 }
 
 func TestVerify_PersistAPIKeyDoesNotWriteProviderJSON(t *testing.T) {
-	rhoDir := isolateMilestoneTest(t)
+	decoderDir := isolateMilestoneTest(t)
 	credentials.SetDefaultStore(emptyCredentialStore{})
 	t.Cleanup(func() { credentials.SetDefaultStore(nil) })
 
@@ -54,7 +54,7 @@ func TestVerify_PersistAPIKeyDoesNotWriteProviderJSON(t *testing.T) {
 	if err := PersistAPIKey(context.Background(), "ANTHROPIC_API_KEY", secret); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(rhoDir, "provider.json")
+	path := filepath.Join(decoderDir, "provider.json")
 	if _, err := os.Stat(path); err == nil {
 		data, _ := os.ReadFile(path)
 		if strings.Contains(string(data), secret) {
@@ -99,13 +99,13 @@ func TestVerify_EvaluateSetupFlow(t *testing.T) {
 		t.Fatal("expected setup still needed until model selected")
 	}
 
-	providerPath := filepath.Join(os.Getenv("HOME"), ".rho", "provider.json")
-	cfg := &fluxcfg.ProviderConfig{
+	providerPath := filepath.Join(os.Getenv("HOME"), ".decoder", "provider.json")
+	cfg := &muxcfg.ProviderConfig{
 		ActiveProvider: "anthropic",
 		ActiveModel:    "claude-sonnet-4-20250514",
 		AnthropicModel: "claude-sonnet-4-20250514",
 	}
-	if err := fluxcfg.SaveProviderConfig(cfg, providerPath); err != nil {
+	if err := muxcfg.SaveProviderConfig(cfg, providerPath); err != nil {
 		t.Fatal(err)
 	}
 	st = EvaluateSetup(ctx)
@@ -133,7 +133,7 @@ func assertProviderJSONFileHasNoSecrets(t *testing.T, path string) {
 			t.Fatalf("provider.json at %s contains non-empty %s", path, needle)
 		}
 	}
-	var cfg fluxcfg.ProviderConfig
+	var cfg muxcfg.ProviderConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		t.Fatal(err)
 	}

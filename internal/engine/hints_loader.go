@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// HintsFilenames are the files rho auto-loads for project context.
-var HintsFilenames = []string{".rhohints", "AGENTS.md"}
+// HintsFilenames are the files decoder auto-loads for project context.
+var HintsFilenames = []string{".decoderhints", "AGENTS.md"}
 
 // HintsLoader discovers and loads project-specific hint files from the
 // working directory and subdirectories the agent explores.

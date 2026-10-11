@@ -39,7 +39,7 @@ func (SpecVersionTool) Schema() ToolSchema {
 		Properties: map[string]SchemaProperty{
 			"message":       {Type: "string", Description: "Custom commit message (optional, auto-generated if empty)"},
 			"dry_run":       {Type: "boolean", Description: "If true, show what would be committed without actually committing"},
-			"include_specs": {Type: "boolean", Description: "If true, include .rho/specs/ in the commit (default true)"},
+			"include_specs": {Type: "boolean", Description: "If true, include .decoder/specs/ in the commit (default true)"},
 		},
 	}
 }
@@ -81,7 +81,7 @@ func (SpecVersionTool) Execute(ctx context.Context, input json.RawMessage) (stri
 		p.Message = generateCommitMessage(tasksContent, specContent)
 	}
 
-	specRelPath := filepath.Join(".rho", "specs")
+	specRelPath := filepath.Join(".decoder", "specs")
 
 	var b strings.Builder
 	b.WriteString("## Spec Versioning\n\n")

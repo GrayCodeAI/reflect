@@ -1,7 +1,7 @@
 // callgraph.go builds a per-function caller/callee graph
 // from a Go tree using go/parser and go/ast. It supports bounded BFS
 // traversals in both directions (CallersOf, CalleesOf) and a symmetric
-// Neighborhood helper used by the navigation index.
+// Neighbodecoderod helper used by the navigation index.
 package repomap
 
 import (
@@ -72,8 +72,8 @@ func (cg *CallGraph) CalleesOf(funcName string, maxDepth int) []string {
 	return result
 }
 
-// Neighborhood returns callers + callees within depth.
-func (cg *CallGraph) Neighborhood(funcName string, depth int) []string {
+// Neighbodecoderod returns callers + callees within depth.
+func (cg *CallGraph) Neighbodecoderod(funcName string, depth int) []string {
 	callers := cg.CallersOf(funcName, depth)
 	callees := cg.CalleesOf(funcName, depth)
 	seen := make(map[string]bool)

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 )
 
 func TestMarshalModelListJSONCompatibilityGolden(t *testing.T) {
@@ -72,7 +72,7 @@ func TestMarshalModelListJSONCompatibilityGolden(t *testing.T) {
 }
 
 func TestModelListJSONEntryFromEnginePreservesLegacyFieldMapping(t *testing.T) {
-	model := rhoconfig.EngineModel{
+	model := decoderconfig.EngineModel{
 		ID:               "vendor/model",
 		DisplayName:      "Model",
 		Description:      "Description",
@@ -97,7 +97,7 @@ func TestModelListJSONEntryFromEnginePreservesLegacyFieldMapping(t *testing.T) {
 		t.Fatalf("ServerTools = %v, want %v", entry.ServerTools, model.Capabilities)
 	}
 
-	out, err := marshalModelListJSON([]rhoconfig.EngineModel{model}, false, false)
+	out, err := marshalModelListJSON([]decoderconfig.EngineModel{model}, false, false)
 	if err != nil {
 		t.Fatalf("marshalModelListJSON() error = %v", err)
 	}

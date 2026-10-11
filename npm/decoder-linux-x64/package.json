@@ -1,0 +1,23 @@
+{
+    "version": "0.0.0-development",
+    "private": true,
+    "license": "MIT",
+    "files": [
+        "bin/",
+        "THIRD_PARTY_NOTICES.md"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "name": "@graycodeai/decoder-linux-x64",
+    "description": "linux-x64 binary for @graycodeai/decoder. Do not install directly; install @graycodeai/decoder instead.",
+    "os": [
+        "linux"
+    ],
+    "cpu": [
+        "x64"
+    ],
+    "bin": {
+        "decoder": "bin/decoder"
+    }
+}

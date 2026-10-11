@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/features/taste"
+	"github.com/GrayCodeAI/decoder/internal/features/taste"
 	"github.com/spf13/cobra"
 )
 
@@ -36,8 +36,8 @@ var tastePushCmd = &cobra.Command{
 with teammates or used across machines.
 
 Examples:
-  rho taste push                    # Export to stdout
-  rho taste push --file team.json   # Export to file`,
+  decoder taste push                    # Export to stdout
+  decoder taste push --file team.json   # Export to file`,
 	RunE: runTastePush,
 }
 
@@ -48,8 +48,8 @@ var tastePullCmd = &cobra.Command{
 will be merged with your existing profile (not replaced).
 
 Examples:
-  rho taste pull team.json
-  cat team.json | rho taste pull -`,
+  decoder taste pull team.json
+  cat team.json | decoder taste pull -`,
 	Args: cobra.ExactArgs(1),
 	RunE: runTastePull,
 }

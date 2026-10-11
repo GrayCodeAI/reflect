@@ -265,7 +265,7 @@ func tiny() {}
 
 func TestRenderForPrompt(t *testing.T) {
 	summary := &CodebaseSummary{
-		ProjectName: "rho",
+		ProjectName: "decoder",
 		Language:    "Go",
 		Packages: []SummaryPackageInfo{
 			{Path: "engine", Purpose: "Agent loop, compaction, streaming", LOC: 14000},
@@ -284,7 +284,7 @@ func TestRenderForPrompt(t *testing.T) {
 	result := RenderForPrompt(summary, 1024)
 
 	checks := []string{
-		"## Codebase: rho",
+		"## Codebase: decoder",
 		"Go project",
 		"1,476 files",
 		"478K LOC",
@@ -303,7 +303,7 @@ func TestRenderForPrompt(t *testing.T) {
 
 func TestRenderCompact(t *testing.T) {
 	summary := &CodebaseSummary{
-		ProjectName: "rho",
+		ProjectName: "decoder",
 		Language:    "Go",
 		Packages: []SummaryPackageInfo{
 			{Path: "engine", Purpose: "Core engine", LOC: 14000},
@@ -319,8 +319,8 @@ func TestRenderCompact(t *testing.T) {
 	if result == "" {
 		t.Fatal("expected non-empty compact render")
 	}
-	if !strings.Contains(result, "rho") {
-		t.Errorf("expected 'rho' in compact output, got %q", result)
+	if !strings.Contains(result, "decoder") {
+		t.Errorf("expected 'decoder' in compact output, got %q", result)
 	}
 	if !strings.Contains(result, "Go") {
 		t.Errorf("expected 'Go' in compact output, got %q", result)

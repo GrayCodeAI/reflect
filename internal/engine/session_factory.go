@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 // BuildChatClient returns an LLM client and whether deployment routing is active.
 // It is the single composition root: it builds one gateway.Gateway and adapts it
-// to the rho ChatClient port via the gateway's anti-corruption adapter.
+// to the decoder ChatClient port via the gateway's anti-corruption adapter.
 func BuildChatClient(ctx context.Context, selection gateway.Selection, legacyProvider string) (ChatClient, string, bool, error) {
 	modelRuntime, err := gateway.New(ctx, nil)
 	if err != nil {
-		return nil, requestedProvider(selection, legacyProvider), false, fmt.Errorf("flux transport: %w", err)
+		return nil, requestedProvider(selection, legacyProvider), false, fmt.Errorf("mux transport: %w", err)
 	}
 	return buildChatClientWithRuntime(ctx, modelRuntime, selection, legacyProvider)
 }
@@ -33,7 +33,7 @@ func buildChatClientWithRuntime(ctx context.Context, modelRuntime *gateway.Gatew
 		resolvedSelection.Provider = provider
 	}
 	if modelRuntime == nil {
-		return nil, provider, false, errors.New("flux transport: runtime is nil")
+		return nil, provider, false, errors.New("mux transport: runtime is nil")
 	}
 	label := strings.TrimSpace(resolvedSelection.Provider)
 	if label == "" {
@@ -44,10 +44,10 @@ func buildChatClientWithRuntime(ctx context.Context, modelRuntime *gateway.Gatew
 
 // BuildChatClientForSettings composes the model runtime from one effective
 // settings snapshot. It is the command-facing path for --settings isolation.
-func BuildChatClientForSettings(ctx context.Context, settings rhoconfig.Settings, selection gateway.Selection, legacyProvider string) (ChatClient, string, bool, error) {
+func BuildChatClientForSettings(ctx context.Context, settings decoderconfig.Settings, selection gateway.Selection, legacyProvider string) (ChatClient, string, bool, error) {
 	modelRuntime, err := gateway.New(ctx, gatewayCustomGateways(settings.CustomProviders))
 	if err != nil {
-		return nil, requestedProvider(selection, legacyProvider), false, fmt.Errorf("flux transport: %w", err)
+		return nil, requestedProvider(selection, legacyProvider), false, fmt.Errorf("mux transport: %w", err)
 	}
 	return buildChatClientWithRuntime(ctx, modelRuntime, selection, legacyProvider)
 }
@@ -56,7 +56,7 @@ func BuildChatClientForSettings(ctx context.Context, settings rhoconfig.Settings
 // at the composition root (the gateway package cannot import config).
 // Delegates the final step to gateway.BuildCustomGateways so a new
 // CustomProviderConfig field only needs wiring once.
-func convertCustomProviders(in []rhoconfig.CustomProviderConfig) []gateway.CustomProviderConfig {
+func convertCustomProviders(in []decoderconfig.CustomProviderConfig) []gateway.CustomProviderConfig {
 	out := make([]gateway.CustomProviderConfig, 0, len(in))
 	for _, p := range in {
 		if p.Name == "" && p.BaseURL == "" {
@@ -71,7 +71,7 @@ func convertCustomProviders(in []rhoconfig.CustomProviderConfig) []gateway.Custo
 
 // gatewayCustomGateways converts config providers to gateway specs, reusing
 // the shared conversion loop.
-func gatewayCustomGateways(in []rhoconfig.CustomProviderConfig) []gateway.CustomProviderConfig {
+func gatewayCustomGateways(in []decoderconfig.CustomProviderConfig) []gateway.CustomProviderConfig {
 	return convertCustomProviders(in)
 }
 
@@ -82,8 +82,8 @@ func requestedProvider(selection gateway.Selection, legacyProvider string) strin
 	return strings.TrimSpace(legacyProvider)
 }
 
-// NewRhoSession constructs a Session using an engine-resolved selection.
-func NewRhoSession(ctx context.Context, selection gateway.Selection, provider, model, systemPrompt string, registry *tool.Registry) *Session {
+// NewDecoderSession constructs a Session using an engine-resolved selection.
+func NewDecoderSession(ctx context.Context, selection gateway.Selection, provider, model, systemPrompt string, registry *tool.Registry) *Session {
 	chat, label, deploy, err := BuildChatClient(ctx, selection, provider)
 	if err != nil {
 		chat = NewUnavailableChatClient(err)
@@ -95,9 +95,9 @@ func NewRhoSession(ctx context.Context, selection gateway.Selection, provider, m
 	return NewSessionWithClient(chat, label, resolvedModel, systemPrompt, registry, deploy)
 }
 
-// NewRhoSessionForSettings constructs a session with an invocation-scoped
-// Flux engine, including custom gateways from an explicit settings file.
-func NewRhoSessionForSettings(ctx context.Context, settings rhoconfig.Settings, selection gateway.Selection, provider, model, systemPrompt string, registry *tool.Registry) *Session {
+// NewDecoderSessionForSettings constructs a session with an invocation-scoped
+// Mux engine, including custom gateways from an explicit settings file.
+func NewDecoderSessionForSettings(ctx context.Context, settings decoderconfig.Settings, selection gateway.Selection, provider, model, systemPrompt string, registry *tool.Registry) *Session {
 	chat, label, deploy, err := BuildChatClientForSettings(ctx, settings, selection, provider)
 	if err != nil {
 		chat = NewUnavailableChatClient(err)
@@ -122,7 +122,7 @@ func RebuildSessionTransport(ctx context.Context, s *Session, selection gateway.
 	return nil
 }
 
-func RebuildSessionTransportForSettings(ctx context.Context, settings rhoconfig.Settings, s *Session, selection gateway.Selection, legacyProvider string) error {
+func RebuildSessionTransportForSettings(ctx context.Context, settings decoderconfig.Settings, s *Session, selection gateway.Selection, legacyProvider string) error {
 	if s == nil {
 		return errors.New("session is nil")
 	}

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 // mockSession creates a minimal engine session for testing.

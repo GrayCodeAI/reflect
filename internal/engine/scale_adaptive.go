@@ -27,7 +27,7 @@ func (s TaskScale) String() string {
 	}
 }
 
-// ScaleBehavior defines how rho adjusts its behavior per scale.
+// ScaleBehavior defines how decoder adjusts its behavior per scale.
 type ScaleBehavior struct {
 	Scale        TaskScale
 	MaxTurns     int

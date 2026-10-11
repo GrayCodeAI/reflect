@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 func TestNewConventionSet(t *testing.T) {

@@ -6,35 +6,35 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
 )
 
 func configureReadyChatState(t *testing.T) {
 	t.Helper()
 	isolateChatCommandSweepEnv(t)
 
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	ctx := context.Background()
 	if err := store.Set(ctx, gateway.AccountForEnv("OPENROUTER_API_KEY"), "sk-or-test-key-1234567890"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
+	if err := decoderconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
+	if err := decoderconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
 		t.Fatal(err)
 	}
-	rhoconfig.InvalidateConfigUICache()
-	rhoconfig.RefreshConfigCredSnapshot(ctx)
+	decoderconfig.InvalidateConfigUICache()
+	decoderconfig.RefreshConfigCredSnapshot(ctx)
 }
 
 func countMessagesByRole(msgs []displayMsg, role string) int {

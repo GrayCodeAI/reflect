@@ -6,8 +6,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/features/shellmode"
 )
 
 // modeSubcommand implements the /mode slash command.
@@ -41,7 +41,7 @@ func (mo *modeSubcommand) Handle(m *chatModel, args []string, text string) (tea.
 		}
 		visible := 0
 		if m.session != nil && m.session.Tools() != nil && m.session.Tools().Registry() != nil {
-			visible = len(m.session.Tools().Registry().FluxTools())
+			visible = len(m.session.Tools().Registry().MuxTools())
 		}
 		m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf(
 			"Work mode:  %s  (plan | act | review)\nShell mode: %s  (auto | shell | agent)\nTrust:      %s\nAuto-commit: %s\nTools visible: %d\n\n/start · /trust · /branch-agent · /auto-commit",

@@ -7,17 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/flux/llm"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	"github.com/GrayCodeAI/mux/llm"
 )
 
 type resilienceBoundaryClient struct {
 	mu            sync.Mutex
-	streams       [][]types.FluxStreamEvent
-	chatResponses []*types.FluxResponse
+	streams       [][]types.MuxStreamEvent
+	chatResponses []*types.MuxResponse
 	streamCalls   int
 	chatCalls     int
-	messages      [][]types.FluxMessage
+	messages      [][]types.MuxMessage
 }
 
 type managedResilienceBoundaryClient struct {
@@ -26,30 +26,30 @@ type managedResilienceBoundaryClient struct {
 
 func (*managedResilienceBoundaryClient) ManagesResilience() bool { return true }
 
-func (c *resilienceBoundaryClient) Chat(context.Context, []types.FluxMessage, types.ChatOptions) (*types.FluxResponse, error) {
+func (c *resilienceBoundaryClient) Chat(context.Context, []types.MuxMessage, types.ChatOptions) (*types.MuxResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.chatCalls++
 	if len(c.chatResponses) == 0 {
-		return &types.FluxResponse{}, nil
+		return &types.MuxResponse{}, nil
 	}
 	response := c.chatResponses[0]
 	c.chatResponses = c.chatResponses[1:]
 	return response, nil
 }
 
-func (c *resilienceBoundaryClient) StreamChatContinue(_ context.Context, messages []types.FluxMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *resilienceBoundaryClient) StreamChatContinue(_ context.Context, messages []types.MuxMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.streamCalls++
 	c.messages = append(c.messages, cloneBoundaryMessages(messages))
 
-	events := []types.FluxStreamEvent{{Type: "done", StopReason: "end_turn"}}
+	events := []types.MuxStreamEvent{{Type: "done", StopReason: "end_turn"}}
 	if len(c.streams) > 0 {
 		events = c.streams[0]
 		c.streams = c.streams[1:]
 	}
-	ch := make(chan types.FluxStreamEvent, len(events))
+	ch := make(chan types.MuxStreamEvent, len(events))
 	for _, event := range events {
 		ch <- event
 	}
@@ -63,14 +63,14 @@ func (c *resilienceBoundaryClient) counts() (stream, chat int) {
 	return c.streamCalls, c.chatCalls
 }
 
-func (c *resilienceBoundaryClient) messagesForCall(call int) []types.FluxMessage {
+func (c *resilienceBoundaryClient) messagesForCall(call int) []types.MuxMessage {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return cloneBoundaryMessages(c.messages[call])
 }
 
-func cloneBoundaryMessages(messages []types.FluxMessage) []types.FluxMessage {
-	out := make([]types.FluxMessage, len(messages))
+func cloneBoundaryMessages(messages []types.MuxMessage) []types.MuxMessage {
+	out := make([]types.MuxMessage, len(messages))
 	copy(out, messages)
 	for i := range out {
 		out[i].ToolUse = append([]types.ToolCall(nil), messages[i].ToolUse...)
@@ -102,14 +102,14 @@ func runResilienceBoundarySession(t *testing.T, client ChatClient, configure fun
 }
 
 func TestAgentLoopResilienceBoundary_StreamRetry(t *testing.T) {
-	transient := []types.FluxStreamEvent{{Type: "error", Error: "temporary connection reset by peer"}}
-	success := []types.FluxStreamEvent{
+	transient := []types.MuxStreamEvent{{Type: "error", Error: "temporary connection reset by peer"}}
+	success := []types.MuxStreamEvent{
 		{Type: "content", Content: "recovered"},
 		{Type: "done", StopReason: "end_turn"},
 	}
 
 	t.Run("engine facade gets one stream attempt", func(t *testing.T) {
-		base := &resilienceBoundaryClient{streams: [][]types.FluxStreamEvent{transient, success}}
+		base := &resilienceBoundaryClient{streams: [][]types.MuxStreamEvent{transient, success}}
 		events := runResilienceBoundarySession(t, &managedResilienceBoundaryClient{base}, nil)
 		streamCalls, chatCalls := base.counts()
 		if streamCalls != 1 || chatCalls != 0 {
@@ -121,7 +121,7 @@ func TestAgentLoopResilienceBoundary_StreamRetry(t *testing.T) {
 	})
 
 	t.Run("legacy client retains stream retry", func(t *testing.T) {
-		client := &resilienceBoundaryClient{streams: [][]types.FluxStreamEvent{transient, success}}
+		client := &resilienceBoundaryClient{streams: [][]types.MuxStreamEvent{transient, success}}
 		events := runResilienceBoundarySession(t, client, nil)
 		streamCalls, chatCalls := client.counts()
 		if streamCalls != 2 || chatCalls != 0 {
@@ -134,16 +134,16 @@ func TestAgentLoopResilienceBoundary_StreamRetry(t *testing.T) {
 }
 
 func TestAgentLoopResilienceBoundary_ThinkingOnlyRecovery(t *testing.T) {
-	thinkingOnly := []types.FluxStreamEvent{
+	thinkingOnly := []types.MuxStreamEvent{
 		{Type: "thinking", Thinking: "internal reasoning"},
 		{Type: "done", StopReason: "end_turn"},
 	}
-	fallback := &types.FluxResponse{Content: "compatibility reply", FinishReason: "end_turn"}
+	fallback := &types.MuxResponse{Content: "compatibility reply", FinishReason: "end_turn"}
 
-	t.Run("engine facade does not trigger Rho protocol recovery", func(t *testing.T) {
+	t.Run("engine facade does not trigger Decoder protocol recovery", func(t *testing.T) {
 		base := &resilienceBoundaryClient{
-			streams:       [][]types.FluxStreamEvent{thinkingOnly},
-			chatResponses: []*types.FluxResponse{fallback},
+			streams:       [][]types.MuxStreamEvent{thinkingOnly},
+			chatResponses: []*types.MuxResponse{fallback},
 		}
 		events := runResilienceBoundarySession(t, &managedResilienceBoundaryClient{base}, nil)
 		streamCalls, chatCalls := base.counts()
@@ -151,14 +151,14 @@ func TestAgentLoopResilienceBoundary_ThinkingOnlyRecovery(t *testing.T) {
 			t.Fatalf("calls = stream %d, chat %d; want one stream and no protocol fallback", streamCalls, chatCalls)
 		}
 		if hasBoundaryEvent(events, "content", "compatibility reply") {
-			t.Fatalf("managed client unexpectedly used Rho thinking fallback: %#v", events)
+			t.Fatalf("managed client unexpectedly used Decoder thinking fallback: %#v", events)
 		}
 	})
 
 	t.Run("legacy client retains thinking-only fallback", func(t *testing.T) {
 		client := &resilienceBoundaryClient{
-			streams:       [][]types.FluxStreamEvent{thinkingOnly},
-			chatResponses: []*types.FluxResponse{fallback},
+			streams:       [][]types.MuxStreamEvent{thinkingOnly},
+			chatResponses: []*types.MuxResponse{fallback},
 		}
 		events := runResilienceBoundarySession(t, client, nil)
 		streamCalls, chatCalls := client.counts()
@@ -172,17 +172,17 @@ func TestAgentLoopResilienceBoundary_ThinkingOnlyRecovery(t *testing.T) {
 }
 
 func TestAgentLoopResilienceBoundary_MaxTokensContinuation(t *testing.T) {
-	partial := []types.FluxStreamEvent{
+	partial := []types.MuxStreamEvent{
 		{Type: "content", Content: "partial"},
 		{Type: "done", StopReason: "max_tokens"},
 	}
-	finished := []types.FluxStreamEvent{
+	finished := []types.MuxStreamEvent{
 		{Type: "content", Content: " finished"},
 		{Type: "done", StopReason: "end_turn"},
 	}
 
 	t.Run("engine facade does not get a synthetic continuation turn", func(t *testing.T) {
-		base := &resilienceBoundaryClient{streams: [][]types.FluxStreamEvent{partial, finished}}
+		base := &resilienceBoundaryClient{streams: [][]types.MuxStreamEvent{partial, finished}}
 		session := NewSessionWithClient(&managedResilienceBoundaryClient{base}, "test", "test-model", "test system", nil, false)
 		session.LifecycleSvc().Limits().SetMaxTurns(5)
 		session.AddUser("continue test")
@@ -204,7 +204,7 @@ func TestAgentLoopResilienceBoundary_MaxTokensContinuation(t *testing.T) {
 	})
 
 	t.Run("legacy client retains synthetic continuation", func(t *testing.T) {
-		client := &resilienceBoundaryClient{streams: [][]types.FluxStreamEvent{partial, finished}}
+		client := &resilienceBoundaryClient{streams: [][]types.MuxStreamEvent{partial, finished}}
 		session := NewSessionWithClient(client, "test", "test-model", "test system", nil, false)
 		session.LifecycleSvc().Limits().SetMaxTurns(5)
 		session.AddUser("continue test")
@@ -221,8 +221,8 @@ func TestAgentLoopResilienceBoundary_MaxTokensContinuation(t *testing.T) {
 	})
 }
 
-func TestAgentLoopResilienceBoundary_KeepsRhoToolAuthorizationAndMutation(t *testing.T) {
-	base := &resilienceBoundaryClient{streams: [][]types.FluxStreamEvent{
+func TestAgentLoopResilienceBoundary_KeepsDecoderToolAuthorizationAndMutation(t *testing.T) {
+	base := &resilienceBoundaryClient{streams: [][]types.MuxStreamEvent{
 		{
 			{Type: "tool_call", ToolCall: &types.ToolCall{ID: "write-1", Name: "Write", Arguments: map[string]interface{}{"file_path": "blocked.txt", "content": "no"}}},
 			{Type: "done", StopReason: "tool_use"},
@@ -240,14 +240,14 @@ func TestAgentLoopResilienceBoundary_KeepsRhoToolAuthorizationAndMutation(t *tes
 
 	streamCalls, chatCalls := base.counts()
 	if streamCalls != 2 || chatCalls != 0 {
-		t.Fatalf("calls = stream %d, chat %d; want one facade call per Rho agent turn", streamCalls, chatCalls)
+		t.Fatalf("calls = stream %d, chat %d; want one facade call per Decoder agent turn", streamCalls, chatCalls)
 	}
 	if !hasBoundaryEvent(events, "tool_result", "dry-run") {
-		t.Fatalf("Rho tool denial was not emitted: %#v", events)
+		t.Fatalf("Decoder tool denial was not emitted: %#v", events)
 	}
 	secondRequest := base.messagesForCall(1)
 	if len(secondRequest) < 3 || len(secondRequest[1].ToolUse) != 1 || len(secondRequest[2].ToolResults) != 1 {
-		t.Fatalf("Rho did not persist tool call/result conversation shape: %#v", secondRequest)
+		t.Fatalf("Decoder did not persist tool call/result conversation shape: %#v", secondRequest)
 	}
 	if !secondRequest[2].ToolResults[0].IsError || !strings.Contains(secondRequest[2].ToolResults[0].Content, "dry-run") {
 		t.Fatalf("tool authorization result = %#v, want persisted denial", secondRequest[2].ToolResults[0])

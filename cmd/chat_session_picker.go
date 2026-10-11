@@ -7,11 +7,11 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 	"github.com/mattn/go-runewidth"
 
-	sessionfeature "github.com/GrayCodeAI/rho/internal/features/session"
-	"github.com/GrayCodeAI/rho/internal/session"
+	sessionfeature "github.com/GrayCodeAI/decoder/internal/features/session"
+	"github.com/GrayCodeAI/decoder/internal/session"
 )
 
 // applySessionPickerFilter filters the session entries based on the current search query.

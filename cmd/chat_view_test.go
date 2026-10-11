@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestFormatRhoTokenCount(t *testing.T) {
+func TestFormatDecoderTokenCount(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		in   int
@@ -25,9 +25,9 @@ func TestFormatRhoTokenCount(t *testing.T) {
 		tc := tc
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
-			got := formatRhoTokenCount(tc.in)
+			got := formatDecoderTokenCount(tc.in)
 			if got != tc.want {
-				t.Fatalf("formatRhoTokenCount(%d) = %q, want %q", tc.in, got, tc.want)
+				t.Fatalf("formatDecoderTokenCount(%d) = %q, want %q", tc.in, got, tc.want)
 			}
 		})
 	}

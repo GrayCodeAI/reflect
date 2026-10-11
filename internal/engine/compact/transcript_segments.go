@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // Compaction transcript segments, adopted from grok-build's
@@ -80,7 +80,7 @@ func IndexPath(sessionID string) string {
 
 // RenderSegmentToMarkdown renders messages into a self-contained markdown
 // segment. Pure: no I/O.
-func RenderSegmentToMarkdown(msgs []types.FluxMessage, segIndex int, detail CompactionDetail) string {
+func RenderSegmentToMarkdown(msgs []types.MuxMessage, segIndex int, detail CompactionDetail) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Compaction segment %d\n\n", segIndex)
 	fmt.Fprintf(&b, "Recorded: %s\n", time.Now().UTC().Format(time.RFC3339))
@@ -112,7 +112,7 @@ func RenderSegmentToMarkdown(msgs []types.FluxMessage, segIndex int, detail Comp
 	return b.String()
 }
 
-func renderTurn(m types.FluxMessage, detail CompactionDetail) string {
+func renderTurn(m types.MuxMessage, detail CompactionDetail) string {
 	var b strings.Builder
 	role := strings.ToUpper(m.Role)
 	fmt.Fprintf(&b, "## %s\n", role)
@@ -212,7 +212,7 @@ func NextSegmentIndex(sessionID string) int {
 // WriteCompactionSegment persists msgs as the next segment and appends an
 // INDEX.md row. It returns the written segment path. Callers should treat
 // errors as non-fatal: segment persistence must never block compaction.
-func WriteCompactionSegment(sessionID string, msgs []types.FluxMessage, detail CompactionDetail) (string, error) {
+func WriteCompactionSegment(sessionID string, msgs []types.MuxMessage, detail CompactionDetail) (string, error) {
 	if sessionID == "" {
 		return "", fmt.Errorf("compact: empty session id")
 	}

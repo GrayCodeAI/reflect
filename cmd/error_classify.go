@@ -4,41 +4,41 @@ import (
 	"fmt"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/errhint"
-	"github.com/GrayCodeAI/rho/internal/rhoerr"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/decodererr"
+	"github.com/GrayCodeAI/decoder/internal/errhint"
 )
 
 // friendlyErrorMessage returns the user-friendly message for an error.
-// Delegates to the shared rhoerr.ClassifyErrorMessage for the base message,
+// Delegates to the shared decodererr.ClassifyErrorMessage for the base message,
 // then enriches specific cases with dynamic hints that require the config
-// package (rhoerr can't import internal/config without a cycle).
+// package (decodererr can't import internal/config without a cycle).
 func friendlyErrorMessage(err error) string {
-	msg := rhoerr.ClassifyErrorMessage(err)
+	msg := decodererr.ClassifyErrorMessage(err)
 
 	if err == nil {
 		return msg
 	}
 
-	ec := rhoerr.ClassifyError(err)
+	ec := decodererr.ClassifyError(err)
 	low := strings.ToLower(err.Error())
 
 	switch ec.ExitCode {
-	case rhoerr.ExitNotFound:
+	case decodererr.ExitNotFound:
 		// Enrich model-not-found errors with concrete examples from the catalog.
 		if strings.Contains(low, "model") || strings.Contains(low, "unknown") ||
 			strings.Contains(low, "does not exist") {
-			ex1, ex2 := rhoconfig.ExampleModelHints()
+			ex1, ex2 := decoderconfig.ExampleModelHints()
 			msg = fmt.Sprintf(
-				"Model not found. Check your model name with /model.\n  Examples from the flux catalog: %s, %s\n  Use /models to list all models, or /config to change provider.",
+				"Model not found. Check your model name with /model.\n  Examples from the mux catalog: %s, %s\n  Use /models to list all models, or /config to change provider.",
 				ex1, ex2,
 			)
 		}
-	case rhoerr.ExitAuth:
+	case decodererr.ExitAuth:
 		msg += "\n  Check your API key with /config. Keys can expire or be revoked."
-	case rhoerr.ExitNetwork:
+	case decodererr.ExitNetwork:
 		msg += "\n  Check your internet connection. If you're behind a proxy, configure it with /config."
-	case rhoerr.ExitTimeout:
+	case decodererr.ExitTimeout:
 		msg += "\n  The request took too long. Try again, or use /model to switch to a faster provider."
 	}
 

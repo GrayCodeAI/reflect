@@ -7,19 +7,19 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/GrayCodeAI/rho/internal/acp"
-	"github.com/GrayCodeAI/rho/internal/attachment"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/acp"
+	"github.com/GrayCodeAI/decoder/internal/attachment"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/observability/logger"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 	"github.com/spf13/cobra"
 )
 
 var acpCmd = &cobra.Command{
 	Use:   "acp",
-	Short: "Run rho as an Agent Client Protocol (ACP) server",
-	Long: "Run rho as an ACP server over stdio (JSON-RPC 2.0) so editors such as " +
+	Short: "Run decoder as an Agent Client Protocol (ACP) server",
+	Long: "Run decoder as an ACP server over stdio (JSON-RPC 2.0) so editors such as " +
 		"Zed can drive it. Tool-permission prompts are routed back to the client " +
 		"via session/request_permission.",
 	RunE: runACP,
@@ -30,8 +30,8 @@ func init() {
 }
 
 func runACP(cmd *cobra.Command, _ []string) error {
-	settings := rhoconfig.LoadSettings()
-	newSession := newConfiguredRhoSessionFactory(settings, logger.New(io.Discard, logger.Error))
+	settings := decoderconfig.LoadSettings()
+	newSession := newConfiguredDecoderSessionFactory(settings, logger.New(io.Discard, logger.Error))
 
 	factory := func() (*engine.Session, error) {
 		systemPrompt, err := buildSystemPrompt()

@@ -7,20 +7,20 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 func (m chatModel) configStatus() (gateway, model string, configured bool) {
 	ctx := context.Background()
-	if !rhoconfig.HasConfiguredDeploymentCached(ctx) {
+	if !decoderconfig.HasConfiguredDeploymentCached(ctx) {
 		return "none", "", false
 	}
 	gw := strings.TrimSpace(m.configModelProvider)
-	if gw != "" && rhoconfig.IsSetupGateway(gw) {
-		gw = rhoconfig.GatewayDisplayName(gw)
-	} else if active := rhoconfig.ActiveGateway(ctx); active != "" {
-		gw = rhoconfig.GatewayDisplayName(active)
+	if gw != "" && decoderconfig.IsSetupGateway(gw) {
+		gw = decoderconfig.GatewayDisplayName(gw)
+	} else if active := decoderconfig.ActiveGateway(ctx); active != "" {
+		gw = decoderconfig.GatewayDisplayName(active)
 	} else {
 		gw = "none"
 	}
@@ -28,7 +28,7 @@ func (m chatModel) configStatus() (gateway, model string, configured bool) {
 		model = strings.TrimSpace(m.session.Model())
 	}
 	if model == "" {
-		model = strings.TrimSpace(rhoconfig.ActiveModel(ctx))
+		model = strings.TrimSpace(decoderconfig.ActiveModel(ctx))
 	}
 	return gw, model, true
 }
@@ -44,7 +44,7 @@ func configTabDot(active bool) string {
 
 func configTabLabelStyle(active bool) lipgloss.Style {
 	if active {
-		return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+		return lipgloss.NewStyle().Foreground(decoderColor).Bold(true)
 	}
 	return configMutedStyle()
 }
@@ -90,7 +90,7 @@ func (m chatModel) switchConfigTab(tab int) (chatModel, tea.Cmd) {
 		m = m.stopConfigModelSearch(true)
 	}
 	ctx := context.Background()
-	if tab == configTabModels && !rhoconfig.HasConfiguredDeploymentCached(ctx) {
+	if tab == configTabModels && !decoderconfig.HasConfiguredDeploymentCached(ctx) {
 		tab = configTabGateways
 		m.configNotice = "Select a gateway first · enter · paste API key"
 		m = m.focusConfigActiveGateway()
@@ -122,9 +122,9 @@ func (m chatModel) openConfigAtTab(tab int) (chatModel, tea.Cmd) {
 	m.configSel = 0
 	m.configScroll = 0
 	m.viewDirty = true
-	rhoconfig.RefreshConfigCredSnapshot(ctx)
+	decoderconfig.RefreshConfigCredSnapshot(ctx)
 	m = m.refreshConfigGatewayRows()
-	setup := rhoconfig.EvaluateSetupCached(ctx)
+	setup := decoderconfig.EvaluateSetupCached(ctx)
 
 	if tab < 0 {
 		if setup.HasCredentials {

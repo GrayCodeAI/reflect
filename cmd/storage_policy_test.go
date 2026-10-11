@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-func TestStoragePolicyHelpersDoNotCreateProjectRho(t *testing.T) {
+func TestStoragePolicyHelpersDoNotCreateProjectDecoder(t *testing.T) {
 	project := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", filepath.Join(t.TempDir(), "state"))
-	t.Setenv("RHO_CACHE_DIR", filepath.Join(t.TempDir(), "cache"))
+	t.Setenv("DECODER_STATE_DIR", filepath.Join(t.TempDir(), "state"))
+	t.Setenv("DECODER_CACHE_DIR", filepath.Join(t.TempDir(), "cache"))
 	oldwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -21,13 +21,13 @@ func TestStoragePolicyHelpersDoNotCreateProjectRho(t *testing.T) {
 	}
 
 	planPath := resolvePlanPath("demo")
-	if strings.Contains(planPath, filepath.Join(project, ".rho")) {
-		t.Fatalf("resolvePlanPath leaked project .rho: %q", planPath)
+	if strings.Contains(planPath, filepath.Join(project, ".decoder")) {
+		t.Fatalf("resolvePlanPath leaked project .decoder: %q", planPath)
 	}
 	saveInputHistory([]string{"hello"})
 	recordTipShown("slash-help")
 
-	if _, err := os.Stat(filepath.Join(project, ".rho")); !os.IsNotExist(err) {
-		t.Fatalf("normal storage helpers created project .rho, stat err=%v", err)
+	if _, err := os.Stat(filepath.Join(project, ".decoder")); !os.IsNotExist(err) {
+		t.Fatalf("normal storage helpers created project .decoder, stat err=%v", err)
 	}
 }

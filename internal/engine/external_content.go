@@ -3,7 +3,7 @@ package engine
 import (
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
 )
 
 // externalContentSource maps a tool name to the untrusted content source used

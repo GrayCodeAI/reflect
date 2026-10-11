@@ -4,8 +4,8 @@
 **Date:** 2026-07-16  
 **Horizon:** ~12–18 months (phased; can compress with parallel teams)  
 **Language:** Go only (no Rust ports; reimplement contracts and behavior)  
-**Primary product:** `rho`  
-**Supporting repositories:** `eagle`, `flux`, `harrier` (Harrier), `shrike` (Shrike), `swift` (Swift), `kestrel` (Kestrel), `merlin` (Merlin), `falcon`, `starling`, `sparrow`, `robin`, `wren`, `owl`, and `graycode-platform` (web/BFF/Rho Cloud; outside the Rho Go runtime graph)
+**Primary product:** `decoder`<br>
+**Supporting repositories:** `eagle`, `mux`, `harrier` (Harrier), `shrike` (Shrike), `swift` (Swift), `kestrel` (Kestrel), `merlin` (Merlin), `falcon`, `starling`, `sparrow`, `robin`, `wren`, `owl`, and `graycode-platform` (web/BFF/Decoder Cloud; outside the Decoder Go runtime graph)
 
 ---
 
@@ -13,21 +13,21 @@
 
 ### Goal
 
-Bring Rho to **Grok-class agent control-plane quality** (typed subagents, sandbox profiles, folder trust, hooks, plugins/marketplace, ACP depth, monitor/scheduler, enterprise managed policy) **without** abandoning Rho’s multi-repo Go platform advantages (flux multi-provider, harrier graph memory, shrike compression, mission mode, contracts, cloud ledger).
+Bring Decoder to **Grok-class agent control-plane quality** (typed subagents, sandbox profiles, folder trust, hooks, plugins/marketplace, ACP depth, monitor/scheduler, enterprise managed policy) **without** abandoning Decoder’s multi-repo Go platform advantages (mux multi-provider, harrier graph memory, shrike compression, mission mode, contracts, cloud ledger).
 
 ### Non-goals
 
-- Rewrite Rho in Rust or monorepo-collapse engines into rho.
+- Rewrite Decoder in Rust or monorepo-collapse engines into decoder.
 - Vendor lock-in to a single LLM host auth model.
-- Replace flux/harrier/shrike/swift with Grok-shaped internal crates.
+- Replace mux/harrier/shrike/swift with Grok-shaped internal crates.
 - Default opt-in product telemetry that violates privacy-first posture.
 
 ### Strategy
 
-1. **Close wiring gaps first** — Rho already has many *types* and *partial systems* that are not exposed on the Agent tool or unified.
+1. **Close wiring gaps first** — Decoder already has many *types* and *partial systems* that are not exposed on the Agent tool or unified.
 2. **Stabilize contracts** in `eagle` before multi-repo consumers.
 3. **Ship vertical slices** (end-to-end user value) every quarter.
-4. **Keep engines peer-independent**; rho remains the only product orchestrator.
+4. **Keep engines peer-independent**; decoder remains the only product orchestrator.
 
 ---
 
@@ -110,7 +110,7 @@ This is the single highest-ROI fix: **wire what already exists**, then extend.
 
 ```text
                     ┌──────────────────────────────┐
-                    │  rho TUI / CLI / daemon/ACP │
+                    │  decoder TUI / CLI / daemon/ACP │
                     └──────────────┬───────────────┘
                                    │
          ┌─────────────────────────┼─────────────────────────┐
@@ -130,10 +130,10 @@ This is the single highest-ROI fix: **wire what already exists**, then extend.
          │
     ┌────┴────┬──────────┬──────────┬──────────┐
     ▼         ▼          ▼          ▼          ▼
-  flux     harrier       shrike       swift     kestrel/merlin
+  mux     harrier       shrike       swift     kestrel/merlin
 ```
 
-**New core package (proposed):** `rho/internal/spawn` (or expand `engine/agent`) owning:
+**New core package (proposed):** `decoder/internal/spawn` (or expand `engine/agent`) owning:
 
 - `SpawnRequest` / `SpawnResult` (Go structs aligned with contracts)
 - capability filter, isolation worktree lifecycle
@@ -186,7 +186,7 @@ Legend: **Done** | **Partial** | **Missing** | **N/A (keep engine)**
 | C2 | Vendor event aliases | Missing | Full |
 | C3 | File-discovered hooks | Partial (in-process) | Full |
 | C4 | HTTP hooks | Missing | Full |
-| C5 | Plugin env RHO_PLUGIN_ROOT/DATA | Missing | Full |
+| C5 | Plugin env DECODER_PLUGIN_ROOT/DATA | Missing | Full |
 | C6 | PreToolUse can deny in CheckTool path | Missing | Full |
 
 ### Wave D — Plugins & marketplace (P3)
@@ -261,7 +261,7 @@ Legend: **Done** | **Partial** | **Missing** | **N/A (keep engine)**
 
 ## 4. Multi-quarter roadmap (long horizon)
 
-Assumes ~1–2 senior Go engineers on rho core + fractional engine/cloud; scale parallelizes quarters.
+Assumes ~1–2 senior Go engineers on decoder core + fractional engine/cloud; scale parallelizes quarters.
 
 ```text
 Q1  Foundation: contracts + spawn wiring + background unify
@@ -370,13 +370,13 @@ type SpawnResult struct {
 
 **Exit criteria**
 
-- `go test ./...` green; rho can depend on new pseudo-version without engine imports.
+- `go test ./...` green; decoder can depend on new pseudo-version without engine imports.
 
 ---
 
 ### Phase 2 — Spawn controller & Agent tool (4–6 weeks)  ★ highest ROI
 
-**Repo:** `rho`  
+**Repo:** `decoder`<br>
 **Packages:** `internal/engine/agent`, `internal/engine`, `internal/tool`
 
 #### 2.1 Change `AgentSpawnFn` signature
@@ -403,8 +403,8 @@ Migration: temporary adapter for one release if needed; prefer single breaking c
 | 2 | Map `subagent_type` → `SubAgentMode` (+ thoroughness) |
 | 3 | Default capability from mode; allow override |
 | 4 | Apply `FilterToolsForMode` **and** capability filter |
-| 5 | Isolation worktree: create under `.rho/worktrees/<id>` using shared helper from mission worker |
-| 6 | Persist child session transcript under `~/.rho/subagents/<id>/` |
+| 5 | Isolation worktree: create under `.decoder/worktrees/<id>` using shared helper from mission worker |
+| 6 | Persist child session transcript under `~/.decoder/subagents/<id>/` |
 | 7 | `resume_from`: load transcript, append prompt, re-spawn with same type |
 | 8 | Return structured `SpawnResult` JSON to model |
 
@@ -449,7 +449,7 @@ Deprecate:
 
 #### 2.6 PR stack (Graphite-friendly)
 
-1. Contracts bump in rho  
+1. Contracts bump in decoder<br>
 2. `SpawnRequest` internal + adapter  
 3. Agent tool schema + parse  
 4. Wire modes plan/general/explore  
@@ -474,13 +474,13 @@ Deprecate:
 
 ### Phase 3 — Sandbox profiles + folder trust (4–5 weeks)
 
-**Repo:** `rho`  
+**Repo:** `decoder`<br>
 **Packages:** `internal/sandbox`, `internal/trust` (new), `internal/mcp`, `internal/hooks`, `internal/plugin`
 
 #### 3.1 sandbox.toml
 
 ```toml
-# ~/.rho/sandbox.toml
+# ~/.decoder/sandbox.toml
 [profiles.ci]
 extends = "strict"
 restrict_network = true
@@ -490,7 +490,7 @@ deny = ["**/.env", "**/*.pem", "**/*credentials*"]
 **Loader rules (security-critical):**
 
 1. Load user global.  
-2. Load project `.rho/sandbox.toml` **additive only** (new names only).  
+2. Load project `.decoder/sandbox.toml` **additive only** (new names only).<br>
 3. Warn on conflicting redefinition; ignore project redefinition.  
 4. Deny globs applied on top of backend (seatbelt/landlock/bwrap-equivalent).  
 5. Fail closed when deny requested but OS cannot enforce.
@@ -508,7 +508,7 @@ deny = ["**/.env", "**/*.pem", "**/*credentials*"]
 
 #### 3.3 Folder trust
 
-**Store:** `~/.rho/trusted_folders.toml`
+**Store:** `~/.decoder/trusted_folders.toml`
 
 ```toml
 [[folders]]
@@ -538,7 +538,7 @@ trusted_at = "2026-07-16T00:00:00Z"
 
 ### Phase 4 — Hooks pipeline completion (3–4 weeks)
 
-**Repo:** `rho`  
+**Repo:** `decoder`<br>
 **Package:** `internal/hooks`
 
 #### 4.1 Event model expansion
@@ -550,7 +550,7 @@ Keep existing; alias map for Claude/Cursor names.
 
 | Type | Behavior |
 |------|----------|
-| command | shell with timeout, env RHO_* |
+| command | shell with timeout, env DECODER_* |
 | http | POST JSON, timeout, optional deny on non-2xx for pre_tool |
 
 #### 4.3 Integration into PermissionEngine
@@ -566,8 +566,8 @@ CheckTool:
 
 #### 4.4 File discovery
 
-- `~/.rho/hooks/*.json`  
-- `.rho/hooks/*.json` (trust required)  
+- `~/.decoder/hooks/*.json`<br>
+- `.decoder/hooks/*.json` (trust required)<br>
 - Compat: `.claude/settings.json` hooks, `.cursor/hooks.json` behind flags  
 
 **Exit criteria**
@@ -582,7 +582,7 @@ CheckTool:
 
 ### Phase 5 — Plugins multi-component + marketplace MVP (6–8 weeks)
 
-**Repos:** `rho`, `starling`
+**Repos:** `decoder`, `starling`
 
 #### 5.1 Plugin layout (convention)
 
@@ -603,19 +603,19 @@ Loader merges components; tools optional.
 
 1. Session meta / SDK  
 2. `--plugin-dir`  
-3. Project `.rho/plugins` (trust)  
-4. User `~/.rho/plugins`  
+3. Project `.decoder/plugins` (trust)<br>
+4. User `~/.decoder/plugins`<br>
 5. Config extra paths  
 
 #### 5.3 Marketplace
 
 | Component | Owner |
 |-----------|--------|
-| Source list config | rho |
-| Index schema | community-skills + rho |
-| Install resolve (git) | rho |
-| Audit | rho plugin malware_check (extend) |
-| CLI `rho plugins` / TUI tab | rho |
+| Source list config | decoder |
+| Index schema | community-skills + decoder |
+| Install resolve (git) | decoder |
+| Audit | decoder plugin malware_check (extend) |
+| CLI `decoder plugins` / TUI tab | decoder |
 | Optional web gallery | graycode-platform later |
 
 #### 5.4 Multi-harness skills
@@ -661,7 +661,7 @@ Depends on Phase 2 unified `taskruntime`.
 
 | Work | Detail |
 |------|--------|
-| Plan subagent | Default tool for “design only”; writes plan file under `.rho/plans/` or specs |
+| Plan subagent | Default tool for “design only”; writes plan file under `.decoder/plans/` or specs |
 | Spec workflow | Document mapping: plan agent → `/spec` stages; avoid double systems |
 | AskUserQuestion | questions[], options, multi_select, other, cancel message |
 | TUI | Reuse autonomy/spec pickers |
@@ -677,7 +677,7 @@ Depends on Phase 2 unified `taskruntime`.
 
 ### Phase 8 — ACP phase-2 + SDKs + OpenAPI (5–7 weeks)
 
-**Repos:** `rho`, `sparrow`, `robin`
+**Repos:** `decoder`, `sparrow`, `robin`
 
 | Milestone | Scope |
 |-----------|--------|
@@ -686,11 +686,11 @@ Depends on Phase 2 unified `taskruntime`.
 | ACP-3 | permission round-trip hardened |
 | API | OpenAPI fields: spawn options, sandbox, autonomy, plugins meta |
 | SDK | AgentConfig + ChatRequest fields; plugin dirs |
-| Optional | `rho agent serve --bind` WS |
+| Optional | `decoder agent serve --bind` WS |
 
 **Exit criteria**
 
-- Zed/VS Code can drive rho ACP for multi-turn with permissions.  
+- Zed/VS Code can drive decoder ACP for multi-turn with permissions.<br>
 - SDK e2e against daemon contract snapshot tests.
 
 **Effort:** ~7 eng-weeks (+ extension work separate).
@@ -699,13 +699,13 @@ Depends on Phase 2 unified `taskruntime`.
 
 ### Phase 9 — Enterprise managed policy (4–6 weeks)
 
-**Repos:** `graycode-platform/apps/worker` (deployed as `graycode-cloud`), `rho`, optional `flux`
+**Repos:** `graycode-platform/apps/worker` (deployed as `graycode-cloud`), `decoder`, optional `mux`
 
 | Piece | Detail |
 |-------|--------|
 | Policy document | models allow/deny, capabilities, sandbox deny, max budget, tool denylist |
-| Signing | Ed25519 envelope; rho verifies before apply |
-| Apply path | `~/.rho/managed_policy.json` layers under user config |
+| Signing | Ed25519 envelope; decoder verifies before apply |
+| Apply path | `~/.decoder/managed_policy.json` layers under user config |
 | Default | fail-open for individual; org can require fail-closed |
 | IT tier | non-excludable rules (already sketched in product — finish) |
 | Cloud UI | graycode-platform admin later |
@@ -726,10 +726,10 @@ Build on existing enterprise policyInput (model/capability lists).
 
 | Item | Repo | Detail |
 |------|------|--------|
-| Foreign import | swift + rho CLI | Claude/Codex session metadata → index |
-| Hunk attribution | rho | agent vs external edits via fsnotify |
-| Memory UX | harrier + rho | toggle priority, `/dream` consolidate |
-| Mermaid optional | rho | sandbox render path |
+| Foreign import | swift + decoder CLI | Claude/Codex session metadata → index |
+| Hunk attribution | decoder | agent vs external edits via fsnotify |
+| Memory UX | harrier + decoder | toggle priority, `/dream` consolidate |
+| Mermaid optional | decoder | sandbox render path |
 
 **Exit criteria**
 
@@ -756,20 +756,20 @@ Build on existing enterprise policyInput (model/capability lists).
 
 | Concept family | Primary | Secondary | Contracts? |
 |----------------|---------|-----------|------------|
-| Spawn / capability / isolation | rho | — | yes |
-| Sandbox profiles | rho | — | optional DTO |
-| Folder trust | rho | — | no |
-| Hooks | rho | — | event names yes |
-| Plugins / marketplace | rho | community-skills | manifest schema |
-| Multi-harness skills | rho | community-skills | no |
-| Monitor/tasks | rho | — | optional |
-| ACP | rho | sdk-go/python | OpenAPI |
-| Managed policy | graycode-platform/apps/worker (deployed as `graycode-cloud`) | rho, graycode-platform/apps/bff | yes DTO |
-| Foreign import | swift | rho | optional |
-| Memory dream UX | harrier | rho | no |
+| Spawn / capability / isolation | decoder | — | yes |
+| Sandbox profiles | decoder | — | optional DTO |
+| Folder trust | decoder | — | no |
+| Hooks | decoder | — | event names yes |
+| Plugins / marketplace | decoder | community-skills | manifest schema |
+| Multi-harness skills | decoder | community-skills | no |
+| Monitor/tasks | decoder | — | optional |
+| ACP | decoder | sdk-go/python | OpenAPI |
+| Managed policy | graycode-platform/apps/worker (deployed as `graycode-cloud`) | decoder, graycode-platform/apps/bff | yes DTO |
+| Foreign import | swift | decoder | optional |
+| Memory dream UX | harrier | decoder | no |
 | Token | shrike | — | no change |
-| Providers | flux | rho | no change |
-| Review engines | kestrel/merlin | rho | findings already |
+| Providers | mux | decoder | no change |
+| Review engines | kestrel/merlin | decoder | findings already |
 
 ---
 
@@ -835,7 +835,7 @@ Prefer **secure defaults** (folder trust on) even if noisy.
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Signature change of AgentSpawnFn breaks plugins | High | Adapter release; version min_rho |
+| Signature change of AgentSpawnFn breaks plugins | High | Adapter release; version min_decoder |
 | Worktree disk bloat | Med | GC old worktrees; symlink shared dirs (already pattern) |
 | Explore still escapes via Bash | High | AST allowlist + sandbox |
 | Marketplace supply chain | High | audit, pin commit SHAs, signatures later |
@@ -886,7 +886,7 @@ docs(user-guide): 01-getting-started …
 
 | Role | Q1–Q2 | Q3–Q4 | Q5–Q8 |
 |------|-------|-------|-------|
-| Rho core (Go) | 1.5 FTE | 1.5 FTE | 1 FTE |
+| Decoder core (Go) | 1.5 FTE | 1.5 FTE | 1 FTE |
 | Security-minded sandbox | 0.5 FTE | 0.5 FTE | 0.25 FTE |
 | Community-skills / marketplace content | 0.25 | 0.75 | 0.5 |
 | Cloud (TS) | 0 | 0.25 | 0.75 |
@@ -920,21 +920,21 @@ Background:
 
 ---
 
-## 14. Appendix B — Mapping Grok names → Rho names
+## 14. Appendix B — Mapping Grok names → Decoder names
 
-| Grok | Rho |
+| Grok | Decoder |
 |------|------|
 | `task` tool | `Agent` / `Task` alias |
 | `general-purpose` | `general` / `general-purpose` |
 | `capability_mode` | same |
 | `isolation: worktree` | same |
 | `resume_from` | same (replace weak `agent_id` semantics) |
-| `sandbox.toml` | `~/.rho/sandbox.toml` |
-| folder trust | `~/.rho/trusted_folders.toml` |
+| `sandbox.toml` | `~/.decoder/sandbox.toml` |
+| folder trust | `~/.decoder/trusted_folders.toml` |
 | `/loop` | `/loop` over CronScheduler |
-| plugin marketplace | `rho plugins` + community registry |
+| plugin marketplace | `decoder plugins` + community registry |
 | managed_config | managed policy via graycode-cloud |
-| ACP | `rho acp` |
+| ACP | `decoder acp` |
 
 ---
 
@@ -976,7 +976,7 @@ Week 4
 | Trust default | On | Security |
 | Marketplace before trust? | No | Supply chain |
 | Replace harrier? | No | Graph memory superior |
-| Replace flux? | No | Multi-provider is differentiator |
+| Replace mux? | No | Multi-provider is differentiator |
 | Three bg systems | Unify early | Blocks monitor/wait |
 
 ---

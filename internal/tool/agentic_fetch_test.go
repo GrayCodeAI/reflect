@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
 )
 
 func TestAgenticFetch_BatchFanOut(t *testing.T) {

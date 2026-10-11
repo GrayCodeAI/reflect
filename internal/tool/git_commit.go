@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/gitcmd"
+	"github.com/GrayCodeAI/decoder/internal/gitcmd"
 )
 
 var (
@@ -86,19 +86,19 @@ func AutoCommit(ctx context.Context, path, toolName, description string) error {
 	}
 
 	base := filepath.Base(path)
-	msg := fmt.Sprintf("rho: %s %s — %s", toolName, base, description)
+	msg := fmt.Sprintf("decoder: %s %s — %s", toolName, base, description)
 
 	if tc := GetToolContext(ctx); tc != nil && tc.Attribution != nil {
 		attr := tc.Attribution
 		switch attr.TrailerStyle {
 		case "assisted-by":
-			msg += "\n\nAssisted-by: Rho <rho@rho.ai>"
+			msg += "\n\nAssisted-by: Decoder <decoder@decoder.ai>"
 		case "none", "":
 		default:
 			// co-authored-by and unknown styles are treated as none
 		}
 		if attr.GeneratedWith {
-			msg += "\nGenerated-with: Rho"
+			msg += "\nGenerated-with: Decoder"
 		}
 	}
 

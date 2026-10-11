@@ -1,8 +1,8 @@
-# Contributing to rho
+# Contributing to decoder
 
 Thanks for your interest! This guide covers the conventions used across the
 GrayCodeAI repositories. The shared standards (versioning, release tooling, repo layout)
-are defined in <https://github.com/GrayCodeAI/rho/blob/main/docs/versioning.md>.
+are defined in <https://github.com/GrayCodeAI/decoder/blob/main/docs/versioning.md>.
 
 ## Quick start
 
@@ -141,8 +141,8 @@ Before requesting review:
 
 ## Reporting bugs
 
-Open an issue using the bug-report template. Include the `rho`
-version (`rho --version` for binaries, `rho.Version` for
+Open an issue using the bug-report template. Include the `decoder`
+version (`decoder --version` for binaries, `decoder.Version` for
 libraries — see this repo's `VERSION` file), reproduction steps, expected
 behaviour, and actual behaviour.
 

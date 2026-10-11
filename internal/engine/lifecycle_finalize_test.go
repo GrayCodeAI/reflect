@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/lifecycle"
+	"github.com/GrayCodeAI/decoder/internal/engine/lifecycle"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // finalizeMockSkillStore records Distill calls so Finalize's skill
@@ -40,7 +40,7 @@ func TestFinalizePopulatesToolsAndFiles_TriggersSkillDistill(t *testing.T) {
 	sk := &finalizeMockSkillStore{}
 	svc := &LifecycleService{lifecycle: &lifecycle.SessionLifecycle{SkillStore: sk}}
 
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{Role: "user", Content: "Refactor the auth module"},
 		{Role: "assistant", ToolUse: []types.ToolCall{
 			{Name: "Read", Arguments: map[string]interface{}{"path": "auth.go"}},
@@ -77,7 +77,7 @@ func TestFinalizeSimpleTaskNoSkillDistill(t *testing.T) {
 	sk := &finalizeMockSkillStore{}
 	svc := &LifecycleService{lifecycle: &lifecycle.SessionLifecycle{SkillStore: sk}}
 
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{Role: "user", Content: "What is 2+2?"},
 		{Role: "assistant", Content: "4"},
 	}

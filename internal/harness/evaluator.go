@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/decoder/internal/fsutil"
 )
 
 // EvaluateWorkspace performs a comprehensive harness evaluation of the specified workspace directory.
@@ -113,7 +113,7 @@ func detectAssets(root string) AssetsDetected {
 	}
 
 	// Check specs
-	specsDir := filepath.Join(root, ".rho", "specs")
+	specsDir := filepath.Join(root, ".decoder", "specs")
 	if dirExists(specsDir) {
 		entries, _ := os.ReadDir(specsDir)
 		assets.SpecsCount = len(entries)
@@ -163,8 +163,8 @@ func detectAssets(root string) AssetsDetected {
 	if fileExists(filepath.Join(root, "lefthook.yml")) {
 		assets.Hooks = append(assets.Hooks, "lefthook")
 	}
-	if dirExists(filepath.Join(root, ".rho", "hooks")) {
-		assets.Hooks = append(assets.Hooks, "rho-hooks")
+	if dirExists(filepath.Join(root, ".decoder", "hooks")) {
+		assets.Hooks = append(assets.Hooks, "decoder-hooks")
 	}
 	if dirExists(filepath.Join(root, ".git", "hooks")) {
 		assets.Hooks = append(assets.Hooks, "git-hooks")
@@ -193,7 +193,7 @@ func evalFeedforward(root string, assets AssetsDetected, report *HarnessReport) 
 			EvidenceState:   EvidenceStateMissing,
 			ExpectedOutcome: "A root AGENTS.md file defining project build instructions, linting commands, testing patterns, and code architecture rules.",
 			ScopedRepair:    "Create an AGENTS.md file at the repository root outlining key developer instructions and command rules.",
-			ValidationRoute: "rho harness review",
+			ValidationRoute: "decoder harness review",
 		})
 	} else if assets.AgentsMD {
 		content, err := os.ReadFile(assets.AgentsMDPath)
@@ -212,7 +212,7 @@ func evalFeedforward(root string, assets AssetsDetected, report *HarnessReport) 
 					EvidenceState:   EvidenceStatePartial,
 					ExpectedOutcome: "Comprehensive AGENTS.md detailing workflow commands, test placement, and code boundary constraints.",
 					ScopedRepair:    "Expand AGENTS.md with explicit build, test, and contribution conventions.",
-					ValidationRoute: "rho harness review",
+					ValidationRoute: "decoder harness review",
 				})
 			}
 		}
@@ -234,7 +234,7 @@ func evalFeedforward(root string, assets AssetsDetected, report *HarnessReport) 
 			EvidenceState:   EvidenceStateMissing,
 			ExpectedOutcome: "Project skills for recurring complex procedures.",
 			ScopedRepair:    "Add project skills under .zero/skills/<skill_name>/SKILL.md.",
-			ValidationRoute: "rho skills list",
+			ValidationRoute: "decoder skills list",
 		})
 	}
 
@@ -268,7 +268,7 @@ func evalFeedback(root string, assets AssetsDetected, report *HarnessReport) {
 			EvidenceState:   EvidenceStateMissing,
 			ExpectedOutcome: "Configured linter rules and auto-lint feedback mechanisms.",
 			ScopedRepair:    "Add a linter configuration file or make lint command for automated code verification.",
-			ValidationRoute: "rho harness review",
+			ValidationRoute: "decoder harness review",
 		})
 	}
 
@@ -286,7 +286,7 @@ func evalFeedback(root string, assets AssetsDetected, report *HarnessReport) {
 			EvidenceState:   EvidenceStateMissing,
 			ExpectedOutcome: "Working test runner accessible via standard shell commands.",
 			ScopedRepair:    "Define unit/integration tests and expose a clean test command in Makefile or package manifest.",
-			ValidationRoute: "rho harness review",
+			ValidationRoute: "decoder harness review",
 		})
 	}
 
@@ -300,13 +300,13 @@ func evalFeedback(root string, assets AssetsDetected, report *HarnessReport) {
 			Dimension:       DimensionFeedback,
 			Severity:        SeverityLow,
 			Title:           "No Lifecycle Hooks Configured",
-			Description:     "No pre-commit or session lifecycle hooks (lefthook, rho-hooks) were detected.",
+			Description:     "No pre-commit or session lifecycle hooks (lefthook, decoder-hooks) were detected.",
 			Impact:          "Automated checks prior to code review or session teardown are unenforced.",
-			EvidenceSource:  filepath.Join(root, ".rho", "hooks"),
+			EvidenceSource:  filepath.Join(root, ".decoder", "hooks"),
 			EvidenceState:   EvidenceStateMissing,
 			ExpectedOutcome: "Automated beforeReview and afterReview hooks.",
-			ScopedRepair:    "Configure lefthook or .rho/hooks to execute automated sanity checks.",
-			ValidationRoute: "rho hook list",
+			ScopedRepair:    "Configure lefthook or .decoder/hooks to execute automated sanity checks.",
+			ValidationRoute: "decoder hook list",
 		})
 	}
 
@@ -334,13 +334,13 @@ func evalTaskUnderstanding(root string, assets AssetsDetected, report *HarnessRe
 			Dimension:       DimensionTaskUnderstanding,
 			Severity:        SeverityMedium,
 			Title:           "No Active Spec Definitions Found",
-			Description:     "No task specs were found under .rho/specs/.",
+			Description:     "No task specs were found under .decoder/specs/.",
 			Impact:          "Complex tasks risk starting without structured requirement decomposition and explicit acceptance criteria.",
-			EvidenceSource:  filepath.Join(root, ".rho", "specs"),
+			EvidenceSource:  filepath.Join(root, ".decoder", "specs"),
 			EvidenceState:   EvidenceStatePartial,
 			ExpectedOutcome: "Structured specification files for multi-step feature developments.",
 			ScopedRepair:    "Use `/spec [feature description]` to draft structured specifications prior to implementation.",
-			ValidationRoute: "rho spec status",
+			ValidationRoute: "decoder spec status",
 		})
 	}
 
@@ -397,7 +397,7 @@ func evalVerification(root string, assets AssetsDetected, report *HarnessReport)
 	state := EvidenceStatePresent
 
 	// Verification evidence comes from the project's own test runners and
-	// linters. Rho's built-in verification (VerifyPlanExecution, ProjectVerify,
+	// linters. Decoder's built-in verification (VerifyPlanExecution, ProjectVerify,
 	// AppVerify) runs them; there is no external bridge to check for.
 	if len(assets.TestRunners) == 0 {
 		score -= 15
@@ -413,7 +413,7 @@ func evalVerification(root string, assets AssetsDetected, report *HarnessReport)
 			EvidenceState:   EvidenceStatePartial,
 			ExpectedOutcome: "A detectable test runner (go test, npm test, pytest, cargo test, ...).",
 			ScopedRepair:    "Add a test command or document one in AGENTS.md.",
-			ValidationRoute: "rho verify",
+			ValidationRoute: "decoder verify",
 		})
 	}
 

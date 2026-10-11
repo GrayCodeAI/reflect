@@ -12,15 +12,15 @@ import (
 // Detection tests
 // ---------------------------------------------------------------------------
 
-func TestDetect_RhoRules(t *testing.T) {
+func TestDetect_DecoderRules(t *testing.T) {
 	dir := t.TempDir()
 	rulesDir := filepath.Join(dir, ".agents", "rules")
 	must(t, os.MkdirAll(rulesDir, 0o755))
 	must(t, os.WriteFile(filepath.Join(rulesDir, "style.md"), []byte("Use gofmt."), 0o644))
 
 	found := Detect(dir)
-	if _, ok := found[FormatRho]; !ok {
-		t.Fatal("expected rho rules to be detected")
+	if _, ok := found[FormatDecoder]; !ok {
+		t.Fatal("expected decoder rules to be detected")
 	}
 }
 
@@ -91,10 +91,10 @@ func TestDetect_Empty(t *testing.T) {
 func TestDetect_Multiple(t *testing.T) {
 	dir := t.TempDir()
 
-	// Set up rho
-	rhoDir := filepath.Join(dir, ".agents", "rules")
-	must(t, os.MkdirAll(rhoDir, 0o755))
-	must(t, os.WriteFile(filepath.Join(rhoDir, "a.md"), []byte("rule a"), 0o644))
+	// Set up decoder
+	decoderDir := filepath.Join(dir, ".agents", "rules")
+	must(t, os.MkdirAll(decoderDir, 0o755))
+	must(t, os.WriteFile(filepath.Join(decoderDir, "a.md"), []byte("rule a"), 0o644))
 
 	// Set up CLAUDE.md
 	must(t, os.WriteFile(filepath.Join(dir, "CLAUDE.md"), []byte("## B\nrule b"), 0o644))
@@ -216,7 +216,7 @@ func TestImport_Gemini(t *testing.T) {
 	assertRule(t, rules[0], "Clarity", "Write clear code.", FormatGemini)
 }
 
-func TestImport_Rho(t *testing.T) {
+func TestImport_Decoder(t *testing.T) {
 	dir := t.TempDir()
 	rulesDir := filepath.Join(dir, ".agents", "rules")
 	must(t, os.MkdirAll(rulesDir, 0o755))
@@ -224,7 +224,7 @@ func TestImport_Rho(t *testing.T) {
 	must(t, os.WriteFile(filepath.Join(rulesDir, "docs.md"),
 		[]byte("---\npaths: [\"docs/**\"]\n---\nKeep docs updated.\n"), 0o644))
 
-	rules, err := Import(dir, FormatRho)
+	rules, err := Import(dir, FormatDecoder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,8 +232,8 @@ func TestImport_Rho(t *testing.T) {
 		t.Fatalf("expected 2 rules, got %d", len(rules))
 	}
 	sort.Slice(rules, func(i, j int) bool { return rules[i].Name < rules[j].Name })
-	assertRule(t, rules[0], "docs", "Keep docs updated.", FormatRho)
-	assertRule(t, rules[1], "style", "Use gofmt.", FormatRho)
+	assertRule(t, rules[0], "docs", "Keep docs updated.", FormatDecoder)
+	assertRule(t, rules[1], "style", "Use gofmt.", FormatDecoder)
 }
 
 func TestImport_UnsupportedFormat(t *testing.T) {
@@ -248,13 +248,13 @@ func TestImport_UnsupportedFormat(t *testing.T) {
 // Export tests
 // ---------------------------------------------------------------------------
 
-func TestExport_Rho(t *testing.T) {
+func TestExport_Decoder(t *testing.T) {
 	dir := t.TempDir()
 	rules := []Rule{
 		{Name: "style", Content: "Use gofmt."},
 		{Name: "naming", Content: "Use descriptive names."},
 	}
-	if err := Export(dir, FormatRho, rules); err != nil {
+	if err := Export(dir, FormatDecoder, rules); err != nil {
 		t.Fatal(err)
 	}
 
@@ -358,7 +358,7 @@ func TestExport_UnsupportedFormat(t *testing.T) {
 // Round-trip tests
 // ---------------------------------------------------------------------------
 
-func TestRoundTrip_ClaudeCodeToRho(t *testing.T) {
+func TestRoundTrip_ClaudeCodeToDecoder(t *testing.T) {
 	dir := t.TempDir()
 
 	// Write a CLAUDE.md source.
@@ -371,13 +371,13 @@ func TestRoundTrip_ClaudeCodeToRho(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Export to rho.
-	if exportErr := Export(dir, FormatRho, imported); exportErr != nil {
+	// Export to decoder.
+	if exportErr := Export(dir, FormatDecoder, imported); exportErr != nil {
 		t.Fatal(exportErr)
 	}
 
-	// Re-import from rho.
-	reimported, err := Import(dir, FormatRho)
+	// Re-import from decoder.
+	reimported, err := Import(dir, FormatDecoder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestRoundTrip_ClaudeCodeToRho(t *testing.T) {
 	}
 }
 
-func TestRoundTrip_CursorToRhoToClaudeCode(t *testing.T) {
+func TestRoundTrip_CursorToDecoderToClaudeCode(t *testing.T) {
 	dir := t.TempDir()
 
 	// Write a .cursorrules source.
@@ -414,15 +414,15 @@ func TestRoundTrip_CursorToRhoToClaudeCode(t *testing.T) {
 		t.Fatalf("expected 2 rules from cursor, got %d", len(imported))
 	}
 
-	// Export to rho, then to Claude Code.
-	if exportErr := Export(dir, FormatRho, imported); exportErr != nil {
+	// Export to decoder, then to Claude Code.
+	if exportErr := Export(dir, FormatDecoder, imported); exportErr != nil {
 		t.Fatal(exportErr)
 	}
-	rhoRules, err := Import(dir, FormatRho)
+	decoderRules, err := Import(dir, FormatDecoder)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exportErr := Export(dir, FormatClaudeCode, rhoRules); exportErr != nil {
+	if exportErr := Export(dir, FormatClaudeCode, decoderRules); exportErr != nil {
 		t.Fatal(exportErr)
 	}
 
@@ -447,7 +447,7 @@ func TestRoundTrip_CursorToRhoToClaudeCode(t *testing.T) {
 	}
 }
 
-func TestRoundTrip_RhoToCursorToRho(t *testing.T) {
+func TestRoundTrip_DecoderToCursorToDecoder(t *testing.T) {
 	dir := t.TempDir()
 
 	original := []Rule{
@@ -455,15 +455,15 @@ func TestRoundTrip_RhoToCursorToRho(t *testing.T) {
 		{Name: "naming", Content: "Use descriptive names."},
 	}
 
-	// Export to rho, import, export to cursor, import from cursor, export back to rho.
-	if exportErr := Export(dir, FormatRho, original); exportErr != nil {
+	// Export to decoder, import, export to cursor, import from cursor, export back to decoder.
+	if exportErr := Export(dir, FormatDecoder, original); exportErr != nil {
 		t.Fatal(exportErr)
 	}
-	fromRho, err := Import(dir, FormatRho)
+	fromDecoder, err := Import(dir, FormatDecoder)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exportErr := Export(dir, FormatCursor, fromRho); exportErr != nil {
+	if exportErr := Export(dir, FormatCursor, fromDecoder); exportErr != nil {
 		t.Fatal(exportErr)
 	}
 	fromCursor, err := Import(dir, FormatCursor)
@@ -471,12 +471,12 @@ func TestRoundTrip_RhoToCursorToRho(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Re-export back to rho in a fresh directory.
+	// Re-export back to decoder in a fresh directory.
 	dir2 := t.TempDir()
-	if exportErr := Export(dir2, FormatRho, fromCursor); exportErr != nil {
+	if exportErr := Export(dir2, FormatDecoder, fromCursor); exportErr != nil {
 		t.Fatal(exportErr)
 	}
-	final, err := Import(dir2, FormatRho)
+	final, err := Import(dir2, FormatDecoder)
 	if err != nil {
 		t.Fatal(err)
 	}

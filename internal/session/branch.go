@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
 )
 
 // Fork creates a new session branched from the given session at the given

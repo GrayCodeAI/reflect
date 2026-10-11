@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/onboarding"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/update"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/onboarding"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/update"
 	"github.com/spf13/cobra"
 )
 
@@ -88,38 +88,38 @@ func SetBuildDate(d string) {
 }
 
 func registeredProviderCount() int {
-	return rhoconfig.RegisteredProviderCount()
+	return decoderconfig.RegisteredProviderCount()
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "rho [prompt]",
-	Short: "AI coding agent powered by flux",
-	Long: fmt.Sprintf(`rho is an AI coding agent that reads, writes, and runs code in your terminal.
+	Use:   "decoder [prompt]",
+	Short: "AI coding agent powered by mux",
+	Long: fmt.Sprintf(`decoder is an AI coding agent that reads, writes, and runs code in your terminal.
 
-It connects to %d first-class LLM providers through flux, executes tools (file I/O, shell,
+It connects to %d first-class LLM providers through mux, executes tools (file I/O, shell,
 git, web search), and manages sessions — all from a keyboard-driven TUI or
 headless mode for scripts and CI.
 
 Quick orientation:
-  rho                     Start interactive TUI
-  rho -p "prompt"         One-shot: send prompt, print response, exit
-  rho exec "task"         Autonomous multi-turn execution
-  rho path                Check environment readiness
-  rho doctor              Run diagnostics
-  rho config              Manage settings and credentials
+  decoder                     Start interactive TUI
+  decoder -p "prompt"         One-shot: send prompt, print response, exit
+  decoder exec "task"         Autonomous multi-turn execution
+  decoder path                Check environment readiness
+  decoder doctor              Run diagnostics
+  decoder config              Manage settings and credentials
 
 API keys are stored in the OS keychain (macOS Keychain / Linux keyring).
-Run rho and use /config to set up your first provider.`, registeredProviderCount()),
-	Example: `  rho
-  rho -p "explain this repo"
-  rho exec "fix failing tests"
-  rho preflight
-  rho path`,
+Run decoder and use /config to set up your first provider.`, registeredProviderCount()),
+	Example: `  decoder
+  decoder -p "explain this repo"
+  decoder exec "fix failing tests"
+  decoder preflight
+  decoder path`,
 	Args:          cobra.ArbitraryArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	// --cwd is a persistent flag, so apply it before any subcommand runs —
-	// not just the bare root command. This keeps `rho --cwd X <sub>` working
+	// not just the bare root command. This keeps `decoder --cwd X <sub>` working
 	// and validates the path once, early.
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return applyCwdFlag()
@@ -171,7 +171,7 @@ Run rho and use /config to set up your first provider.`, registeredProviderCount
 			// the TUI, so gate them identically: untrusted folders block
 			// project automation.
 			if tr := engine.ProjectTrust(""); tr.Blocked {
-				return fmt.Errorf("cannot start: folder not trusted (%s)\nProject-scoped hooks, MCP servers, and custom specialists are blocked.\nRun 'rho trust add' to trust this folder before running rho", tr.Path)
+				return fmt.Errorf("cannot start: folder not trusted (%s)\nProject-scoped hooks, MCP servers, and custom specialists are blocked.\nRun 'decoder trust add' to trust this folder before running decoder", tr.Path)
 			}
 			if replFlag {
 				return runRepl()
@@ -220,7 +220,7 @@ Run rho and use /config to set up your first provider.`, registeredProviderCount
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&model, "model", "m", "", "model to use (from flux catalog; see /models)")
+	rootCmd.Flags().StringVarP(&model, "model", "m", "", "model to use (from mux catalog; see /models)")
 	rootCmd.Flags().BoolVarP(&printMode, "print", "p", false, "print response and exit")
 	rootCmd.Flags().StringVar(&promptFlag, "prompt", "", "send a single prompt and exit (legacy alias for --print)")
 	rootCmd.Flags().StringVar(&outputFormat, "output-format", "text", `output format for --print: "text", "json", "stream-json", or "transcript"`)
@@ -260,7 +260,7 @@ func init() {
 	rootCmd.Flags().IntVar(&teachDepth, "teach-depth", 2, "explanation depth: 1=what, 2=why, 3=how")
 	rootCmd.Flags().BoolVar(&autoSkillFlag, "auto-skill", false, "auto-detect project and install matching skills")
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "output the version number")
-	rootCmd.Flags().BoolVar(&refreshCatalogFlag, "refresh-catalog", false, "refresh the flux model catalog before starting")
+	rootCmd.Flags().BoolVar(&refreshCatalogFlag, "refresh-catalog", false, "refresh the mux model catalog before starting")
 	rootCmd.Flags().BoolVar(&skipCatalogRefreshFlag, "no-auto-catalog-refresh", false, "disable automatic catalog refresh when cache is missing, empty, or stale")
 	rootCmd.Flags().BoolVar(&recoverFlag, "recover", false, "scan for interrupted sessions and offer to resume")
 	rootCmd.Flags().BoolVar(&startupProfileFlag, "startup-profile", false, "print startup performance profile")
@@ -431,7 +431,7 @@ func groupRootCommands() {
 // In a terminal, it requires typing the full confirmation token (not a single
 // key) so a stray keystroke or terminal-escape trickery cannot confirm it. In
 // non-interactive mode (CI, scripts), it requires the
-// RHO_DANGEROUSLY_SKIP_PERMISSIONS=1 environment variable.
+// DECODER_DANGEROUSLY_SKIP_PERMISSIONS=1 environment variable.
 func confirmDangerousSkipPermissions() error {
 	if isStdinTerminal() {
 		fmt.Fprintf(os.Stderr, "Type %s to confirm skipping permission prompts: ", dangerSkipConfirmToken)
@@ -446,8 +446,8 @@ func confirmDangerousSkipPermissions() error {
 		return nil
 	}
 	// Non-interactive: require explicit env var override.
-	if os.Getenv("RHO_DANGEROUSLY_SKIP_PERMISSIONS") != "1" {
-		return fmt.Errorf("--dangerously-skip-permissions requires RHO_DANGEROUSLY_SKIP_PERMISSIONS=1 in non-interactive mode")
+	if os.Getenv("DECODER_DANGEROUSLY_SKIP_PERMISSIONS") != "1" {
+		return fmt.Errorf("--dangerously-skip-permissions requires DECODER_DANGEROUSLY_SKIP_PERMISSIONS=1 in non-interactive mode")
 	}
 	return nil
 }
@@ -471,31 +471,31 @@ var completionCmd = &cobra.Command{
 	Long: `To load completions:
 
 Bash:
-  source <(rho completion bash)
+  source <(decoder completion bash)
   # To load completions for each session, execute once:
   # Linux:
-  rho completion bash > /etc/bash_completion.d/rho
+  decoder completion bash > /etc/bash_completion.d/decoder
   # macOS:
-  rho completion bash > /usr/local/etc/bash_completion.d/rho
+  decoder completion bash > /usr/local/etc/bash_completion.d/decoder
 
 Zsh:
-  source <(rho completion zsh)
+  source <(decoder completion zsh)
   # To load completions for each session, execute once:
-  rho completion zsh > "${fpath[1]}/_rho"
+  decoder completion zsh > "${fpath[1]}/_decoder"
 
 Fish:
-  rho completion fish | source
+  decoder completion fish | source
   # To load completions for each session, execute once:
-  rho completion fish > ~/.config/fish/completions/rho.fish
+  decoder completion fish > ~/.config/fish/completions/decoder.fish
 
 PowerShell:
-  rho completion powershell | Out-String | Invoke-Expression
+  decoder completion powershell | Out-String | Invoke-Expression
   # To load completions for every new session, run:
-  rho completion powershell > rho.ps1
+  decoder completion powershell > decoder.ps1
   # and source this file from your PowerShell profile.
 
 JSON:
-  rho completion json
+  decoder completion json
   # Print a machine-readable command/flag spec for IDE integration.
 `,
 	DisableFlagsInUseLine: true,
@@ -529,17 +529,17 @@ var completionInstallCmd = &cobra.Command{
 	Long: `Install the shell completion script to the standard location for your OS.
 
 Bash:
-  rho completion install bash
-  # Installs to ~/.local/share/bash-completion/completions/rho (Linux)
-  # or /opt/homebrew/etc/bash_completion.d/rho (macOS Homebrew)
+  decoder completion install bash
+  # Installs to ~/.local/share/bash-completion/completions/decoder (Linux)
+  # or /opt/homebrew/etc/bash_completion.d/decoder (macOS Homebrew)
 
 Zsh:
-  rho completion install zsh
-  # Installs to the first directory in $fpath (e.g. /usr/local/share/zsh/site-functions/_rho)
+  decoder completion install zsh
+  # Installs to the first directory in $fpath (e.g. /usr/local/share/zsh/site-functions/_decoder)
 
 Fish:
-  rho completion install fish
-  # Installs to ~/.config/fish/completions/rho.fish`,
+  decoder completion install fish
+  # Installs to ~/.config/fish/completions/decoder.fish`,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish"},
 	Args:                  cobra.ExactArgs(1),
@@ -581,11 +581,11 @@ Fish:
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Check for rho updates",
-	Long:  "Check GitHub for a newer rho release and print upgrade instructions.",
+	Short: "Check for decoder updates",
+	Long:  "Check GitHub for a newer decoder release and print upgrade instructions.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Same resolution as `rho --version`, so `go install ...@vX.Y.Z` and
+		// Same resolution as `decoder --version`, so `go install ...@vX.Y.Z` and
 		// source builds compare their real version instead of "dev".
 		ver := DisplayVersion()
 		prog := NewCLIProgress("Update check", []string{"Checking GitHub for updates"})
@@ -599,7 +599,7 @@ var updateCmd = &cobra.Command{
 			return nil
 		}
 		if release == nil {
-			cmd.Println(auditTint("rho is up to date ("+ver+")", doneGreen))
+			cmd.Println(auditTint("decoder is up to date ("+ver+")", doneGreen))
 			return nil
 		}
 		cmd.Println(auditTint("Update available: ", warnAmber) + auditTint(ver+" -> "+release.TagName, textPrimary))
@@ -621,13 +621,13 @@ API keys and secrets are never included.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var b strings.Builder
-		b.WriteString("## rho bug report\n\n")
+		b.WriteString("## decoder bug report\n\n")
 		b.WriteString(fmt.Sprintf("- **Version:** %s\n", versionLine()))
 		b.WriteString(fmt.Sprintf("- **Platform:** %s\n", update.Platform()))
 		b.WriteString(fmt.Sprintf("- **Go:** %s\n", runtime.Version()))
 		b.WriteString(fmt.Sprintf("- **OS/Arch:** %s/%s\n", runtime.GOOS, runtime.GOARCH))
 		b.WriteString("\n## Doctor output\n\n```\n")
-		settings := rhoconfig.LoadSettings()
+		settings := decoderconfig.LoadSettings()
 		b.WriteString(doctorReport(settings))
 		b.WriteString("\n```\n")
 		cmd.Print(b.String())
@@ -645,7 +645,7 @@ var versionJSON bool
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print rho version",
+	Short: "Print decoder version",
 	Run: func(cmd *cobra.Command, args []string) {
 		if versionJSON {
 			info := versionInfo{Version: DisplayVersion()}
@@ -682,7 +682,7 @@ var setupCmd = &cobra.Command{
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Interactive onboarding wizard for first-time setup",
-	Long:  "Launch the interactive setup wizard to configure credentials, select providers/models, and initialize rho.",
+	Long:  "Launch the interactive setup wizard to configure credentials, select providers/models, and initialize decoder.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		onboarding.Welcome(version)
 		return onboarding.RunSetup()
@@ -746,7 +746,7 @@ var preflightCmd = &cobra.Command{
 			defer prog.Abort()
 			prog.StartStep(0)
 		}
-		r := rhoconfig.EnginePreflightReportWithSettings(ctx, settings, rhoconfig.EnginePreflightOptions{VerifyLive: preflightLiveFlag})
+		r := decoderconfig.EnginePreflightReportWithSettings(ctx, settings, decoderconfig.EnginePreflightOptions{VerifyLive: preflightLiveFlag})
 		if prog != nil {
 			prog.CompleteStep(0)
 			prog.Done()
@@ -758,14 +758,14 @@ var preflightCmd = &cobra.Command{
 			}
 			cmd.Println(string(out))
 		} else {
-			out := rhoconfig.FormatEnginePreflight(r)
+			out := decoderconfig.FormatEnginePreflight(r)
 			cmd.Println(out)
 		}
 		if !r.Ready {
 			if preflightLiveFlag {
 				return fmt.Errorf("live preflight failed — check the selected provider credential and network access")
 			}
-			return fmt.Errorf("preflight failed — run rho and complete /config")
+			return fmt.Errorf("preflight failed — run decoder and complete /config")
 		}
 		return nil
 	},
@@ -775,10 +775,10 @@ var preflightCmd = &cobra.Command{
 // showing a modern old → new transition when the value actually changed.
 // Settable keys are non-secret (API keys error out before reaching here),
 // so displaying the prior value cannot leak a secret.
-func printConfigSetResult(cmd *cobra.Command, key, newVal string, settings rhoconfig.Settings) {
-	oldVal, hadOld := rhoconfig.SettingValue(settings, key)
+func printConfigSetResult(cmd *cobra.Command, key, newVal string, settings decoderconfig.Settings) {
+	oldVal, hadOld := decoderconfig.SettingValue(settings, key)
 	if hadOld && oldVal != "" && oldVal != newVal {
-		cmd.Println(auditTint(key, textPrimary) + auditTint(": ", textMuted) + auditTint(oldVal, textMuted) + auditTint(" → ", rhoColor) + auditTint(newVal, textPrimary) + auditTint(" (updated)", doneGreen))
+		cmd.Println(auditTint(key, textPrimary) + auditTint(": ", textMuted) + auditTint(oldVal, textMuted) + auditTint(" → ", decoderColor) + auditTint(newVal, textPrimary) + auditTint(" (updated)", doneGreen))
 		return
 	}
 	cmd.Println(auditTint("updated ", doneGreen) + auditTint(key, textPrimary))
@@ -792,13 +792,13 @@ var configCmd = &cobra.Command{
 			switch args[0] {
 			case "get":
 				if len(args) != 2 {
-					return fmt.Errorf("usage: rho config get <key>")
+					return fmt.Errorf("usage: decoder config get <key>")
 				}
 				settings, err := loadEffectiveSettings()
 				if err != nil {
 					return err
 				}
-				value, ok := rhoconfig.SettingValue(settings, args[1])
+				value, ok := decoderconfig.SettingValue(settings, args[1])
 				if !ok {
 					return fmt.Errorf("unsupported setting key %q", args[1])
 				}
@@ -810,7 +810,7 @@ var configCmd = &cobra.Command{
 				return nil
 			case "set":
 				if len(args) < 3 {
-					return fmt.Errorf("usage: rho config set <key> <value>")
+					return fmt.Errorf("usage: decoder config set <key> <value>")
 				}
 				key := args[1]
 				newVal := strings.Join(args[2:], " ")
@@ -818,35 +818,35 @@ var configCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				if err := rhoconfig.SetGlobalSetting(key, newVal); err != nil {
+				if err := decoderconfig.SetGlobalSetting(key, newVal); err != nil {
 					return err
 				}
 				printConfigSetResult(cmd, key, newVal, settings)
 				return nil
 			case "provider":
 				if len(args) < 2 {
-					return fmt.Errorf("usage: rho config provider <name>")
+					return fmt.Errorf("usage: decoder config provider <name>")
 				}
 				newVal := strings.Join(args[1:], " ")
 				settings, err := loadEffectiveSettings()
 				if err != nil {
 					return err
 				}
-				if err := rhoconfig.SetGlobalSetting("provider", newVal); err != nil {
+				if err := decoderconfig.SetGlobalSetting("provider", newVal); err != nil {
 					return err
 				}
 				printConfigSetResult(cmd, "provider", newVal, settings)
 				return nil
 			case "model":
 				if len(args) < 2 {
-					return fmt.Errorf("usage: rho config model <name>")
+					return fmt.Errorf("usage: decoder config model <name>")
 				}
 				newVal := strings.Join(args[1:], " ")
 				settings, err := loadEffectiveSettings()
 				if err != nil {
 					return err
 				}
-				if err := rhoconfig.SetGlobalSetting("model", newVal); err != nil {
+				if err := decoderconfig.SetGlobalSetting("model", newVal); err != nil {
 					return err
 				}
 				printConfigSetResult(cmd, "model", newVal, settings)
@@ -856,13 +856,13 @@ var configCmd = &cobra.Command{
 				return nil
 			case "routing-preview":
 				if len(args) < 2 {
-					return fmt.Errorf("usage: rho config routing-preview <model>")
+					return fmt.Errorf("usage: decoder config routing-preview <model>")
 				}
 				settings, err := loadEffectiveSettings()
 				if err != nil {
 					return err
 				}
-				out, err := rhoconfig.RoutingPreviewJSONWithSettings(cmd.Context(), settings, strings.Join(args[1:], " "))
+				out, err := decoderconfig.RoutingPreviewJSONWithSettings(cmd.Context(), settings, strings.Join(args[1:], " "))
 				if err != nil {
 					return err
 				}
@@ -883,10 +883,10 @@ var configCmd = &cobra.Command{
 
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "Show MCP configuration; run or register rho as an MCP server",
-	Long: "With no subcommand, summarizes the MCP servers rho connects to (consumes).\n" +
-		"  rho mcp serve   — run rho itself as an MCP server over stdio\n" +
-		"  rho mcp config  — print the JSON block to register rho in Claude Desktop/Cursor/Windsurf",
+	Short: "Show MCP configuration; run or register decoder as an MCP server",
+	Long: "With no subcommand, summarizes the MCP servers decoder connects to (consumes).\n" +
+		"  decoder mcp serve   — run decoder itself as an MCP server over stdio\n" +
+		"  decoder mcp config  — print the JSON block to register decoder in Claude Desktop/Cursor/Windsurf",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		settings, err := loadEffectiveSettings()
 		if err != nil {
@@ -968,7 +968,7 @@ var (
 var researchCmd = &cobra.Command{
 	Use:   "research [flags] <metric-command>",
 	Short: "Autonomous research loop (Karpathy autoresearch pattern)",
-	Long:  "rho research --grep '^val_bpb:' --direction lower 'uv run train.py'",
+	Long:  "decoder research --grep '^val_bpb:' --direction lower 'uv run train.py'",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("metric command is required")
@@ -1092,9 +1092,9 @@ var recoverCmd = &cobra.Command{
 and offer to resume them. If a session-id is provided, resume that specific session.
 
 Examples:
-  rho recover              # List interrupted sessions
-  rho recover abc123       # Resume specific session
-  rho --recover            # Auto-resume most recent interrupted session`,
+  decoder recover              # List interrupted sessions
+  decoder recover abc123       # Resume specific session
+  decoder --recover            # Auto-resume most recent interrupted session`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			s, note, err := session.ResumeSession(args[0])
@@ -1111,8 +1111,8 @@ Examples:
 		cmd.Println(session.FormatRecoveryCandidates(candidates))
 
 		if len(candidates) > 0 {
-			cmd.Println(auditTint("Resume with: rho recover <id>", textMuted))
-			cmd.Println(auditTint("Or launch TUI with: rho --recover", textMuted))
+			cmd.Println(auditTint("Resume with: decoder recover <id>", textMuted))
+			cmd.Println(auditTint("Or launch TUI with: decoder --recover", textMuted))
 		}
 		return nil
 	},

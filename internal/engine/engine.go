@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 const (
@@ -106,9 +106,9 @@ func (s *Session) compact(ctx context.Context) {
 		return // nothing to compact
 	}
 
-	keep := make([]types.FluxMessage, 0, len(raw)-(cutEnd-cutStart)+1)
+	keep := make([]types.MuxMessage, 0, len(raw)-(cutEnd-cutStart)+1)
 	keep = append(keep, raw[:cutStart]...)
-	keep = append(keep, types.FluxMessage{
+	keep = append(keep, types.MuxMessage{
 		Role:    "user",
 		Content: "[Earlier conversation compacted to save context.]",
 	})

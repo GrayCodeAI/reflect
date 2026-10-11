@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	policycontracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	"github.com/GrayCodeAI/rho/internal/fsutil"
-	"github.com/GrayCodeAI/rho/internal/graphjournal"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/taskruntime"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	graphcontracts "github.com/GrayCodeAI/decoder/internal/contracts/graph"
+	policycontracts "github.com/GrayCodeAI/decoder/internal/contracts/policy"
+	"github.com/GrayCodeAI/decoder/internal/executiongraph"
+	"github.com/GrayCodeAI/decoder/internal/fsutil"
+	"github.com/GrayCodeAI/decoder/internal/graphjournal"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/taskruntime"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func newExecutionGraphCmd() *cobra.Command {
 	graphCmd := &cobra.Command{
 		Use:   "graph",
 		Short: "Export a portable execution graph",
-		Long: `Project Rho-owned sessions, task requests, structured tasks, runtime tasks,
+		Long: `Project Decoder-owned sessions, task requests, structured tasks, runtime tasks,
 tool calls, policy observations, verification results, and explicit checkpoint
 links into the shared graph contract.
 
@@ -38,7 +38,7 @@ truth for scheduling, tools, policy, verification, persistence, and tracing.`,
 	var missionDir string
 	exportCmd := &cobra.Command{
 		Use:   "export [session-id]",
-		Short: "Export a Rho session or mission as graph JSON",
+		Short: "Export a Decoder session or mission as graph JSON",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var export executiongraph.Export
@@ -280,12 +280,12 @@ func loadRuntimeGraphObservations(
 	for _, entry := range entries {
 		subject := graphcontracts.Ref{
 			Kind: graphcontracts.NodeExecution,
-			ID:   "rho/session/" + saved.ID,
+			ID:   "decoder/session/" + saved.ID,
 		}
 		if _, ok := toolCallIDs[entry.ToolCallID]; ok && entry.ToolCallID != "" {
 			subject = graphcontracts.Ref{
 				Kind: graphcontracts.NodeExecution,
-				ID:   "rho/tool-call/" + saved.ID + "/" + entry.ToolCallID,
+				ID:   "decoder/tool-call/" + saved.ID + "/" + entry.ToolCallID,
 			}
 		}
 		if entry.Policy != nil {

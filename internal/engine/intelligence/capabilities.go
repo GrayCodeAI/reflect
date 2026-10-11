@@ -501,7 +501,7 @@ func (r *CapabilityRegistry) FormatHelp() string {
 	defer r.mu.RUnlock()
 
 	var sb strings.Builder
-	sb.WriteString("rho Capabilities:\n")
+	sb.WriteString("decoder Capabilities:\n")
 	sb.WriteString(strings.Repeat("═", 19))
 	sb.WriteString("\n")
 

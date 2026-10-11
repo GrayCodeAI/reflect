@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	sessionfeature "github.com/GrayCodeAI/rho/internal/features/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	sessionfeature "github.com/GrayCodeAI/decoder/internal/features/session"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 func chatExportRequest(m *chatModel, format string, redact bool) (sessionfeature.ExportRequest, error) {

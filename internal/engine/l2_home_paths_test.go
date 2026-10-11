@@ -9,18 +9,18 @@ import (
 // TestL2PipelineStatePathsAreHomeRelative is a regression guard for L2 —
 // the three learning-pipeline stores (ExperienceStore, KnowledgeBase,
 // FeedbackCollector) created by NewIntegrationPipeline must write to
-// ~/.rho/{experience,knowledge,feedback}/, not to <cwd>/.rho/...
+// ~/.decoder/{experience,knowledge,feedback}/, not to <cwd>/.decoder/...
 //
 // Pre-fix, NewIntegrationPipeline passed the literal strings
-// ".rho/experience", ".rho/knowledge", ".rho/feedback" to those
-// constructors, which leaked into <cwd>/cmd/.rho/ when rho was run
+// ".decoder/experience", ".decoder/knowledge", ".decoder/feedback" to those
+// constructors, which leaked into <cwd>/cmd/.decoder/ when decoder was run
 // from its own source tree.
 func TestL2PipelineStatePathsAreHomeRelative(t *testing.T) {
-	// Make the test independent of the caller's HOME/RHO_STATE_DIR. The
+	// Make the test independent of the caller's HOME/DECODER_STATE_DIR. The
 	// production contract is the configured per-user state root, and tests may
 	// intentionally redirect that root to an isolated temporary directory.
 	stateRoot := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", stateRoot)
+	t.Setenv("DECODER_STATE_DIR", stateRoot)
 	wantPrefix := filepath.Clean(stateRoot) + string(filepath.Separator)
 
 	check := func(name, got string) {

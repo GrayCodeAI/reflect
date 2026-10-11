@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // Tool-catalog shrink, adopted from caveman's toolschema compressor (via
@@ -23,9 +23,9 @@ import (
 // cleanly falls back to the original catalog.
 
 // toolShrinkEnabled reports whether opt-in catalog compression is on
-// (RHO_TOOL_SHRINK=1). Default off: existing request bytes unchanged.
+// (DECODER_TOOL_SHRINK=1). Default off: existing request bytes unchanged.
 func toolShrinkEnabled() bool {
-	return strings.EqualFold(os.Getenv("RHO_TOOL_SHRINK"), "1")
+	return strings.EqualFold(os.Getenv("DECODER_TOOL_SHRINK"), "1")
 }
 
 // originalsDir stores pre-shrink catalogs keyed by content hash so the exact
@@ -34,19 +34,19 @@ func originalsDir() string {
 	return filepath.Join(storage.StateDir(), "tool-catalog-originals")
 }
 
-// shrinkFluxTools compresses the rho tool list via the token engine's toolschema
+// shrinkMuxTools compresses the decoder tool list via the token engine's toolschema
 // compressor. The list is converted to the OpenAI function-catalog wire shape,
 // shrunk, and converted back; any name-set mismatch fails open to input.
 // When compression changed something, the original catalog is persisted under
 // the state dir keyed by content hash before the shrunk form is returned.
-func shrinkFluxTools(tools []types.FluxTool) []types.FluxTool {
+func shrinkMuxTools(tools []types.MuxTool) []types.MuxTool {
 	if len(tools) == 0 || !toolShrinkEnabled() {
 		return tools
 	}
 
 	type wireTool struct {
-		Type     string         `json:"type"`
-		Function types.FluxTool `json:"function"`
+		Type     string        `json:"type"`
+		Function types.MuxTool `json:"function"`
 	}
 	wire := make([]wireTool, len(tools))
 	for i := range tools {
@@ -68,7 +68,7 @@ func shrinkFluxTools(tools []types.FluxTool) []types.FluxTool {
 	if len(shrunkWire) != len(tools) {
 		return tools // structural drift: never risk it
 	}
-	out := make([]types.FluxTool, len(tools))
+	out := make([]types.MuxTool, len(tools))
 	for i := range shrunkWire {
 		if shrunkWire[i].Function.Name != tools[i].Name {
 			slog.Debug("tool shrink name drift, failing open", "position", i)

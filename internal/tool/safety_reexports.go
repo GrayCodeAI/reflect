@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/toolsafety"
+	"github.com/GrayCodeAI/decoder/internal/toolsafety"
 )
 
 // This file re-exports the low-level safety helpers that now live in

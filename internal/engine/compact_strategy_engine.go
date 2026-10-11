@@ -3,14 +3,14 @@ package engine
 import (
 	"context"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/decoder/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 type CompactStrategy interface {
 	Name() string
-	ShouldTrigger(msgs []types.FluxMessage, tokenCount, threshold int) bool
+	ShouldTrigger(msgs []types.MuxMessage, tokenCount, threshold int) bool
 	Compact(ctx context.Context, s *Session) (*compact.CompactResult, error)
 }
 
@@ -33,7 +33,7 @@ func NewStrategyRegistry(config compact.CompactConfig) *StrategyRegistry {
 	return r
 }
 
-func (r *StrategyRegistry) SelectStrategy(sess *Session, msgs []types.FluxMessage, tokenCount int) CompactStrategy {
+func (r *StrategyRegistry) SelectStrategy(sess *Session, msgs []types.MuxMessage, tokenCount int) CompactStrategy {
 	threshold := r.config.ContextWindowSize - r.config.AutoCompactBuffer - r.config.MaxOutputTokens
 	for _, s := range r.strategies {
 		if _, ok := s.(*ProviderNativeCompactStrategy); ok && (sess == nil || !sess.supportsNativeCompaction()) {

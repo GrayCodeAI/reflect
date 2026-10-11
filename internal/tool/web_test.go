@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/decoder/internal/testutil"
 )
 
 func TestWebSearchTool_Name(t *testing.T) {

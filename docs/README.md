@@ -1,6 +1,6 @@
-# Rho Documentation
+# Decoder Documentation
 
-Index for `rho/docs/`. The canonical repo inventory is
+Index for `decoder/docs/`. The canonical repo inventory is
 [`GrayCodeAI/graycode-eco/ecosystem.yaml`](https://github.com/GrayCodeAI/graycode-eco/blob/main/ecosystem.yaml)
 — the `ecosystem.yaml` in this repo is deprecated and incomplete, and
 `ECOSYSTEM-WIRING.md` is historical.

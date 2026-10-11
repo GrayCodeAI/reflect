@@ -6,11 +6,11 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // maxPendingPrompts bounds memory and waiting tool calls when a provider emits
@@ -163,7 +163,7 @@ func (m chatModel) handlePermissionAsk(msg permissionAskMsg) (tea.Model, tea.Cmd
 func (m chatModel) activatePermissionRequest(req safety.PermissionRequest) (tea.Model, tea.Cmd) {
 	// Autonomous mode is policy-driven, not interactive. The safety engine has
 	// already classified this request as requiring a permission callback; at
-	// this tier the user explicitly chose for rho to resolve it without a
+	// this tier the user explicitly chose for decoder to resolve it without a
 	// human-in-the-loop card.
 	if m.session != nil && m.session.PermSvc() != nil && m.session.PermSvc().RuntimeState().Autonomy == safety.AutonomyYOLO {
 		resolvePermissionResponse(&req, true)

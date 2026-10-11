@@ -1,6 +1,6 @@
 package cmd
 
-import executionfeature "github.com/GrayCodeAI/rho/internal/features/execution"
+import executionfeature "github.com/GrayCodeAI/decoder/internal/features/execution"
 
 // Compatibility aliases keep callers stable while execution owns the
 // test-first workflow implementation.

@@ -21,7 +21,7 @@ func TestRecordUsageSendsAggregateEvent(t *testing.T) {
 	}))
 	defer s.Close()
 	c := New(Config{Endpoint: s.URL, DeviceToken: "hwc_test"})
-	if err := c.RecordUsage(context.Background(), UsageEvent{EventID: "event_0123456789", DeviceID: "device_0123456789", ProjectID: "project_0123456789", Capability: "rho", OccurredAt: "2026-07-10T00:00:00Z"}); err != nil {
+	if err := c.RecordUsage(context.Background(), UsageEvent{EventID: "event_0123456789", DeviceID: "device_0123456789", ProjectID: "project_0123456789", Capability: "decoder", OccurredAt: "2026-07-10T00:00:00Z"}); err != nil {
 		t.Fatal(err)
 	}
 	if gotAuth != "Bearer hwc_test" {
@@ -62,7 +62,7 @@ func TestSendDeliveryContextIncludesCIRunAndDeployment(t *testing.T) {
 	}))
 	defer s.Close()
 	event := DeliveryContext{ProjectID: "project_0123456789"}
-	event.Repository.Provider, event.Repository.ExternalID, event.Repository.Name = "github", "1", "GrayCodeAI/rho"
+	event.Repository.Provider, event.Repository.ExternalID, event.Repository.Name = "github", "1", "GrayCodeAI/decoder"
 	event.CIRun = &CIRunContext{Provider: "github", ExternalID: "run-1", Workflow: "test", Status: "succeeded"}
 	event.Deployment = &DeploymentContext{Provider: "github", ExternalID: "deploy-1", Environment: "production", Status: "succeeded"}
 	if err := New(Config{Endpoint: s.URL, DeviceToken: "hwc_test"}).SendDeliveryContext(context.Background(), event); err != nil {

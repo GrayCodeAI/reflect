@@ -38,5 +38,5 @@ func overlaySearchValueStyle() lipgloss.Style {
 }
 
 func overlaySelectionMarkerStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	return lipgloss.NewStyle().Foreground(decoderColor).Bold(true)
 }

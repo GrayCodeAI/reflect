@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/mcp"
+	"github.com/GrayCodeAI/decoder/internal/mcp"
 )
 
 // MCPAuthState tracks OAuth state for an MCP server.
@@ -75,7 +75,7 @@ func (McpAuthTool) Schema() ToolSchema {
 		Properties: map[string]SchemaProperty{
 			"server_name": {Type: "string", Description: "Name of the MCP server to authenticate"},
 			"server_url":  {Type: "string", Description: "URL of the MCP server"},
-			"client_id":   {Type: "string", Description: "Optional pre-registered OAuth client_id. If omitted, rho attempts dynamic client registration (RFC 7591) against the server's advertised registration endpoint."},
+			"client_id":   {Type: "string", Description: "Optional pre-registered OAuth client_id. If omitted, decoder attempts dynamic client registration (RFC 7591) against the server's advertised registration endpoint."},
 		},
 		Required: []string{"server_name", "server_url"},
 	}
@@ -163,7 +163,7 @@ func failState(serverName string, err error) *MCPAuthState {
 // completeMCPAuth waits for the loopback callback, exchanges the code for
 // tokens, and persists the result. It runs independently of the tool call
 // that started it, since the user completing authorization in their
-// browser is an open-ended, asynchronous step from rho's perspective.
+// browser is an open-ended, asynchronous step from decoder's perspective.
 func completeMCPAuth(
 	parentCtx context.Context,
 	serverName string,
@@ -226,7 +226,7 @@ func formatAuthMessage(state *MCPAuthState) string {
 	case "pending":
 		return fmt.Sprintf(
 			"Please visit the following URL to authorize: %s\nOnce you approve it, this MCP server "+
-				"will be usable the next time it connects (e.g. restart rho, or reconfigure it).",
+				"will be usable the next time it connects (e.g. restart decoder, or reconfigure it).",
 			state.AuthURL,
 		)
 	case "authenticated":

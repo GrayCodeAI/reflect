@@ -1,4 +1,4 @@
-// Package graphjournal persists privacy-safe observations produced by Rho's
+// Package graphjournal persists privacy-safe observations produced by Decoder's
 // runtime. It is an append-only evidence stream; policy and verification
 // components remain the source of truth for their decisions.
 package graphjournal
@@ -15,13 +15,13 @@ import (
 	"sync"
 	"time"
 
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	policycontracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	graphcontracts "github.com/GrayCodeAI/decoder/internal/contracts/graph"
+	policycontracts "github.com/GrayCodeAI/decoder/internal/contracts/policy"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 const (
-	SchemaVersion = "rho.graph-observation/v1"
+	SchemaVersion = "decoder.graph-observation/v1"
 	KindPolicy    = "policy"
 	KindVerify    = "verification"
 	KindContext   = "context"
@@ -188,7 +188,7 @@ func AppendContextGraph(
 }
 
 // AppendQualityGraph records a portable quality subgraph for later composition
-// into the Rho execution graph.
+// into the Decoder execution graph.
 func AppendQualityGraph(
 	sessionID, toolCallID, stage, source string,
 	nodes []graphcontracts.Node,
@@ -320,7 +320,7 @@ func Load(sessionID string) ([]Entry, error) {
 	if sessionID == "" {
 		return nil, nil
 	}
-	file, err := os.Open(pathFor(sessionID)) // #nosec G304 -- path is a digest under Rho state
+	file, err := os.Open(pathFor(sessionID)) // #nosec G304 -- path is a digest under Decoder state
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -364,7 +364,7 @@ func appendEntry(entry Entry) error {
 	if mkdirErr := os.MkdirAll(dir, 0o700); mkdirErr != nil {
 		return fmt.Errorf("create graph observation directory: %w", mkdirErr)
 	}
-	file, err := os.OpenFile(pathFor(entry.SessionID), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600) // #nosec G304 -- path is a digest under Rho state
+	file, err := os.OpenFile(pathFor(entry.SessionID), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600) // #nosec G304 -- path is a digest under Decoder state
 	if err != nil {
 		return fmt.Errorf("open graph observation journal for append: %w", err)
 	}

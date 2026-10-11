@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/gitcmd"
+	"github.com/GrayCodeAI/decoder/internal/gitcmd"
 )
 
 // ImpactTool provides cross-file impact analysis for changed files.

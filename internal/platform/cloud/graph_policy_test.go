@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
+	graphcontracts "github.com/GrayCodeAI/decoder/internal/contracts/graph"
+	"github.com/GrayCodeAI/decoder/internal/executiongraph"
 )
 
 type graphPolicyCase struct {
@@ -37,8 +37,8 @@ func testGraph(attributes map[string]string) executiongraph.Export {
 		SchemaVersion: executiongraph.SchemaVersion,
 		GeneratedAt:   at,
 		Nodes: []graphcontracts.Node{{
-			ID: "rho/session/session-0123456789", Kind: graphcontracts.NodeExecution, CreatedAt: at,
-			Provenance: graphcontracts.Provenance{Producer: "rho"}, Attributes: attributes,
+			ID: "decoder/session/session-0123456789", Kind: graphcontracts.NodeExecution, CreatedAt: at,
+			Provenance: graphcontracts.Provenance{Producer: "decoder"}, Attributes: attributes,
 		}},
 		Edges:  []graphcontracts.Edge{},
 		Events: []graphcontracts.Event{},
@@ -82,7 +82,7 @@ func TestPrepareGraphRejectsTenantScopes(t *testing.T) {
 		"event": func(g *executiongraph.Export) {
 			g.Events = []graphcontracts.Event{{
 				ID: "event-1", Type: graphcontracts.EventCreated, Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: g.Nodes[0].ID},
-				Scope: graphcontracts.Scope{TenantID: "tenant-1"}, OccurredAt: g.GeneratedAt, Provenance: graphcontracts.Provenance{Producer: "rho"},
+				Scope: graphcontracts.Scope{TenantID: "tenant-1"}, OccurredAt: g.GeneratedAt, Provenance: graphcontracts.Provenance{Producer: "decoder"},
 			}}
 		},
 	}

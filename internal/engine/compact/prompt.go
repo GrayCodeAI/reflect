@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 const noToolsPreamble = `CRITICAL: Respond with TEXT ONLY. Do NOT call any tools.
@@ -121,14 +121,14 @@ func BuildIncrementalCompactPrompt(priorSummary string) string {
 		fmt.Sprintf(incrementalUpdateTemplate, priorSummary)
 }
 
-// PriorSummaryPrefix is the marker prefix rho prepends to a persisted
+// PriorSummaryPrefix is the marker prefix decoder prepends to a persisted
 // conversation summary message.
 const PriorSummaryPrefix = "[Conversation summary]"
 
 // ExtractPriorSummary extracts the previously generated summary text from the
 // first message of a conversation if one was persisted by an earlier
 // compaction. It returns "" when no prior summary is present.
-func ExtractPriorSummary(msgs []types.FluxMessage) string {
+func ExtractPriorSummary(msgs []types.MuxMessage) string {
 	for _, m := range msgs {
 		if m.Role != "user" {
 			continue

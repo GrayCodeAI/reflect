@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/home"
-	"github.com/GrayCodeAI/rho/internal/pathsafe"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/theme"
-	"github.com/GrayCodeAI/rho/internal/token"
+	"github.com/GrayCodeAI/decoder/internal/home"
+	"github.com/GrayCodeAI/decoder/internal/pathsafe"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/theme"
+	"github.com/GrayCodeAI/decoder/internal/token"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // PathCheckStatus is pass, warn, or fail for one readiness row.
@@ -61,7 +61,7 @@ func EvaluateDeveloperPath(ctx context.Context) DeveloperPathReport {
 		checks = append(checks, PathCheck{
 			Section: "Setup", Name: "credentials", Status: PathFail,
 			Detail:   "No provider credentials configured",
-			FixHint:  "Run rho and /config to paste an API key (or configure Ollama)",
+			FixHint:  "Run decoder and /config to paste an API key (or configure Ollama)",
 			Blocking: true,
 		})
 	}
@@ -92,13 +92,13 @@ func EvaluateDeveloperPath(ctx context.Context) DeveloperPathReport {
 		checks = append(checks, PathCheck{
 			Section: "Setup", Name: "catalog", Status: PathWarn,
 			Detail:  "Catalog file present but empty",
-			FixHint: "Run rho models refresh after adding credentials",
+			FixHint: "Run decoder models refresh after adding credentials",
 		})
 	default:
 		checks = append(checks, PathCheck{
 			Section: "Setup", Name: "catalog", Status: PathWarn,
 			Detail:  CatalogEmptyHint(ctx),
-			FixHint: "Add credentials then run rho models refresh",
+			FixHint: "Add credentials then run decoder models refresh",
 		})
 	}
 
@@ -133,10 +133,10 @@ func EvaluateDeveloperPath(ctx context.Context) DeveloperPathReport {
 		})
 	}
 
-	rhoDir := home.MustDir()
+	decoderDir := home.MustDir()
 	provPath := ProviderStateSecurityStatus().Path
 	if provPath == "" {
-		provPath = filepath.Join(rhoDir, ".rho", "provider.json")
+		provPath = filepath.Join(decoderDir, ".decoder", "provider.json")
 	}
 	if reason := pathsafe.IsSensitivePath(provPath); reason != "" {
 		checks = append(checks, PathCheck{
@@ -155,7 +155,7 @@ func EvaluateDeveloperPath(ctx context.Context) DeveloperPathReport {
 	pre := EnginePreflightReport(ctx)
 	if pre.Ready {
 		checks = append(checks, PathCheck{
-			Section: "Ecosystem", Name: "flux", Status: PathPass,
+			Section: "Ecosystem", Name: "mux", Status: PathPass,
 			Detail:   "Preflight ready to chat",
 			Blocking: true,
 		})
@@ -168,14 +168,14 @@ func EvaluateDeveloperPath(ctx context.Context) DeveloperPathReport {
 			}
 		}
 		checks = append(checks, PathCheck{
-			Section: "Ecosystem", Name: "flux", Status: status,
-			Detail:   "Preflight not ready — see rho preflight",
+			Section: "Ecosystem", Name: "mux", Status: status,
+			Detail:   "Preflight not ready — see decoder preflight",
 			FixHint:  "Complete /config (credentials + model)",
 			Blocking: true,
 		})
 	}
 
-	sample := token.CountTokensFast("rho developer path readiness")
+	sample := token.CountTokensFast("decoder developer path readiness")
 	checks = append(checks, PathCheck{
 		Section: "Ecosystem", Name: "token", Status: PathPass,
 		Detail: fmt.Sprintf("Embedded token/compress pipeline OK (sample=%d tokens)", sample),
@@ -200,10 +200,10 @@ func anyBlockingFail(checks []PathCheck, section string) bool {
 
 func developerPathNextStep(r DeveloperPathReport, setup SetupState) string {
 	if r.Ready {
-		return "Ready — run rho and start chatting"
+		return "Ready — run decoder and start chatting"
 	}
 	if !setup.HasCredentials {
-		return "Run rho → /config → paste API key (or Ollama local)"
+		return "Run decoder → /config → paste API key (or Ollama local)"
 	}
 	if !setup.HasModel {
 		return "Run /config → pick a model from the catalog"
@@ -211,7 +211,7 @@ func developerPathNextStep(r DeveloperPathReport, setup SetupState) string {
 	if !r.SecureReady {
 		return "Fix security items above (provider.json secrets, read guard)"
 	}
-	return "Run rho preflight for details, then /config if needed"
+	return "Run decoder preflight for details, then /config if needed"
 }
 
 // pathStatusColor maps a readiness status to a semantic report color.
@@ -232,7 +232,7 @@ func pathStatusColor(s PathCheckStatus) color.Color {
 func FormatDeveloperPathReport(ctx context.Context) string {
 	r := EvaluateDeveloperPath(ctx)
 	var b strings.Builder
-	b.WriteString(theme.Tint("Developer path (rho · flux · token engine)", theme.ReportInfo) + "\n\n")
+	b.WriteString(theme.Tint("Developer path (decoder · mux · token engine)", theme.ReportInfo) + "\n\n")
 
 	status := "NEEDS SETUP"
 	statusColor := theme.ReportWarn
@@ -268,7 +268,7 @@ func FormatDeveloperPathReport(ctx context.Context) string {
 	}
 
 	b.WriteString(theme.Tint("Next:", theme.ReportMuted) + " " + r.NextStep + "\n")
-	b.WriteString("\n" + theme.Tint("Docs: docs/DEVELOPER-PATH.md · docs/SECURITY-DEVELOPER.md · rho doctor · rho preflight", theme.ReportMuted) + "\n")
+	b.WriteString("\n" + theme.Tint("Docs: docs/DEVELOPER-PATH.md · docs/SECURITY-DEVELOPER.md · decoder doctor · decoder preflight", theme.ReportMuted) + "\n")
 	return strings.TrimRight(b.String(), "\n")
 }
 

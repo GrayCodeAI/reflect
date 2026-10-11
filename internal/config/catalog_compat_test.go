@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/GrayCodeAI/flux/catalog"
-	fluxconfig "github.com/GrayCodeAI/flux/config"
+	"github.com/GrayCodeAI/mux/catalog"
+	muxconfig "github.com/GrayCodeAI/mux/config"
 )
 
 // CompiledCatalogV1 is retained only for lower-level migration/security tests.
-// Production Rho code consumes engine DTOs exclusively.
+// Production Decoder code consumes engine DTOs exclusively.
 func CompiledCatalogV1() *catalog.CompiledCatalog {
 	compiled, err := catalog.LoadCatalog(context.Background(), catalog.LoadCatalogOptions{CachePath: catalog.DefaultCachePath()})
 	if err == nil && compiled != nil {
@@ -20,7 +20,7 @@ func CompiledCatalogV1() *catalog.CompiledCatalog {
 	return compiled
 }
 
-func deploymentHasSecrets(deployment fluxconfig.DeploymentConfig) bool {
+func deploymentHasSecrets(deployment muxconfig.DeploymentConfig) bool {
 	return strings.TrimSpace(deployment.APIKey) != "" || strings.TrimSpace(deployment.Token) != "" ||
 		strings.TrimSpace(deployment.SecretAccessKey) != "" || strings.TrimSpace(deployment.AccessKeyID) != "" ||
 		strings.TrimSpace(deployment.SessionToken) != ""

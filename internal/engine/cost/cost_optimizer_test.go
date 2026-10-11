@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/provider/routing"
+	"github.com/GrayCodeAI/decoder/internal/provider/routing"
 )
 
 const testProvider = "anthropic"

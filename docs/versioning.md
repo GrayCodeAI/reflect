@@ -12,7 +12,7 @@ repository that follows this layout. Adopted 2026-05-14.
 
 ## Pattern by repo type
 
-### Go binaries (`rho`)
+### Go binaries (`decoder`)
 
 - `VERSION` at the repo root.
 - A version package (`internal/version` for binaries, or `main` itself) declares
@@ -39,7 +39,7 @@ repository that follows this layout. Adopted 2026-05-14.
   (`scripts/check-release-tag.sh`), so the two cannot disagree.
 - This is the Kubernetes / Helm / gh-cli pattern.
 
-### Go libraries (`flux`)
+### Go libraries (`mux`)
 
 - `VERSION` at the repo root.
 - A `version.go` file co-located with `VERSION` uses `//go:embed` to read it at
@@ -91,7 +91,7 @@ func init() {
   pattern = "^(?P<version>[^\\s]+)"
 
   [tool.hatch.build.targets.wheel]
-  force-include = { "VERSION" = "rho/VERSION" }
+  force-include = { "VERSION" = "decoder/VERSION" }
   ```
 - `_version.py` reads the same `VERSION` file at runtime via `pathlib`, so
   `__version__` matches the package metadata both in source checkouts and in
@@ -111,7 +111,7 @@ func init() {
 Versions are bumped by hand in a release PR: edit `VERSION`, turn the
 `## [Unreleased]` section of `CHANGELOG.md` into `## [X.Y.Z] — YYYY-MM-DD`,
 merge, then push the `vX.Y.Z` tag. There is no release-please or other bot.
-For rho the full procedure, tag protection and verification steps are in
+For decoder the full procedure, tag protection and verification steps are in
 [RELEASING.md](RELEASING.md).
 
 ## Cross-repo compatibility

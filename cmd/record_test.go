@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/terminal/tape"
+	"github.com/GrayCodeAI/decoder/internal/terminal/tape"
 )
 
 func TestStartRecordingCapturesOutput(t *testing.T) {

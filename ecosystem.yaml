@@ -6,10 +6,10 @@
 #     GrayCodeAI/graycode-eco  ->  ecosystem.yaml
 #
 # Why it moved: a product cannot own the registry of its siblings. This file
-# lived inside `rho` and described itself as canonical, which meant `rho` could
+# lived inside `decoder` and described itself as canonical, which meant `decoder` could
 # rename itself without signalling the other nine repositories. It did exactly
 # that — the organization holds `hawk` and `eyrie` as redirects from the prior
-# names of `rho` and `flux`. The list also omitted `beam` entirely.
+# names of `decoder` and `mux`. The list also omitted `beam` entirely.
 #
 # What is still true below, and what is not:
 #
@@ -23,10 +23,10 @@
 #   scripts/ecosystem-manifest.sh          reads this file
 #   scripts/generate-workspace.sh          calls the above
 #   scripts/check-module-release-parity.sh  reads this file
-#   .github/actions/checkout-flux          calls the above
+#   .github/actions/checkout-mux          calls the above
 #   .github/actions/setup-deps             calls the above
 #
-# The migration keeps `rho/scripts/ecosystem-manifest.sh` as the single reader,
+# The migration keeps `decoder/scripts/ecosystem-manifest.sh` as the single reader,
 # repointed at the roof's file, with a fallback to this one when the roof is not
 # checked out. The scripts do not need to know where the manifest lives.
 #
@@ -35,31 +35,31 @@
 schema_version: 1
 
 contracts:
-  portable_graph_schema: rho.graph/v1
+  portable_graph_schema: decoder.graph/v1
   cloud_graph_schema: graycode-cloud.graph/v1
   usage_event: usage.recorded.v1
 
 repositories:
-  - directory: rho
-    github_repo: rho
-    product_name: Rho
+  - directory: decoder
+    github_repo: decoder
+    product_name: Decoder
     kind: product
     language: go
-    module: github.com/GrayCodeAI/rho
+    module: github.com/GrayCodeAI/decoder
     workspace: true
 
-  - directory: flux
-    github_repo: flux
-    product_name: Flux
+  - directory: mux
+    github_repo: mux
+    product_name: Mux
     kind: engine
     language: go
-    module: github.com/GrayCodeAI/flux
+    module: github.com/GrayCodeAI/mux
     workspace: true
-    facade: github.com/GrayCodeAI/flux/engine
+    facade: github.com/GrayCodeAI/mux/engine
 
   - directory: graycode-skills
     github_repo: graycode-skills
-    product_name: Rho Community Skills
+    product_name: Decoder Community Skills
     kind: extension
     language: python
     workspace: false
@@ -93,7 +93,7 @@ repositories:
     kind: product
     language: typescript
     # Not a Go module: radius is a pnpm workspace, so it takes no part in
-    # rho's go.work. `workspace: true` here would make CI try to check it out
+    # decoder's go.work. `workspace: true` here would make CI try to check it out
     # as a Go sibling and fail.
     workspace: false
 

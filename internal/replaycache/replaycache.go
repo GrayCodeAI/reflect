@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // Cache is a directory-backed replay cache. Safe for concurrent use within one
@@ -46,14 +46,14 @@ func Fingerprint(secrets ...string) string {
 // Key computes the cache key for a chat request. Messages are canonicalized
 // (role/content/tool fields, sorted map keys) so semantically identical
 // requests produce identical keys regardless of struct field order.
-func Key(fingerprint, provider, model string, messages []types.FluxMessage, maxTokens int) string {
+func Key(fingerprint, provider, model string, messages []types.MuxMessage, maxTokens int) string {
 	canonical := canonicalMessages(messages)
 	payload := fmt.Sprintf("%s|%s|%s|%s|%d", fingerprint, provider, model, canonical, maxTokens)
 	sum := sha256.Sum256([]byte(payload))
 	return hex.EncodeToString(sum[:])
 }
 
-func canonicalMessages(messages []types.FluxMessage) string {
+func canonicalMessages(messages []types.MuxMessage) string {
 	var b strings.Builder
 	for _, m := range messages {
 		fmt.Fprintf(&b, "<%s>%s", m.Role, m.Content)
@@ -80,12 +80,12 @@ func b2i(v bool) int {
 }
 
 // Get returns the cached complete response for key, or ok=false.
-func (c *Cache) Get(key string) (*types.FluxResponse, bool) {
+func (c *Cache) Get(key string) (*types.MuxResponse, bool) {
 	data, err := os.ReadFile(c.path("resp", key))
 	if err != nil {
 		return nil, false
 	}
-	var resp types.FluxResponse
+	var resp types.MuxResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, false
 	}
@@ -93,7 +93,7 @@ func (c *Cache) Get(key string) (*types.FluxResponse, bool) {
 }
 
 // Put stores a complete response under key.
-func (c *Cache) Put(key string, resp *types.FluxResponse) error {
+func (c *Cache) Put(key string, resp *types.MuxResponse) error {
 	if resp == nil {
 		return fmt.Errorf("replaycache: nil response")
 	}
@@ -105,12 +105,12 @@ func (c *Cache) Put(key string, resp *types.FluxResponse) error {
 }
 
 // GetStream returns the cached stream events for key, or ok=false.
-func (c *Cache) GetStream(key string) ([]types.FluxStreamEvent, bool) {
+func (c *Cache) GetStream(key string) ([]types.MuxStreamEvent, bool) {
 	data, err := os.ReadFile(c.path("stream", key))
 	if err != nil {
 		return nil, false
 	}
-	var events []types.FluxStreamEvent
+	var events []types.MuxStreamEvent
 	if err := json.Unmarshal(data, &events); err != nil {
 		return nil, false
 	}
@@ -119,7 +119,7 @@ func (c *Cache) GetStream(key string) ([]types.FluxStreamEvent, bool) {
 
 // PutStream stores stream events under key so a later identical request can
 // replay the exact same sequence.
-func (c *Cache) PutStream(key string, events []types.FluxStreamEvent) error {
+func (c *Cache) PutStream(key string, events []types.MuxStreamEvent) error {
 	if len(events) == 0 {
 		return fmt.Errorf("replaycache: no events")
 	}

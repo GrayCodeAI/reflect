@@ -134,5 +134,5 @@ func generateIssueBody(ctx string) string {
 	if ctx == "" {
 		return "No additional context was provided."
 	}
-	return "**Reported via rho**\n\n```\n" + ctx + "\n```\n"
+	return "**Reported via decoder**\n\n```\n" + ctx + "\n```\n"
 }

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	fluxengine "github.com/GrayCodeAI/flux/engine"
-	fluxgraph "github.com/GrayCodeAI/flux/graph"
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	policycontracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/engine/token"
-	"github.com/GrayCodeAI/rho/internal/graphjournal"
-	"github.com/GrayCodeAI/rho/internal/types"
+	graphcontracts "github.com/GrayCodeAI/decoder/internal/contracts/graph"
+	policycontracts "github.com/GrayCodeAI/decoder/internal/contracts/policy"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/graphjournal"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	muxengine "github.com/GrayCodeAI/mux/engine"
+	muxgraph "github.com/GrayCodeAI/mux/graph"
 )
 
 func (s *Session) recordPolicyObservation(tc types.ToolCall, stage string, allowed bool, reason string) {
@@ -29,10 +29,10 @@ func (s *Session) recordPolicyObservation(tc types.ToolCall, stage string, allow
 	}
 	verdict := policycontracts.Allow(reason)
 	verdict.Rule = strings.TrimSpace(stage)
-	verdict.Source = "rho." + strings.TrimSpace(stage)
+	verdict.Source = "decoder." + strings.TrimSpace(stage)
 	if !allowed {
 		verdict = policycontracts.Deny(reason, strings.TrimSpace(stage))
-		verdict.Source = "rho." + strings.TrimSpace(stage)
+		verdict.Source = "decoder." + strings.TrimSpace(stage)
 	}
 	if err := graphjournal.AppendPolicy(sessionID, tc.ID, stage, verdict, time.Now()); err != nil {
 		s.Logger().Warn("graph observation append failed", map[string]interface{}{
@@ -271,10 +271,10 @@ func (s *Session) usageCanProceed() (bool, string) {
 	return tracker.CanProceed()
 }
 
-func (s *Session) recordFluxOperationObservation(
+func (s *Session) recordMuxOperationObservation(
 	provider, model, finishReason, content string,
 	toolCallCount int,
-	usage *types.FluxUsage,
+	usage *types.MuxUsage,
 ) {
 	sessionID := s.executionGraphSessionID()
 	if sessionID == "" || usage == nil {
@@ -290,19 +290,19 @@ func (s *Session) recordFluxOperationObservation(
 	}
 	observedAt := time.Now().UTC()
 	route := types.ResolvedRoute{Provider: provider, Model: model}
-	export, err := fluxengine.BuildOperationsGraph(fluxengine.OperationsGraphInput{
+	export, err := muxengine.BuildOperationsGraph(muxengine.OperationsGraphInput{
 		Route:         &route,
 		Usage:         usage,
 		FinishReason:  finishReason,
 		Content:       content,
 		ToolCallCount: toolCallCount,
 		ObservedAt:    observedAt,
-		Scope:         fluxgraph.Scope{RepositoryID: repositoryID},
+		Scope:         muxgraph.Scope{RepositoryID: repositoryID},
 		CorrelationID: sessionID,
 	})
 	if err == nil {
 		err = graphjournal.AppendRuntimeGraph(
-			sessionID, "", "model-generation", "flux",
+			sessionID, "", "model-generation", "mux",
 			toContractNodes(export.Nodes), toContractEdges(export.Edges), toContractEvents(export.Events), observedAt,
 		)
 	}
@@ -314,11 +314,11 @@ func (s *Session) recordFluxOperationObservation(
 	}
 }
 
-// The following helpers convert Flux's vendored graph contract types into
-// Rho's contracts/graph contract types. The definitions are byte-identical, so
+// The following helpers convert Mux's vendored graph contract types into
+// Decoder's contracts/graph contract types. The definitions are byte-identical, so
 // conversion is a field-by-field copy at the sibling boundary.
 
-func toContractNodes(nodes []fluxgraph.Node) []graphcontracts.Node {
+func toContractNodes(nodes []muxgraph.Node) []graphcontracts.Node {
 	out := make([]graphcontracts.Node, len(nodes))
 	for i, n := range nodes {
 		out[i] = toContractNode(n)
@@ -326,7 +326,7 @@ func toContractNodes(nodes []fluxgraph.Node) []graphcontracts.Node {
 	return out
 }
 
-func toContractNode(n fluxgraph.Node) graphcontracts.Node {
+func toContractNode(n muxgraph.Node) graphcontracts.Node {
 	return graphcontracts.Node{
 		ID:          n.ID,
 		Kind:        graphcontracts.NodeKind(n.Kind),
@@ -338,7 +338,7 @@ func toContractNode(n fluxgraph.Node) graphcontracts.Node {
 	}
 }
 
-func toContractEdges(edges []fluxgraph.Edge) []graphcontracts.Edge {
+func toContractEdges(edges []muxgraph.Edge) []graphcontracts.Edge {
 	out := make([]graphcontracts.Edge, len(edges))
 	for i, e := range edges {
 		out[i] = toContractEdge(e)
@@ -346,7 +346,7 @@ func toContractEdges(edges []fluxgraph.Edge) []graphcontracts.Edge {
 	return out
 }
 
-func toContractEdge(e fluxgraph.Edge) graphcontracts.Edge {
+func toContractEdge(e muxgraph.Edge) graphcontracts.Edge {
 	return graphcontracts.Edge{
 		ID:          e.ID,
 		Kind:        graphcontracts.EdgeKind(e.Kind),
@@ -360,7 +360,7 @@ func toContractEdge(e fluxgraph.Edge) graphcontracts.Edge {
 	}
 }
 
-func toContractEvents(events []fluxgraph.Event) []graphcontracts.Event {
+func toContractEvents(events []muxgraph.Event) []graphcontracts.Event {
 	out := make([]graphcontracts.Event, len(events))
 	for i, ev := range events {
 		out[i] = toContractEvent(ev)
@@ -368,7 +368,7 @@ func toContractEvents(events []fluxgraph.Event) []graphcontracts.Event {
 	return out
 }
 
-func toContractEvent(ev fluxgraph.Event) graphcontracts.Event {
+func toContractEvent(ev muxgraph.Event) graphcontracts.Event {
 	return graphcontracts.Event{
 		ID:             ev.ID,
 		Type:           graphcontracts.EventType(ev.Type),
@@ -382,15 +382,15 @@ func toContractEvent(ev fluxgraph.Event) graphcontracts.Event {
 	}
 }
 
-func toContractRef(r fluxgraph.Ref) graphcontracts.Ref {
+func toContractRef(r muxgraph.Ref) graphcontracts.Ref {
 	return graphcontracts.Ref{Kind: graphcontracts.NodeKind(r.Kind), ID: r.ID}
 }
 
-func toContractScope(s fluxgraph.Scope) graphcontracts.Scope {
+func toContractScope(s muxgraph.Scope) graphcontracts.Scope {
 	return graphcontracts.Scope{TenantID: s.TenantID, ProjectID: s.ProjectID, RepositoryID: s.RepositoryID}
 }
 
-func toContractProvenance(p fluxgraph.Provenance) graphcontracts.Provenance {
+func toContractProvenance(p muxgraph.Provenance) graphcontracts.Provenance {
 	evidence := make([]graphcontracts.ArtifactRef, len(p.Evidence))
 	for i, a := range p.Evidence {
 		evidence[i] = graphcontracts.ArtifactRef{URI: a.URI, Digest: a.Digest, MediaType: a.MediaType}

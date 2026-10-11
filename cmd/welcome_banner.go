@@ -6,8 +6,8 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// rhoBlockGlyphs — fixed 8-column ██ font used by the welcome gate banners.
-var rhoBlockGlyphs = map[rune][5]string{
+// decoderBlockGlyphs — fixed 8-column ██ font used by the welcome gate banners.
+var decoderBlockGlyphs = map[rune][5]string{
 	'H': {"██   ██ ", "██   ██ ", "███████ ", "██   ██ ", "██   ██ "},
 	'A': {"  ███   ", " █████  ", "███████ ", "██   ██ ", "██   ██ "},
 	'W': {"██   ██ ", "██   ██ ", "██ █ ██ ", "███ ███ ", "██   ██ "},
@@ -20,40 +20,29 @@ var rhoBlockGlyphs = map[rune][5]string{
 	'T': {"████████", "   ██   ", "   ██   ", "   ██   ", "   ██   "},
 }
 
-/* legacyRhoLogoArtLines is retained only as a migration reference.
-var legacyRhoLogoArtLines = []string{
-	"|    ___    | |    ___    |   (\\              /)   |       \\",
-	"|   |   |   | |   |   |   |    \\      \\/      /    |   |\\   \\",
-	"|___|   |___| |___|   |___|     \\____/\\/\\____/     |___| \\___\\",
-	"                                    |0\\/0|",
-	"                                     \\/\\/",
-	"                                      \\/",
-}
-*/
-
-// rhoLogoArtLines is the canonical portable ASCII RHO wordmark.
-var rhoLogoArtLines = []string{
-	" ____  _   _  ___ ",
-	"|  _ \\| | | |/ _ \\ ",
-	"| |_) | |_| | | | |",
-	"|  _ <|  _  | |_| |",
-	"|_| \\_\\_| |_|\\___/",
+// decoderLogoArtLines is the canonical portable ASCII DECODER wordmark.
+var decoderLogoArtLines = []string{
+	" ____  _____ ____ ___  ____  _____ ____  ",
+	"|  _ \\| ____/ ___/ _ \\|  _ \\| ____|  _ \\ ",
+	"| | | |  _|| |  | | | | | | |  _| | |_) |",
+	"| |_| | |__| |__| |_| | |_| | |___|  _ < ",
+	"|____/|_____\\____\\___/|____/|_____|_| \\_\\",
 }
 
 const (
-	rhoBlockCellW     = 8
-	rhoBlockLetterGap = 1
-	rhoBlockWordGap   = 4
+	decoderBlockCellW     = 8
+	decoderBlockLetterGap = 1
+	decoderBlockWordGap   = 4
 )
 
 // welcomeWordLines — "WELCOME" block (row-aligned, fixed grid).
-var welcomeWordLines = composeRhoBlockLines("WELCOME")
+var welcomeWordLines = composeDecoderBlockLines("WELCOME")
 
 // welcomeToWordLines — "TO" block, centered under WELCOME on the gate.
-var welcomeToWordLines = composeRhoBlockLines("TO")
+var welcomeToWordLines = composeDecoderBlockLines("TO")
 
 // welcomeToPhraseLines — "WELCOME TO" block for wide welcome gates.
-var welcomeToPhraseLines = composeRhoBlockLines("WELCOME TO")
+var welcomeToPhraseLines = composeDecoderBlockLines("WELCOME TO")
 
 // welcomeToBannerMinWidth is the visible width for the WELCOME block.
 const welcomeToBannerMinWidth = 61
@@ -61,24 +50,24 @@ const welcomeToBannerMinWidth = 61
 // welcomeToPhraseMinWidth is the visible width for the combined "WELCOME TO" block.
 var welcomeToPhraseMinWidth = blockLinesWidth(welcomeToPhraseLines)
 
-func composeRhoBlockLines(text string) []string {
+func composeDecoderBlockLines(text string) []string {
 	rows := make([]string, 5)
 	words := strings.Fields(text)
 	for wi, word := range words {
 		for ci, ch := range word {
-			glyph, ok := rhoBlockGlyphs[ch]
+			glyph, ok := decoderBlockGlyphs[ch]
 			if !ok {
 				continue
 			}
 			for i := range rows {
 				if rows[i] != "" {
 					if ci == 0 && wi > 0 {
-						rows[i] += strings.Repeat(" ", rhoBlockWordGap)
+						rows[i] += strings.Repeat(" ", decoderBlockWordGap)
 					} else {
-						rows[i] += strings.Repeat(" ", rhoBlockLetterGap)
+						rows[i] += strings.Repeat(" ", decoderBlockLetterGap)
 					}
 				}
-				cell := padBlockCell(glyph[i], rhoBlockCellW)
+				cell := padBlockCell(glyph[i], decoderBlockCellW)
 				rows[i] += cell
 			}
 		}

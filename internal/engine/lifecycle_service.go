@@ -5,23 +5,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
-	"github.com/GrayCodeAI/rho/internal/engine/scaffold"
+	"github.com/GrayCodeAI/decoder/internal/engine/cost"
+	"github.com/GrayCodeAI/decoder/internal/engine/scaffold"
 
-	"github.com/GrayCodeAI/rho/internal/engine/control"
-	"github.com/GrayCodeAI/rho/internal/engine/lifecycle"
-	"github.com/GrayCodeAI/rho/internal/engine/review"
-	"github.com/GrayCodeAI/rho/internal/engine/streaming"
-	"github.com/GrayCodeAI/rho/internal/engine/validation"
+	"github.com/GrayCodeAI/decoder/internal/engine/control"
+	"github.com/GrayCodeAI/decoder/internal/engine/lifecycle"
+	"github.com/GrayCodeAI/decoder/internal/engine/review"
+	"github.com/GrayCodeAI/decoder/internal/engine/streaming"
+	"github.com/GrayCodeAI/decoder/internal/engine/validation"
 
-	"github.com/GrayCodeAI/rho/internal/engine/branching"
-	"github.com/GrayCodeAI/rho/internal/engine/token"
-	"github.com/GrayCodeAI/rho/internal/intelligence/memory"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/prompts"
-	"github.com/GrayCodeAI/rho/internal/smartrouting"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/engine/branching"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/intelligence/memory"
+	"github.com/GrayCodeAI/decoder/internal/observability/logger"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/prompts"
+	"github.com/GrayCodeAI/decoder/internal/smartrouting"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // LifecycleService is the Session's view of the self-improvement and
@@ -160,7 +160,7 @@ func (s *LifecycleService) StartContext(ctx context.Context, lastUserMsg string)
 // Finalize performs lifecycle bookkeeping from immutable session snapshots.
 // It intentionally accepts data rather than *Session so the lifecycle layer
 // cannot reach through the god object for unrelated state.
-func (s *LifecycleService) Finalize(ctx context.Context, messages []types.FluxMessage, success bool, duration time.Duration, totalCost float64) {
+func (s *LifecycleService) Finalize(ctx context.Context, messages []types.MuxMessage, success bool, duration time.Duration, totalCost float64) {
 	if s == nil {
 		return
 	}

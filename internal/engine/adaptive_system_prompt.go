@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/provider/routing"
+	"github.com/GrayCodeAI/decoder/internal/provider/routing"
 )
 
 // PromptBuildContext provides situational context for building a system prompt.
@@ -266,12 +266,12 @@ func DiffPrompts(old, new string) string {
 	return strings.TrimRight(result, "\n")
 }
 
-// DefaultSections returns the built-in prompt sections that rho uses.
+// DefaultSections returns the built-in prompt sections that decoder uses.
 func DefaultSections(ctx PromptBuildContext) []PromptSection {
 	sections := []PromptSection{
 		{
 			Name:     "identity",
-			Content:  "You are rho, an AI coding agent. You help developers write, debug, review, and refactor code. You operate inside the user's repository with access to tools for file manipulation, shell commands, and code search.",
+			Content:  "You are decoder, an AI coding agent. You help developers write, debug, review, and refactor code. You operate inside the user's repository with access to tools for file manipulation, shell commands, and code search.",
 			Priority: 1,
 		},
 		{

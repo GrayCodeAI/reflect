@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 // TestSession_NewSessionWithClient_WiresAllSubServices proves that the
@@ -17,7 +17,7 @@ import (
 // s.Tools() without losing backward compat.
 func TestSession_NewSessionWithClient_WiresAllSubServices(t *testing.T) {
 	registry := tool.NewRegistry()
-	s := NewSession("anthropic", "claude-sonnet-4-20250514", "you are rho", registry)
+	s := NewSession("anthropic", "claude-sonnet-4-20250514", "you are decoder", registry)
 
 	// ChatService: provider, model, client, router, rate limiter.
 	if s.ChatLLM() == nil {
@@ -64,8 +64,8 @@ func TestSession_NewSessionWithClient_WiresAllSubServices(t *testing.T) {
 	if s.Persistence() == nil {
 		t.Fatal("Persistence() should not be nil after NewSessionWithClient")
 	}
-	if got := s.Persistence().System(); got != "you are rho" {
-		t.Errorf("Persistence().System() = %q, want %q", got, "you are rho")
+	if got := s.Persistence().System(); got != "you are decoder" {
+		t.Errorf("Persistence().System() = %q, want %q", got, "you are decoder")
 	}
 	if got := s.Persistence().MessageCount(); got != 0 {
 		t.Errorf("Persistence().MessageCount() = %d, want 0", got)
@@ -90,7 +90,7 @@ func TestSession_NewSessionWithClient_WiresAllSubServices(t *testing.T) {
 // actually goes through s.ChatLLM().Stream() rather than the legacy
 // ChatService.StreamChatContinue(). The mock client is injected via
 // SetTestClient, which also reattaches the ChatService, so the agent
-// loop's call site must hit the mock and not the real flux client.
+// loop's call site must hit the mock and not the real mux client.
 func TestSession_Stream_UsesChatService(t *testing.T) {
 	mc := newMockClient(mockTextResponse("hi from service"))
 	s := newMockSession(mc)

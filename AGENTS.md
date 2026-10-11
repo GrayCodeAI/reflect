@@ -1,15 +1,15 @@
 ---
-description: Extending rho — how to write AGENTS.md files, custom specialists, skills, hooks, MCP servers, and plugins.
+description: Extending decoder — how to write AGENTS.md files, custom specialists, skills, hooks, MCP servers, and plugins.
 globs: "*.go, *.js, *.md, *.json, *.toml, *.yaml, *.yml"
 alwaysApply: false
 ---
 
-# Extending rho
+# Extending decoder
 
-rho is an open-source code intelligence platform. It lives in the `graycode-eco`
-workspace alongside the ecosystem repos that power it (`flux`,
+decoder is an open-source code intelligence platform. It lives in the `graycode-eco`
+workspace alongside the ecosystem repos that power it (`mux`,
 `shrike`, `harrier`, `swift`, `kestrel`, `merlin`). This document describes how to extend
-rho with custom tools, skills, hooks, and integrations.
+decoder with custom tools, skills, hooks, and integrations.
 
 ## Development workflow
 
@@ -17,7 +17,7 @@ When starting any new work (feature, fix, refactor, chore), always create a feat
 
 ## 1. Drop a project `AGENTS.md`
 
-When rho starts in a directory, it looks for project-level instructions and injects them into the system prompt. The lookup walks from your current working directory **up to the nearest git root** and reads the first matching file at each level — general rules at the repo root, more specific rules in sub-trees. Files are labeled with their directory in the prompt (e.g. `## Project guidelines (services/api/AGENTS.md)`).
+When decoder starts in a directory, it looks for project-level instructions and injects them into the system prompt. The lookup walks from your current working directory **up to the nearest git root** and reads the first matching file at each level — general rules at the repo root, more specific rules in sub-trees. Files are labeled with their directory in the prompt (e.g. `## Project guidelines (services/api/AGENTS.md)`).
 
 Accepted file names, in priority order at each level:
 
@@ -29,7 +29,7 @@ Accepted file names, in priority order at each level:
 
 Matching is **case-insensitive** on the basename, so `AGENTS.md`, `Agents.md`, and `agents.md` resolve to the same file on Windows and macOS. The git-tracked filename in this repo is `AGENTS.md` — keep that on case-sensitive filesystems (Linux, the WSL filesystem, or a CI runner) to match what the loader looks for.
 
-Both files use the same format. YAML frontmatter is optional; the markdown body is loaded as instructions for the agent. rho reads the file once at session start, so changes take effect on the next launch — not mid-session.
+Both files use the same format. YAML frontmatter is optional; the markdown body is loaded as instructions for the agent. decoder reads the file once at session start, so changes take effect on the next launch — not mid-session.
 
 ```markdown
 # Project conventions for <your project>
@@ -42,26 +42,26 @@ Both files use the same format. YAML frontmatter is optional; the markdown body 
 
 Tips:
 
-- Keep each file under ~8 KiB. rho caps the **total** across all matched files at 32 KiB; everything past the cap is dropped.
+- Keep each file under ~8 KiB. decoder caps the **total** across all matched files at 32 KiB; everything past the cap is dropped.
 - Re-state rules in the imperative voice: "Run `make lint`", not "you should consider running the linter".
 - Don't put secrets, model IDs, or environment-specific paths in `AGENTS.md`. Use config files for those.
-- In a monorepo, drop a narrower `AGENTS.md` in each sub-tree (e.g. `services/api/AGENTS.md`). rho picks those up automatically when you launch from inside the sub-tree.
+- In a monorepo, drop a narrower `AGENTS.md` in each sub-tree (e.g. `services/api/AGENTS.md`). decoder picks those up automatically when you launch from inside the sub-tree.
 - A YAML frontmatter block (`---\n...\n---`) at the top is preserved verbatim in the injected prompt but is not parsed for `globs:` or `alwaysApply:` scoping today — keep the body self-contained.
 
 ### Personal guidelines, across every project
 
-For preferences that follow *you*, not a specific repo (tone, tooling habits, workflow), drop a `ZERO.md` in your user config directory: `~/.rho/ZERO.md` on Linux/macOS, `%AppData%\rho\ZERO.md` on Windows — the same directory as config files and your personal specialists. Same format and 8 KiB cap as the project files above, and the same case-insensitive basename match.
+For preferences that follow *you*, not a specific repo (tone, tooling habits, workflow), drop a `ZERO.md` in your user config directory: `~/.decoder/ZERO.md` on Linux/macOS, `%AppData%\decoder\ZERO.md` on Windows — the same directory as config files and your personal specialists. Same format and 8 KiB cap as the project files above, and the same case-insensitive basename match.
 
 This file is injected as its own `## User guidelines` section, before the project's `AGENTS.md`/`ZERO.md`, and is labeled as personal preference in the prompt: project guidelines are the later, more specific instruction and take precedence over it when the two conflict.
 
 ## 2. Custom specialists
 
-Specialists are rho's sub-agents. Three scopes, in priority order:
+Specialists are decoder's sub-agents. Three scopes, in priority order:
 
 | Scope | Path | Shared? |
 | --- | --- | --- |
-| Built-in | compiled into rho | yes |
-| User | `~/.rho/specialists/*.md` | no — your machine only |
+| Built-in | compiled into decoder | yes |
+| User | `~/.decoder/specialists/*.md` | no — your machine only |
 | Project | `./.zero/specialists/*.md` | yes — the repo team |
 
 Project overrides user overrides built-in when names collide.
@@ -89,33 +89,33 @@ Reply with one JSON object per finding: `{"file", "line", "severity", "message",
 CLI management:
 
 ```bash
-rho specialist list
-rho specialist show api-reviewer
-rho specialist create api-reviewer \
+decoder specialist list
+decoder specialist show api-reviewer
+decoder specialist create api-reviewer \
     --project \
     --description "Reviews API changes" \
     --tools read-only,plan \
     --prompt "$(cat api-reviewer.md)"
-rho specialist edit api-reviewer --project
-rho specialist delete api-reviewer --project
-rho specialist path                       # prints the resolved specialists directory
+decoder specialist edit api-reviewer --project
+decoder specialist delete api-reviewer --project
+decoder specialist path                       # prints the resolved specialists directory
 ```
 
 ## 3. Skills
 
-rho ships **no bundled skills** by default. Skills are markdown instruction
+decoder ships **no bundled skills** by default. Skills are markdown instruction
 files that extend agent capabilities, sourced from the separate
 `GrayCodeAI/graycode-skills` repo and installed on demand:
 
 ```bash
-rho skills search <query>          # find skills in graycode-skills
-rho skills install <owner/repo> [skill-name]   # install after user approval
-rho skills list                    # list installed skills
-rho skills remove <name>
+decoder skills search <query>          # find skills in graycode-skills
+decoder skills install <owner/repo> [skill-name]   # install after user approval
+decoder skills list                    # list installed skills
+decoder skills remove <name>
 ```
 
 Installed skills live in user or project scope:
-- User-scoped: `~/.rho/skills/`
+- User-scoped: `~/.decoder/skills/`
 - Project-scoped: `./.zero/skills/` or `./skills/`
 
 A skill manifest:
@@ -144,56 +144,56 @@ Hooks allow custom commands to run at specific lifecycle points:
 - `sessionEnd` — runs at session teardown
 
 ```bash
-rho hook add beforeReview --command "lint-check"
-rho hook remove beforeReview
-rho hook list
+decoder hook add beforeReview --command "lint-check"
+decoder hook remove beforeReview
+decoder hook list
 ```
 
 ## 5. MCP integration
 
-MCP (Model Context Protocol) servers can expose tools to rho:
+MCP (Model Context Protocol) servers can expose tools to decoder:
 
 ```bash
-rho mcp add --name server --url http://localhost:8080
-rho mcp remove server
-rho mcp list
+decoder mcp add --name server --url http://localhost:8080
+decoder mcp remove server
+decoder mcp list
 ```
 
 ## 6. Plugins
 
-Plugins extend rho with custom tools and capabilities:
+Plugins extend decoder with custom tools and capabilities:
 
 ```bash
-rho plugin add --name my-plugin --path ./my-plugin
-rho plugin remove my-plugin
-rho plugin list
+decoder plugin add --name my-plugin --path ./my-plugin
+decoder plugin remove my-plugin
+decoder plugin list
 ```
 
 ## 7. Verification
 
-rho includes a self-verification system to validate local changes before contributing:
+decoder includes a self-verification system to validate local changes before contributing:
 
 ```bash
-rho verify
-rho verify --fix
+decoder verify
+decoder verify --fix
 ```
 
 ## Development
 
 ```bash
 make lint
-rho verify
+decoder verify
 ```
 
 ### Architecture note: cross-repo contracts
 
-Cross-repo severity and finding contracts now live in rho's `internal/contracts` (vendored from the removed `github.com/GrayCodeAI/eagle` module) — extensions and support repos must vendor the needed DTOs instead of Rho internals until a published contracts module exists.
+Cross-repo severity and finding contracts now live in decoder's `internal/contracts` (vendored from the removed `github.com/GrayCodeAI/eagle` module) — extensions and support repos must vendor the needed DTOs instead of Decoder internals until a published contracts module exists.
 
 ### Architecture note: provider ownership
 
 Implement provider protocols, adapters, catalog metadata, credential mappings, and
-provider contract tests in `../flux` (the flux engine's repo) first. Rho consumes providers only
-through Flux's stable engine facade; Rho changes should be limited to host UX
+provider contract tests in `../mux` (the mux engine's repo) first. Decoder consumes providers only
+through Mux's stable engine facade; Decoder changes should be limited to host UX
 and facade integration. Concentrate AI is a pay-as-you-go gateway implemented
 with its native Responses API (`/v1/responses`) under the
 `concentrate-payg` deployment.
@@ -201,7 +201,7 @@ with its native Responses API (`/v1/responses`) under the
 <!-- gitnexus:start -->
 ## GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **rho** (97743 symbols, 322940 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **decoder** (97743 symbols, 322940 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -225,10 +225,10 @@ This project is indexed by GitNexus as **rho** (97743 symbols, 322940 relationsh
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/rho/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/rho/clusters` | All functional areas |
-| `gitnexus://repo/rho/processes` | All execution flows |
-| `gitnexus://repo/rho/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/decoder/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/decoder/clusters` | All functional areas |
+| `gitnexus://repo/decoder/processes` | All execution flows |
+| `gitnexus://repo/decoder/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
@@ -245,10 +245,10 @@ This project is indexed by GitNexus as **rho** (97743 symbols, 322940 relationsh
 
 ### Workspace workflow (sibling repos)
 
-rho depends on ecosystem repos (`flux`, etc.) as independent sibling repos in the `graycode-eco` workspace. Rho's `go.work` lists them as `../<repo>`, so local changes in any sibling are automatically picked up by rho. Each sibling is its own git repo, versioned and released independently.
+decoder depends on ecosystem repos (`mux`, etc.) as independent sibling repos in the `graycode-eco` workspace. Decoder's `go.work` lists them as `../<repo>`, so local changes in any sibling are automatically picked up by decoder. Each sibling is its own git repo, versioned and released independently.
 
-1. Edit + test in `../<repo>` — run its tests, run `make test` in rho
+1. Edit + test in `../<repo>` — run its tests, run `make test` in decoder
 2. Push from the sibling: `git push origin <branch>`
 3. Open a PR in the sibling repo → merge to `main`
-4. Ensure rho's `go.mod` pins a version that resolves to (or is an ancestor of) the sibling's `main` — run `make sync` to verify parity
-5. No pointer commits: rho resolves the sibling via `go.work` for local dev and via the pinned `go.mod` version for standalone/module-mode builds (Docker, released consumers)
+4. Ensure decoder's `go.mod` pins a version that resolves to (or is an ancestor of) the sibling's `main` — run `make sync` to verify parity
+5. No pointer commits: decoder resolves the sibling via `go.work` for local dev and via the pinned `go.mod` version for standalone/module-mode builds (Docker, released consumers)

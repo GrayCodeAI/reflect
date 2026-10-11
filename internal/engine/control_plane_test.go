@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestWorkModePlanFiltersToolsAndBash(t *testing.T) {
@@ -42,19 +42,19 @@ func TestWorkModePlanFiltersToolsAndBash(t *testing.T) {
 	}
 }
 
-func TestLazyFluxToolsAndPromote(t *testing.T) {
+func TestLazyMuxToolsAndPromote(t *testing.T) {
 	reg := tool.NewRegistry(tool.FileReadTool{}, tool.ImpactTool{})
 	reg.EnableLazyModelSurface([]string{"Read"})
-	flux := reg.FluxTools()
-	if len(flux) != 1 || flux[0].Name != "Read" {
-		t.Fatalf("FluxTools = %#v, want only Read", flux)
+	mux := reg.MuxTools()
+	if len(mux) != 1 || mux[0].Name != "Read" {
+		t.Fatalf("MuxTools = %#v, want only Read", mux)
 	}
 	if !reg.PromoteModelTool("Impact") {
 		t.Fatal("promote Impact failed")
 	}
-	flux = reg.FluxTools()
-	if len(flux) != 2 {
-		t.Fatalf("after promote FluxTools len = %d", len(flux))
+	mux = reg.MuxTools()
+	if len(mux) != 2 {
+		t.Fatalf("after promote MuxTools len = %d", len(mux))
 	}
 }
 

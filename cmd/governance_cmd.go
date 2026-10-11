@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/governance"
+	"github.com/GrayCodeAI/decoder/internal/governance"
 	"github.com/spf13/cobra"
 )
 
@@ -20,10 +20,10 @@ var governanceCmd = &cobra.Command{
 per-session PROFILE (tightest-wins). Tools are permitted only when both
 layers allow them.
 
-  rho governance                    Show the managed policy status
-  rho governance show               Print the effective capability rows
-  rho governance validate <file>    Validate a policy or profile document
-  rho governance explain <tool>     Evaluate a tool against the policy`,
+  decoder governance                    Show the managed policy status
+  decoder governance show               Print the effective capability rows
+  decoder governance validate <file>    Validate a policy or profile document
+  decoder governance explain <tool>     Evaluate a tool against the policy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGovernanceStatus(cmd)
 	},

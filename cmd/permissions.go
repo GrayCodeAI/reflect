@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 	"github.com/spf13/cobra"
 )
 
@@ -231,7 +231,7 @@ var permissionsInspectCmd = &cobra.Command{
 // observational evaluator. It is the same resolver used before execution and
 // never invokes a prompt, mutates remembered rules, or runs a tool.
 func inspectPermission(kind stableid.Kind, identity, toolOverride string) (permissionInspectionOutput, error) {
-	settings, err := rhoconfig.LoadSettingsWithOverride(settingsFlag)
+	settings, err := decoderconfig.LoadSettingsWithOverride(settingsFlag)
 	if err != nil {
 		return permissionInspectionOutput{}, err
 	}
@@ -276,7 +276,7 @@ func inspectPermission(kind stableid.Kind, identity, toolOverride string) (permi
 // used by session startup, the TUI permission center, and CLI inspection.
 // Keeping this at one boundary prevents a preview or UI rebuild from drifting
 // away from the rules used by the executor.
-func applyConfiguredPermissionRules(mem *safety.PermissionMemory, settings rhoconfig.Settings, includeCLI bool) {
+func applyConfiguredPermissionRules(mem *safety.PermissionMemory, settings decoderconfig.Settings, includeCLI bool) {
 	if mem == nil {
 		return
 	}

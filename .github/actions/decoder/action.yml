@@ -1,0 +1,307 @@
+name: Decoder
+
+description: >-
+  Run the Decoder coding agent headlessly in a GitHub workflow. Decoder is
+  model- and provider-agnostic: you supply the provider and API key as inputs.
+
+author: GrayCodeAI
+
+branding:
+  icon: terminal
+  color: blue
+
+inputs:
+  prompt:
+    description: The instruction for Decoder to execute. Mutually exclusive with prompt-file.
+    required: false
+    default: ""
+  prompt-file:
+    description: Path (relative to working-directory) to a file whose contents are the prompt.
+    required: false
+    default: ""
+  provider:
+    description: >-
+      Provider id to activate (for example openai, anthropic, gemini, ollama, or
+      any configured OpenAI-/Anthropic-compatible endpoint). Optional when the
+      repository already carries a .zero/config.json with an active provider.
+    required: false
+    default: ""
+  api-key:
+    description: >-
+      The provider API key. Pass it from a repository or organization secret;
+      it is exported only for the Decoder step and never written to the log.
+    required: false
+    default: ""
+  api-key-env:
+    description: >-
+      Name of the environment variable the chosen provider reads its key from
+      (for example OPENAI_API_KEY or ANTHROPIC_API_KEY). When set together with
+      api-key, that variable is exported only for the Decoder step. Leave the action
+      provider-agnostic by passing the env name your provider expects rather than
+      hardcoding one here.
+    required: false
+    default: ""
+  model:
+    description: Model id to use for the run. Passed to `decoder exec --model`.
+    required: false
+    default: ""
+  auto:
+    description: >-
+      Autonomy ceiling: supervised, basic, semi, full, or yolo.
+      Defaults to `supervised` so an unattended CI run does not take
+      high-impact actions implicitly.
+    required: false
+    default: supervised
+  agent:
+    description: >-
+      Agent persona to use (from Decoder user state). Maps to `decoder exec --agent`.
+    required: false
+    default: ""
+  cwd:
+    description: >-
+      Working directory override. Maps to `decoder exec --cwd`.
+      Defaults to the action's working-directory input.
+    required: false
+    default: ""
+  ephemeral:
+    description: >-
+      When true, skip session persistence. Ideal for CI runs.
+      Maps to `decoder exec --ephemeral`.
+    required: false
+    default: "false"
+  worktree:
+    description: When true, run inside an isolated git worktree.
+    required: false
+    default: "false"
+  output-format:
+    description: >-
+      Output format: text or json. Defaults to text.
+    required: false
+    default: text
+  post-to:
+    description: >-
+      Optional destination for a run summary after Decoder finishes: `pr-comment`
+      posts to the triggering pull request, `slack` posts to slack-webhook-url,
+      or `none` (default) posts nowhere.
+    required: false
+    default: none
+  slack-webhook-url:
+    description: >-
+      Slack incoming-webhook URL used when post-to is slack.
+      Pass it from a secret; it is never written to the log.
+    required: false
+    default: ""
+  github-token:
+    description: >-
+      Token used to look up the latest Decoder release and, when post-to is
+      pr-comment, to post the PR comment. Defaults to ${{ github.token }}.
+    required: false
+    default: ${{ github.token }}
+  working-directory:
+    description: Directory to run Decoder in. Defaults to ${{ github.workspace }}.
+    required: false
+    default: ${{ github.workspace }}
+  decoder-version:
+    description: >-
+      Decoder release to install (e.g. 0.3.0 or v0.3.0), or latest. Defaults to
+      the release tag this action is pinned to (uses: ...@v0.3.0); a branch or
+      commit-SHA pin installs the latest release. Requires Decoder v0.3.0 or later:
+      earlier tags predate the rename and have no decoder_* archives.
+    required: false
+    default: ""
+  decoder-repo:
+    description: >-
+      Repository to install Decoder from (owner/repo). The release archive's
+      cosign signature must come from that repository's release workflow.
+    required: false
+    default: GrayCodeAI/decoder
+
+outputs:
+  exit-code:
+    description: The exit code Decoder returned (0 success, 2 usage, 3 provider, non-zero otherwise).
+    value: ${{ steps.run.outputs.exit-code }}
+  output-file:
+    description: Path to the captured Decoder stdout (the raw output-format stream).
+    value: ${{ steps.run.outputs.output-file }}
+  summary:
+    description: A short human-readable summary line parsed from the run, when available.
+    value: ${{ steps.run.outputs.summary }}
+
+runs:
+  using: composite
+  steps:
+    # cosign verifies the release signature; install.sh runs with
+    # DECODER_REQUIRE_COSIGN=1 so an unsigned or tampered release fails the step.
+    - name: Install cosign
+      uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+    - name: Install Decoder
+      id: install
+      shell: bash
+      env:
+        DECODER_REPO: ${{ inputs.decoder-repo }}
+        DECODER_VERSION_INPUT: ${{ inputs.decoder-version }}
+        ACTION_REF: ${{ github.action_ref }}
+        ACTION_PATH: ${{ github.action_path }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: |
+        set -euo pipefail
+        if [ "${RUNNER_OS}" = "Windows" ]; then
+          echo "::error::The Decoder action currently supports Linux and macOS runners only." >&2
+          exit 1
+        fi
+        if ! [[ "${DECODER_REPO}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+          echo "::error::decoder-repo must look like owner/repo." >&2
+          exit 2
+        fi
+        release_re='^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+        # Resolve the version: explicit input wins; otherwise the release tag
+        # this action is pinned to; otherwise (branch or SHA pin) the latest
+        # release of decoder-repo.
+        version="${DECODER_VERSION_INPUT}"
+        if [ -z "${version}" ] && [[ "${ACTION_REF}" =~ ${release_re} ]]; then
+          version="${ACTION_REF}"
+        fi
+        if [ -z "${version}" ] || [ "${version}" = "latest" ]; then
+          version="$(gh release view --repo "${DECODER_REPO}" --json tagName --jq .tagName)"
+        fi
+        if ! [[ "${version}" =~ ${release_re} ]]; then
+          echo "::error::decoder-version must be a release version such as 0.3.0, or 'latest'." >&2
+          exit 2
+        fi
+        version="${version#v}"
+        # install.sh ships with this action at the same ref. It downloads the
+        # release archive and checksums.txt, verifies the cosign signature
+        # (required here) and the SHA-256, and installs under the prefix.
+        installer="$(cd "${ACTION_PATH}/../../.." && pwd)/install.sh"
+        prefix="${RUNNER_TEMP}/decoder"
+        DECODER_INSTALL_REPO="${DECODER_REPO}" DECODER_REQUIRE_COSIGN=1 \
+          sh "${installer}" --version "${version}" --prefix "${prefix}"
+        echo "${prefix}/bin" >> "${GITHUB_PATH}"
+        echo "Installed Decoder ${version} from ${DECODER_REPO}"
+
+    - name: Run Decoder
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        # Secrets are passed via the environment and never echoed. `set +x` and
+        # the absence of any `echo` of these values keep them out of the log.
+        DECODER_INPUT_API_KEY: ${{ inputs.api-key }}
+        DECODER_INPUT_API_KEY_ENV: ${{ inputs.api-key-env }}
+        DECODER_INPUT_PROVIDER: ${{ inputs.provider }}
+        DECODER_INPUT_PROMPT: ${{ inputs.prompt }}
+        DECODER_INPUT_PROMPT_FILE: ${{ inputs.prompt-file }}
+        DECODER_INPUT_MODEL: ${{ inputs.model }}
+        DECODER_INPUT_AUTO: ${{ inputs.auto }}
+        DECODER_INPUT_AGENT: ${{ inputs.agent }}
+        DECODER_INPUT_CWD: ${{ inputs.cwd }}
+        DECODER_INPUT_EPHEMERAL: ${{ inputs.ephemeral }}
+        DECODER_INPUT_WORKTREE: ${{ inputs.worktree }}
+        DECODER_INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        ACTION_PATH: ${{ github.action_path }}
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: |
+        set -euo pipefail
+
+        # Export the provider key under the env name the provider expects. This
+        # keeps the action provider-agnostic: no provider->env mapping is baked
+        # in. The value is never printed.
+        if [ -n "${DECODER_INPUT_API_KEY}" ] && [ -n "${DECODER_INPUT_API_KEY_ENV}" ]; then
+          if ! printf '%s' "${DECODER_INPUT_API_KEY_ENV}" | grep -qE '^[A-Za-z_][A-Za-z0-9_]*$'; then
+            echo "::error::api-key-env must be a valid environment variable name." >&2
+            exit 2
+          fi
+          export "${DECODER_INPUT_API_KEY_ENV}=${DECODER_INPUT_API_KEY}"
+        fi
+        if [ -n "${DECODER_INPUT_PROVIDER}" ]; then
+          export DECODER_PROVIDER="${DECODER_INPUT_PROVIDER}"
+        fi
+
+        args=(exec)
+
+        if [ -n "${DECODER_INPUT_PROMPT_FILE}" ] && [ -n "${DECODER_INPUT_PROMPT}" ]; then
+          echo "::error::The 'prompt' and 'prompt-file' inputs are mutually exclusive." >&2
+          exit 2
+        fi
+        if [ -n "${DECODER_INPUT_PROMPT_FILE}" ]; then
+          args+=(--file "${DECODER_INPUT_PROMPT_FILE}")
+        elif [ -n "${DECODER_INPUT_PROMPT}" ]; then
+          args+=("${DECODER_INPUT_PROMPT}")
+        else
+          echo "::error::Provide either the 'prompt' or 'prompt-file' input." >&2
+          exit 2
+        fi
+
+        [ -n "${DECODER_INPUT_MODEL}" ] && args+=(--model "${DECODER_INPUT_MODEL}")
+        [ -n "${DECODER_INPUT_AUTO}" ] && args+=(--auto "${DECODER_INPUT_AUTO}")
+        [ -n "${DECODER_INPUT_AGENT}" ] && args+=(--agent "${DECODER_INPUT_AGENT}")
+        [ -n "${DECODER_INPUT_CWD}" ] && args+=(--cwd "${DECODER_INPUT_CWD}")
+        if [ "${DECODER_INPUT_EPHEMERAL}" = "true" ]; then
+          args+=(--ephemeral)
+        fi
+        if [ "${DECODER_INPUT_WORKTREE}" = "true" ]; then
+          args+=(--worktree)
+        fi
+        [ -n "${DECODER_INPUT_OUTPUT_FORMAT}" ] && args+=(--output-format "${DECODER_INPUT_OUTPUT_FORMAT}")
+
+        output_file="${RUNNER_TEMP}/decoder-output.txt"
+
+        # Run Decoder. Capture stdout to a file AND echo it to the log. Surface the
+        # real exit code as the step's status.
+        set +e
+        decoder "${args[@]}" | tee "${output_file}"
+        code=${PIPESTATUS[0]}
+        set -e
+
+        echo "exit-code=${code}" >> "${GITHUB_OUTPUT}"
+        echo "output-file=${output_file}" >> "${GITHUB_OUTPUT}"
+
+        # Best-effort one-line summary
+        if [ "${code}" = "0" ]; then
+          summary="Decoder run succeeded"
+        else
+          summary="Decoder run failed (exit ${code})"
+        fi
+        {
+          echo "summary<<DECODER_EOF"
+          printf '%s\n' "${summary}"
+          echo "DECODER_EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+        exit "${code}"
+
+    - name: Post run summary to pull request
+      if: ${{ always() && inputs.post-to == 'pr-comment' && github.event.pull_request.number != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        DECODER_EXIT: ${{ steps.run.outputs.exit-code }}
+        DECODER_SUMMARY: ${{ steps.run.outputs.summary }}
+      run: |
+        set -euo pipefail
+        status="succeeded"
+        [ "${DECODER_EXIT}" != "0" ] && status="failed (exit ${DECODER_EXIT})"
+        body="$(printf 'Decoder run %s.\n\n%s' "${status}" "${DECODER_SUMMARY}")"
+        gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+          -f body="${body}" >/dev/null
+
+    - name: Post run summary to Slack
+      if: ${{ always() && inputs.post-to == 'slack' && inputs.slack-webhook-url != '' }}
+      shell: bash
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
+        DECODER_EXIT: ${{ steps.run.outputs.exit-code }}
+        DECODER_SUMMARY: ${{ steps.run.outputs.summary }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        status="succeeded"
+        [ "${DECODER_EXIT}" != "0" ] && status="failed (exit ${DECODER_EXIT})"
+        text="Decoder run ${status} for ${GITHUB_REPOSITORY}@${GITHUB_REF_NAME}. ${DECODER_SUMMARY} ${RUN_URL}"
+        payload="$(jq -n --arg text "${text}" '{text: $text}')"
+        curl --fail --silent --show-error -X POST -H 'Content-Type: application/json' \
+          -d "${payload}" "${SLACK_WEBHOOK_URL}" >/dev/null || \
+          echo "::warning::Slack webhook delivery failed (run not affected)."

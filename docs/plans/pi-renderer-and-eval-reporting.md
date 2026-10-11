@@ -8,7 +8,7 @@ the three merged Pi PRs (#226, #227, #228).
 ## Executive Decision
 
 Two of the three remaining sub-items are **blocked by the rendering stack** and
-cannot be adopted cleanly in rho's current UI framework:
+cannot be adopted cleanly in decoder's current UI framework:
 
 - Bubble Tea v2 exposes **no public `Renderer` interface** (its renderer is an
   unexported type with internal methods; the only option is `WithoutRenderer`).
@@ -28,13 +28,13 @@ reporting** — is fully feasible and safe (non-TUI) and is adopted here.
   config) so identical runs can be cached and compared.
 - Add a comparative report across runs/models: pass rate, token/latency/cost
   deltas, and per-run reproducibility hash.
-- Wire it into the existing `evalloop` package and `rho eval loop` output.
+- Wire it into the existing `evalloop` package and `decoder eval loop` output.
 
 ### Scope and ownership
 
 - Primary: `internal/features/evalloop`.
 - CLI: `cmd/eval.go` loop mode.
-- No changes to a local sandbox runtime (none ships in rho), `internal/session`,
+- No changes to a local sandbox runtime (none ships in decoder), `internal/session`,
   or `internal/daemon`.
 
 ### Required behavior
@@ -44,7 +44,7 @@ reporting** — is fully feasible and safe (non-TUI) and is adopted here.
    result transcript.
 3. A `Compare` helper aggregates multiple results and reports pass-rate and
    per-metric deltas (tokens, cost, duration).
-4. `rho eval loop --report` prints the comparative summary.
+4. `decoder eval loop --report` prints the comparative summary.
 
 ### Acceptance criteria
 
@@ -65,6 +65,6 @@ reporting** — is fully feasible and safe (non-TUI) and is adopted here.
 ## Verification
 
 - `go test ./...` full suite.
-- `make vet`, `make lint`, `rho verify`.
+- `make vet`, `make lint`, `decoder verify`.
 - Focused `internal/features/evalloop` tests.
 - markdownlint on this document.

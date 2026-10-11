@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/decoder/internal/engine/compact"
 )
 
 func TestBackgroundRunner_Delegate(t *testing.T) {

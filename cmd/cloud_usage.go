@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	cloud "github.com/GrayCodeAI/rho/internal/platform/cloud"
+	cloud "github.com/GrayCodeAI/decoder/internal/platform/cloud"
 )
 
 // cloudUsageWait bounds how long a command waits, after writing its output,

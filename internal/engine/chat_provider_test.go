@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/llm"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	"github.com/GrayCodeAI/mux/llm"
 )
 
 type recordingChatClient struct {
@@ -14,14 +14,14 @@ type recordingChatClient struct {
 	streamOptions types.ChatOptions
 }
 
-func (c *recordingChatClient) Chat(_ context.Context, _ []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (c *recordingChatClient) Chat(_ context.Context, _ []types.MuxMessage, opts types.ChatOptions) (*types.MuxResponse, error) {
 	c.chatOptions = opts
-	return &types.FluxResponse{Content: "ok"}, nil
+	return &types.MuxResponse{Content: "ok"}, nil
 }
 
-func (c *recordingChatClient) StreamChatContinue(_ context.Context, _ []types.FluxMessage, opts types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *recordingChatClient) StreamChatContinue(_ context.Context, _ []types.MuxMessage, opts types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
 	c.streamOptions = opts
-	events := make(chan types.FluxStreamEvent)
+	events := make(chan types.MuxStreamEvent)
 	close(events)
 	return llm.NewStreamResult(events, "", nil), nil
 }

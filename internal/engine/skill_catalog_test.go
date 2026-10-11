@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 func TestSession_EnsureSkillCatalogStatement(t *testing.T) {

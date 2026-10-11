@@ -136,6 +136,6 @@
     ]
   },
   "ecosystem_compatibility": {
-    "rho+flux": "full"
+    "decoder+mux": "full"
   }
 }

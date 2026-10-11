@@ -7,10 +7,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	explainfeature "github.com/GrayCodeAI/rho/internal/features/explain"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	skillsfeature "github.com/GrayCodeAI/rho/internal/features/skills"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	explainfeature "github.com/GrayCodeAI/decoder/internal/features/explain"
+	"github.com/GrayCodeAI/decoder/internal/features/shellmode"
+	skillsfeature "github.com/GrayCodeAI/decoder/internal/features/skills"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // explainCode traces a file/line back to the git commit and session that created it.

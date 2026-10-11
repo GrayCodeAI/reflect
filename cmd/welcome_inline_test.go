@@ -8,9 +8,9 @@ import (
 
 	"charm.land/bubbles/v2/textarea"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 type welcomeMCPStub struct {
@@ -26,7 +26,7 @@ func TestWelcomeScreenNerdIconsUnique(t *testing.T) {
 	icons.SetMode(icons.ModeNerd)
 	defer icons.SetMode(icons.ModeASCII)
 
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, false, 100, 24)
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 100, 24)
 	seen := make(map[rune]struct{})
 	for _, r := range out {
 		if r < 0xE000 || r > 0xF8FF {
@@ -48,7 +48,7 @@ func (s welcomeMCPStub) Execute(context.Context, json.RawMessage) (string, error
 func (s welcomeMCPStub) MCPServerName() string { return s.server }
 
 func TestBuildWelcomeMessage_InlineShowsSetupGuidance(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, false, 100, 24)
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 100, 24)
 	if !strings.Contains(out, "v") {
 		t.Fatalf("inline welcome should show version, got:\n%s", out)
 	}
@@ -58,7 +58,7 @@ func TestBuildWelcomeMessage_InlineShowsSetupGuidance(t *testing.T) {
 }
 
 func TestBuildWelcomeMessage_InlineShowsGuidance(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, false, 100, 24)
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 100, 24)
 	for _, want := range []string{"Skills (0)", "AGENTS.md", "MCPs (0)"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("minimal welcome missing %q in:\n%s", want, out)
@@ -97,7 +97,7 @@ func TestBuildWelcomeMessage_InlineShowsGuidance(t *testing.T) {
 			t.Fatalf("minimal welcome should omit %q, got:\n%s", noise, out)
 		}
 	}
-	for _, guidance := range []string{"Inspect, change, or test this codebase with rho.", `Try: "explain this repo"`} {
+	for _, guidance := range []string{"Inspect, change, or test this codebase with decoder.", `Try: "explain this repo"`} {
 		if !strings.Contains(out, guidance) {
 			t.Fatalf("minimal welcome missing first-run guidance %q in:\n%s", guidance, out)
 		}
@@ -105,7 +105,7 @@ func TestBuildWelcomeMessage_InlineShowsGuidance(t *testing.T) {
 }
 
 func TestBuildWelcomeMessage_ShortTerminalUsesCompactCopy(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, false, 72, 20)
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 72, 20)
 	if strings.Contains(out, "PgUp/Dn scroll chat") || strings.Contains(out, "for new session") {
 		t.Fatalf("compact welcome should drop verbose descriptions, got:\n%s", out)
 	}
@@ -114,29 +114,29 @@ func TestBuildWelcomeMessage_ShortTerminalUsesCompactCopy(t *testing.T) {
 	}
 }
 
-func TestBuildWelcomeMessage_WideTerminalUsesRhoWordmark(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, false, 120, 40)
+func TestBuildWelcomeMessage_WideTerminalUsesDecoderWordmark(t *testing.T) {
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 120, 40)
 	for _, want := range []string{
-		" ____  _   _  ___ ",
-		"|  _ \\| | | |/ _ \\ ",
-		"|_| \\_\\_| |_|\\___/",
+		" ____  _____ ____ ___  ____  _____ ____  ",
+		"|  _ \\| ____/ ___/ _ \\|  _ \\| ____|  _ \\ ",
+		"|____/|_____\\____\\___/|____/|_____|_| \\_\\",
 	} {
 		if !strings.Contains(out, want) {
-			t.Fatalf("wide welcome missing rho wordmark line %q in:\n%s", want, out)
+			t.Fatalf("wide welcome missing decoder wordmark line %q in:\n%s", want, out)
 		}
 	}
 }
 
-func TestBuildWelcomeMessage_RhoWordmarkIsStatic(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, rhoconfig.Settings{}, 0, true, 120, 40)
-	if !strings.Contains(out, " ____  _   _  ___ ") {
-		t.Fatalf("blinking welcome should retain the RHO wordmark, got:\n%s", out)
+func TestBuildWelcomeMessage_DecoderWordmarkIsStatic(t *testing.T) {
+	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, true, 120, 40)
+	if !strings.Contains(out, " ____  _____ ____ ___  ____  _____ ____  ") {
+		t.Fatalf("blinking welcome should retain the DECODER wordmark, got:\n%s", out)
 	}
 }
 
 func TestBuildWelcomeMessage_GraphicalMascotKeepsTextFallback(t *testing.T) {
-	out := buildWelcomeMessageWithSnapshotAndMascot(nil, "", nil, nil, rhoconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{}, "", true)
-	if !strings.Contains(out, " ____  _   _  ___ ") {
+	out := buildWelcomeMessageWithSnapshotAndMascot(nil, "", nil, nil, decoderconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{}, "", true)
+	if !strings.Contains(out, " ____  _____ ____ ___  ____  _____ ____  ") {
 		t.Fatalf("graphical mascot mode must retain the text wordmark fallback, got:\n%s", out)
 	}
 }

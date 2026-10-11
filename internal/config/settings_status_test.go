@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
 )
 
-func TestEnvKeyStatusUsesFluxCredentialStatus(t *testing.T) {
+func TestEnvKeyStatusUsesMuxCredentialStatus(t *testing.T) {
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() { gateway.SetDefaultStore(nil) })

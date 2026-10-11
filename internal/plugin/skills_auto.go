@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/trust"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/trust"
 )
 
 // SkillSource tracks where an installed skill came from.
@@ -31,7 +31,7 @@ type SmartSkill struct {
 	License       string   // license identifier (MIT, Apache-2.0, etc.)
 	Category      string   // engineering, ops, testing, security, devtools, workflow
 	Tags          []string // discovery tags
-	Agents        []string // cross-agent compatibility (rho, claude-code, etc.)
+	Agents        []string // cross-agent compatibility (decoder, claude-code, etc.)
 	Source        SkillSource
 	Invoke        string   // namespaced invocation pattern (e.g. "/vendor:skill")
 	Refs          []string // declared @ref() references in SKILL.md
@@ -370,24 +370,24 @@ func ParseSmartSkillPublic(content string) SmartSkill {
 	return parseSmartSkill(content)
 }
 
-// DefaultSkillDirs returns Rho's official skill directories to scan for SKILL.md files.
-// User-scoped: ~/.rho/skills/
-// Project-scoped (trust-gated): ./.rho/skills/, ./.zero/skills/, ./skills/
+// DefaultSkillDirs returns Decoder's official skill directories to scan for SKILL.md files.
+// User-scoped: ~/.decoder/skills/
+// Project-scoped (trust-gated): ./.decoder/skills/, ./.zero/skills/, ./skills/
 func DefaultSkillDirs() []string {
 	var dirs []string
 
-	// User-scoped skills (~/.rho/skills).
+	// User-scoped skills (~/.decoder/skills).
 	dirs = append(dirs, filepath.Join(storage.StateDir(), "skills"))
 
-	// Project-scoped skills (trust-gated: ./.rho/skills, ./.zero/skills, ./skills).
+	// Project-scoped skills (trust-gated: ./.decoder/skills, ./.zero/skills, ./skills).
 	cwd, err := os.Getwd()
 	if err == nil {
-		projectRhoDirs := []string{
-			filepath.Join(cwd, ".rho", "skills"),
+		projectDecoderDirs := []string{
+			filepath.Join(cwd, ".decoder", "skills"),
 			filepath.Join(cwd, ".zero", "skills"),
 			filepath.Join(cwd, "skills"),
 		}
-		for _, p := range projectRhoDirs {
+		for _, p := range projectDecoderDirs {
 			if err := trust.AllowLoadPath(p); err == nil {
 				dirs = append(dirs, p)
 			}

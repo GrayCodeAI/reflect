@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // CodingSoul defines the persistent coding personality and style preferences.
-// Loaded from Rho user state.
+// Loaded from Decoder user state.
 type CodingSoul struct {
 	Style       string // communication style
 	Preferences string // coding preferences
@@ -61,7 +61,7 @@ func (s *CodingSoul) ForPrompt() string {
 
 // InitSoulPrompt returns a prompt to generate an initial soul.md.
 func InitSoulPrompt() string {
-	return `Generate a coding soul profile for Rho user state based on my coding patterns. Analyze my recent code and infer:
+	return `Generate a coding soul profile for Decoder user state based on my coding patterns. Analyze my recent code and infer:
 
 ## Style
 - How I communicate (terse vs verbose, formal vs casual)

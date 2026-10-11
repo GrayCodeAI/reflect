@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/tui"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/tui"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // ImageAttachment represents an image ready to be attached to a message.
@@ -188,7 +188,7 @@ func IsPDFFile(path string) bool {
 
 // ReadPDFText reads a PDF and extracts its text content using stdlib only.
 //
-// flux does not expose a native document/PDF content block, so PDFs are
+// mux does not expose a native document/PDF content block, so PDFs are
 // degraded to text and injected inline. This is a best-effort extractor: it
 // inflates FlateDecode content streams and pulls text from PDF text-showing
 // operators (Tj / TJ). It does not handle every PDF (encrypted, scanned-image,

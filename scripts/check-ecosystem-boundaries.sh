@@ -4,11 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-pattern='github\.com/GrayCodeAI/rho/internal/'
+pattern='github\.com/GrayCodeAI/decoder/internal/'
 violations=""
 
 while IFS= read -r repo; do
-  [[ "${repo}" == "rho" ]] && continue
+  [[ "${repo}" == "decoder" ]] && continue
   dir="../${repo}"
   if [[ -d "${dir}" ]]; then
     repo_hits="$(
@@ -21,10 +21,10 @@ while IFS= read -r repo; do
 done < <(./scripts/ecosystem-manifest.sh list workspace)
 
 if [[ -n "${violations}" ]]; then
-      echo "forbidden Rho imports found in sibling ecosystem repos:"
+      echo "forbidden Decoder imports found in sibling ecosystem repos:"
   echo "${violations}"
   echo
-  echo "support repos must use their own contracts, not rho/internal"
+  echo "support repos must use their own contracts, not decoder/internal"
   exit 1
 fi
 

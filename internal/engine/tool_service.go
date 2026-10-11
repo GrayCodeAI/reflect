@@ -10,19 +10,19 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/planning"
-	"github.com/GrayCodeAI/rho/internal/hooks"
-	"github.com/GrayCodeAI/rho/internal/intelligence/repomap"
-	"github.com/GrayCodeAI/rho/internal/observability/metrics"
-	"github.com/GrayCodeAI/rho/internal/observability/oteltrace"
-	"github.com/GrayCodeAI/rho/internal/prompts"
-	"github.com/GrayCodeAI/rho/internal/securitylog"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/engine/planning"
+	"github.com/GrayCodeAI/decoder/internal/hooks"
+	"github.com/GrayCodeAI/decoder/internal/intelligence/repomap"
+	"github.com/GrayCodeAI/decoder/internal/observability/metrics"
+	"github.com/GrayCodeAI/decoder/internal/observability/oteltrace"
+	"github.com/GrayCodeAI/decoder/internal/prompts"
+	"github.com/GrayCodeAI/decoder/internal/securitylog"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // ToolService is the Session's view of the tool execution surface:
@@ -474,7 +474,7 @@ func (s *ToolService) ExecuteOne(ctx context.Context, tc types.ToolCall, overrid
 	var commitChat func(context.Context, string) (string, error)
 	if s.deps.chat != nil {
 		commitChat = func(chatCtx context.Context, prompt string) (string, error) {
-			resp, err := s.deps.chat.Chat(chatCtx, []types.FluxMessage{{Role: "user", Content: prompt}}, types.ChatOptions{Provider: s.deps.chat.Provider(), Model: s.deps.chat.Model(), MaxTokens: 256})
+			resp, err := s.deps.chat.Chat(chatCtx, []types.MuxMessage{{Role: "user", Content: prompt}}, types.ChatOptions{Provider: s.deps.chat.Provider(), Model: s.deps.chat.Model(), MaxTokens: 256})
 			if err != nil {
 				return "", err
 			}

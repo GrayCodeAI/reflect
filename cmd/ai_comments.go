@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/decoder/internal/fsutil"
 )
 
 // AIDirective represents a found AI comment directive in a source file.

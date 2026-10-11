@@ -1,8 +1,8 @@
-# ADR-0002: Rho Cloud control plane inside GrayCode Platform
+# ADR-0002: Decoder Cloud control plane inside GrayCode Platform
 
 - Status: Accepted
 - Date: 2026-07-10
-- Owners: Rho maintainers
+- Owners: Decoder maintainers
 
 ## Decision
 
@@ -10,17 +10,17 @@
 Cloudflare Worker applications:
 
 - `apps/bff` owns browser identity and the authenticated browser gateway;
-- `apps/worker`, deployed as `graycode-cloud`, owns the Rho-specific control
+- `apps/worker`, deployed as `graycode-cloud`, owns the Decoder-specific control
   plane and source of truth for organizations, teams, projects, devices,
   sessions, usage, policies, entitlements, billing, audit, and graph records.
 
-Rho remains local-first. It may send aggregate usage or explicitly requested
-graph data to Rho Cloud only after the user connects a device. Engines never
-import GrayCode Platform or Rho Cloud code; Rho uses its isolated HTTP cloud
+Decoder remains local-first. It may send aggregate usage or explicitly requested
+graph data to Decoder Cloud only after the user connects a device. Engines never
+import GrayCode Platform or Decoder Cloud code; Decoder uses its isolated HTTP cloud
 adapter.
 
-The browser reaches Rho Cloud only through the BFF's private
-`RhoCloudService` Service Binding. The BFF resolves the authenticated
+The browser reaches Decoder Cloud only through the BFF's private
+`DecoderCloudService` Service Binding. The BFF resolves the authenticated
 principal; the Worker injects its cloud-only service credential. The browser
 never receives that credential.
 
@@ -29,11 +29,11 @@ never receives that credential.
 Interactive CLI authentication uses a browser device-authorization flow:
 
 ```text
-rho cloud login
+decoder cloud login
   -> GrayCode Platform BFF/browser authentication
   -> user approves organization/project
-  -> Rho Cloud Worker issues one project-scoped device token
-  -> Rho stores it in the OS secure store
+  -> Decoder Cloud Worker issues one project-scoped device token
+  -> Decoder stores it in the OS secure store
 ```
 
 Automation uses project-scoped service accounts or API keys. Human credentials
@@ -41,7 +41,7 @@ must not be shared with CI systems.
 
 ## Consequences
 
-- GrayCode product activity remains separate from Rho's authoritative usage
+- GrayCode product activity remains separate from Decoder's authoritative usage
   and billing ledger.
 - Usage events are versioned and idempotent, with token dimensions and session
   attribution.

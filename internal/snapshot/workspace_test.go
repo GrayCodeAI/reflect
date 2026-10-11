@@ -602,11 +602,11 @@ func TestRestore_PreservesGitDir(t *testing.T) {
 
 func TestNewSnapshotStore_DefaultDir(t *testing.T) {
 	stateDir := filepath.Join(t.TempDir(), "state")
-	t.Setenv("RHO_STATE_DIR", stateDir)
+	t.Setenv("DECODER_STATE_DIR", stateDir)
 
 	store := NewSnapshotStore("")
 	// L2: the default path is now user-state-relative so
-	// state stops leaking into <cwd>/.rho/ when rho is run from
+	// state stops leaking into <cwd>/.decoder/ when decoder is run from
 	// inside a Go project root.
 	expected := filepath.Join(stateDir, "snapshots")
 	if store.Dir != expected {

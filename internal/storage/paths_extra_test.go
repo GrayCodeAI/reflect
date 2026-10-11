@@ -232,16 +232,16 @@ func TestConfigDir_Default(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv(envConfigDir, "")
-	t.Setenv(envFluxConfigDir, "")
+	t.Setenv(envMuxConfigDir, "")
 	t.Setenv("HAWK_CONFIG_DIR", "")
 
 	got := ConfigDir()
 	if got == "" {
 		t.Error("ConfigDir() should return non-empty string")
 	}
-	// Should end with "rho"
-	if !strings.HasSuffix(got, "rho") {
-		t.Errorf("ConfigDir() = %q, want suffix 'rho'", got)
+	// Should end with "decoder"
+	if !strings.HasSuffix(got, "decoder") {
+		t.Errorf("ConfigDir() = %q, want suffix 'decoder'", got)
 	}
 }
 
@@ -278,22 +278,22 @@ func TestSettingsPath(t *testing.T) {
 
 // --- ProviderConfigPath tests ---
 
-func TestProviderConfigPath_FluxOverride(t *testing.T) {
-	fluxDir := filepath.Join(t.TempDir(), "flux")
-	t.Setenv(envFluxConfigDir, fluxDir)
+func TestProviderConfigPath_MuxOverride(t *testing.T) {
+	muxDir := filepath.Join(t.TempDir(), "mux")
+	t.Setenv(envMuxConfigDir, muxDir)
 
 	got := ProviderConfigPath()
-	want := filepath.Join(fluxDir, "provider.json")
+	want := filepath.Join(muxDir, "provider.json")
 	if got != want {
 		t.Errorf("ProviderConfigPath() = %q, want %q", got, want)
 	}
 }
 
-func TestProviderConfigPath_FluxWhitespaceIgnored(t *testing.T) {
-	t.Setenv(envFluxConfigDir, "   ") // whitespace should be treated as empty
+func TestProviderConfigPath_MuxWhitespaceIgnored(t *testing.T) {
+	t.Setenv(envMuxConfigDir, "   ") // whitespace should be treated as empty
 
 	got := ProviderConfigPath()
-	want := filepath.Join(mustUserConfigDir(), "flux", "provider.json")
+	want := filepath.Join(mustUserConfigDir(), "mux", "provider.json")
 	if got != want {
 		t.Errorf("ProviderConfigPath() = %q, want %q", got, want)
 	}

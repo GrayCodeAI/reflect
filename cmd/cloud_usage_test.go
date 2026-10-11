@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	cloud "github.com/GrayCodeAI/rho/internal/platform/cloud"
+	cloud "github.com/GrayCodeAI/decoder/internal/platform/cloud"
 )
 
 var testUsageConfig = cloud.DeviceConfig{Endpoint: "https://cloud.graycodeai.com", DeviceID: "device_0123456789", ProjectID: "project_0123456789"}

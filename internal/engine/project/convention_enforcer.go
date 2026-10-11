@@ -11,7 +11,7 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // Convention represents a single coding convention that can be enforced on generated code.

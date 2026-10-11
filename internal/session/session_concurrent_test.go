@@ -12,8 +12,8 @@ func TestWAL_ConcurrentAppend(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	rhoDir := setTestSessionsDir(t, dir)
-	if err := os.MkdirAll(rhoDir, 0o755); err != nil {
+	decoderDir := setTestSessionsDir(t, dir)
+	if err := os.MkdirAll(decoderDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -44,8 +44,8 @@ func TestSession_ConcurrentSaveLoad(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	rhoDir := setTestSessionsDir(t, dir)
-	if err := os.MkdirAll(rhoDir, 0o755); err != nil {
+	decoderDir := setTestSessionsDir(t, dir)
+	if err := os.MkdirAll(decoderDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -87,8 +87,8 @@ func TestSession_ConcurrentList(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
-	rhoDir := setTestSessionsDir(t, dir)
-	if err := os.MkdirAll(rhoDir, 0o755); err != nil {
+	decoderDir := setTestSessionsDir(t, dir)
+	if err := os.MkdirAll(decoderDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 

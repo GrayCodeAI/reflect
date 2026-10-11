@@ -1,42 +1,42 @@
 #!/bin/sh
-# Install rho (the GrayCode terminal AI coding agent) from a GitHub release.
+# Install decoder (the GrayCode terminal AI coding agent) from a GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/rho/v0.3.0/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/rho/v0.3.0/install.sh | sh -s -- --version 0.3.0 --prefix "$HOME/.rho"
+#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/GrayCodeAI/decoder/v0.3.0/install.sh | sh -s -- --version 0.3.0 --prefix "$HOME/.decoder"
 #
 # Steps:
-#   1. Resolve the version: --version / RHO_VERSION, otherwise the latest
-#      GitHub release. Releases before v0.3.0 predate the rename to rho (they
+#   1. Resolve the version: --version / DECODER_VERSION, otherwise the latest
+#      GitHub release. Releases before v0.3.0 predate the rename to decoder (they
 #      ship hawk_* archives) and are refused.
-#   2. Download rho_<version>_<os>_<arch>.tar.gz (.zip on Windows) and
+#   2. Download decoder_<version>_<os>_<arch>.tar.gz (.zip on Windows) and
 #      checksums.txt from the release.
 #   3. When cosign is installed, verify checksums.txt against the release's
 #      Sigstore bundle (checksums.txt.sigstore.json) with the exact identity of
 #      this repository's release workflow for that tag. A missing or invalid
 #      signature aborts the install. Without cosign the signature is NOT
-#      verified and the script says so; RHO_REQUIRE_COSIGN=1 makes cosign
+#      verified and the script says so; DECODER_REQUIRE_COSIGN=1 makes cosign
 #      mandatory.
 #   4. Always verify the archive's SHA-256 against checksums.txt.
-#   5. Install <prefix>/bin/rho-<version> and atomically point <prefix>/bin/rho
-#      at it (a copy named rho.exe on Windows).
+#   5. Install <prefix>/bin/decoder-<version> and atomically point <prefix>/bin/decoder
+#      at it (a copy named decoder.exe on Windows).
 #
 # Options:
 #   --version <ver>   install this version (e.g. 0.3.0 or v0.3.0)
-#   --prefix <dir>    install under <dir>/bin (default: $RHO_HOME or ~/.rho)
+#   --prefix <dir>    install under <dir>/bin (default: $DECODER_HOME or ~/.decoder)
 #   -h, --help        show this help
 #
 # Environment:
-#   RHO_VERSION=<ver>        same as --version (the flag wins)
-#   RHO_HOME=<dir>           same as --prefix (the flag wins)
-#   RHO_REQUIRE_COSIGN=1     fail unless the cosign signature can be verified
-#   RHO_INSTALL_REPO=<o/r>   install from a fork's releases (default GrayCodeAI/rho);
+#   DECODER_VERSION=<ver>        same as --version (the flag wins)
+#   DECODER_HOME=<dir>           same as --prefix (the flag wins)
+#   DECODER_REQUIRE_COSIGN=1     fail unless the cosign signature can be verified
+#   DECODER_INSTALL_REPO=<o/r>   install from a fork's releases (default GrayCodeAI/decoder);
 #                            the cosign identity follows the chosen repository
 set -eu
 
 MIN_VERSION="0.3.0"
-BINARY="rho"
+BINARY="decoder"
 OIDC_ISSUER="https://token.actions.githubusercontent.com"
-REPO="${RHO_INSTALL_REPO:-GrayCodeAI/rho}"
+REPO="${DECODER_INSTALL_REPO:-GrayCodeAI/decoder}"
 
 say() { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -47,15 +47,15 @@ die() {
 
 usage() {
   cat <<'EOF'
-Install rho from a GitHub release.
+Install decoder from a GitHub release.
 
 Usage: install.sh [--version <ver>] [--prefix <dir>]
 
   --version <ver>   install this version (e.g. 0.3.0); default: latest release
-  --prefix <dir>    install under <dir>/bin; default: $RHO_HOME or ~/.rho
+  --prefix <dir>    install under <dir>/bin; default: $DECODER_HOME or ~/.decoder
   -h, --help        show this help
 
-Environment: RHO_VERSION, RHO_HOME, RHO_REQUIRE_COSIGN=1, RHO_INSTALL_REPO.
+Environment: DECODER_VERSION, DECODER_HOME, DECODER_REQUIRE_COSIGN=1, DECODER_INSTALL_REPO.
 EOF
 }
 
@@ -95,8 +95,8 @@ version_core_ge() {
 }
 
 # --- Arguments -----------------------------------------------------------------
-VERSION_PIN="${RHO_VERSION:-}"
-PREFIX="${RHO_HOME:-}"
+VERSION_PIN="${DECODER_VERSION:-}"
+PREFIX="${DECODER_HOME:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --version)
@@ -131,11 +131,11 @@ done
 
 if [ -z "$PREFIX" ]; then
   [ -n "${HOME:-}" ] || die "HOME is not set; pass --prefix <dir>"
-  PREFIX="$HOME/.rho"
+  PREFIX="$HOME/.decoder"
 fi
 
 if ! printf '%s' "$REPO" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
-  die "RHO_INSTALL_REPO must look like owner/repo (got: $REPO)"
+  die "DECODER_INSTALL_REPO must look like owner/repo (got: $REPO)"
 fi
 
 command -v curl >/dev/null 2>&1 || die "curl is required"
@@ -179,20 +179,20 @@ if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)
   die "invalid version '$VERSION' (expected MAJOR.MINOR.PATCH, e.g. 0.3.0)"
 fi
 if ! version_core_ge "$VERSION" "$MIN_VERSION"; then
-  die "v${VERSION} predates the rename to rho: releases before v${MIN_VERSION} ship hawk_* archives that this script cannot install. Install v${MIN_VERSION} or later, or build from source (https://github.com/${REPO}#readme)."
+  die "v${VERSION} predates the rename to decoder: releases before v${MIN_VERSION} ship hawk_* archives that this script cannot install. Install v${MIN_VERSION} or later, or build from source (https://github.com/${REPO}#readme)."
 fi
 
 TAG="v${VERSION}"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 ARCHIVE_NAME="${BINARY}_${VERSION}_${OS}_${ARCH}.${ARCHIVE_EXT}"
 
-TMP=$(mktemp -d 2>/dev/null || mktemp -d -t rho-install)
+TMP=$(mktemp -d 2>/dev/null || mktemp -d -t decoder-install)
 trap 'rm -rf "$TMP"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-say "Downloading rho ${TAG} for ${OS}/${ARCH}..."
+say "Downloading decoder ${TAG} for ${OS}/${ARCH}..."
 fetch "${BASE_URL}/${ARCHIVE_NAME}" "$TMP/$ARCHIVE_NAME" ||
   die "could not download ${BASE_URL}/${ARCHIVE_NAME} (does release ${TAG} exist for ${OS}/${ARCH}?)"
 fetch "${BASE_URL}/checksums.txt" "$TMP/checksums.txt" ||
@@ -214,12 +214,12 @@ if command -v cosign >/dev/null 2>&1; then
     die "cosign could not verify checksums.txt for ${TAG} against ${IDENTITY}; the release may have been tampered with (cosign v2.4 or later is required, v3 recommended)"
   fi
   SIGNATURE_STATUS="verified with cosign (${IDENTITY})"
-elif [ "${RHO_REQUIRE_COSIGN:-0}" = 1 ]; then
-  die "RHO_REQUIRE_COSIGN=1 but cosign is not installed (see https://docs.sigstore.dev/cosign/system_config/installation/)"
+elif [ "${DECODER_REQUIRE_COSIGN:-0}" = 1 ]; then
+  die "DECODER_REQUIRE_COSIGN=1 but cosign is not installed (see https://docs.sigstore.dev/cosign/system_config/installation/)"
 else
   warn "cosign is not installed, so the release signature was NOT verified."
   warn "The SHA-256 check only detects corrupted downloads, not a tampered release."
-  warn "Install cosign (https://docs.sigstore.dev) or set RHO_REQUIRE_COSIGN=1 to require it."
+  warn "Install cosign (https://docs.sigstore.dev) or set DECODER_REQUIRE_COSIGN=1 to require it."
   SIGNATURE_STATUS="NOT verified (cosign not installed)"
 fi
 
@@ -250,27 +250,27 @@ fi
 # A binary is never overwritten in place. On macOS (and any codesigned
 # platform) replacing a file that a running process has mmap'd invalidates the
 # kernel's code-signature cache and the kernel then SIGKILLs that process.
-# Installing into a per-version file and swapping a symlink keeps running rho
+# Installing into a per-version file and swapping a symlink keeps running decoder
 # processes on the old inode. The symlink is created under a temporary name and
 # renamed into place so the swap is atomic. Windows lacks reliable non-admin
 # symlinks, so the launcher there is a plain copy.
 BINDIR="$PREFIX/bin"
 mkdir -p "$BINDIR"
 if [ "$OS" = windows ]; then
-  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/rho-${VERSION}.exe"
-  cp -f "$BINDIR/rho-${VERSION}.exe" "$BINDIR/rho.exe"
-  INSTALLED="$BINDIR/rho-${VERSION}.exe (launcher: $BINDIR/rho.exe)"
+  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/decoder-${VERSION}.exe"
+  cp -f "$BINDIR/decoder-${VERSION}.exe" "$BINDIR/decoder.exe"
+  INSTALLED="$BINDIR/decoder-${VERSION}.exe (launcher: $BINDIR/decoder.exe)"
 else
-  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/rho-${VERSION}"
-  chmod 0755 "$BINDIR/rho-${VERSION}"
-  rm -f "$BINDIR/rho.tmp"
-  ln -s "rho-${VERSION}" "$BINDIR/rho.tmp"
-  mv -f "$BINDIR/rho.tmp" "$BINDIR/rho"
-  INSTALLED="$BINDIR/rho-${VERSION} (linked: $BINDIR/rho)"
+  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/decoder-${VERSION}"
+  chmod 0755 "$BINDIR/decoder-${VERSION}"
+  rm -f "$BINDIR/decoder.tmp"
+  ln -s "decoder-${VERSION}" "$BINDIR/decoder.tmp"
+  mv -f "$BINDIR/decoder.tmp" "$BINDIR/decoder"
+  INSTALLED="$BINDIR/decoder-${VERSION} (linked: $BINDIR/decoder)"
 fi
 
 say ""
-say "Installed rho ${TAG} to ${INSTALLED}"
+say "Installed decoder ${TAG} to ${INSTALLED}"
 say "  checksum:  verified (SHA-256 from checksums.txt)"
 say "  signature: ${SIGNATURE_STATUS}"
 say ""
@@ -282,5 +282,5 @@ case ":${PATH:-}:" in
     say ""
     ;;
 esac
-say "Restart running rho sessions to pick up the new binary; they keep running"
+say "Restart running decoder sessions to pick up the new binary; they keep running"
 say "the previous version until restarted."

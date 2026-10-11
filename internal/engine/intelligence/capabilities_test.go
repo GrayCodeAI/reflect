@@ -120,7 +120,7 @@ func TestFormatHelp(t *testing.T) {
 	r := NewCapabilityRegistry()
 	help := r.FormatHelp()
 
-	if !strings.Contains(help, "rho Capabilities:") {
+	if !strings.Contains(help, "decoder Capabilities:") {
 		t.Error("FormatHelp missing header")
 	}
 	if !strings.Contains(help, "═") {

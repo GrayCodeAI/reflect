@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -30,10 +30,10 @@ func runSkillsCreate(_ *cobra.Command, args []string) error {
 		return err
 	}
 	model, provider := effectiveModelAndProvider(settings)
-	sess := newRhoSession(settings, provider, model, "You are a skill author.", tool.NewRegistry())
+	sess := newDecoderSession(settings, provider, model, "You are a skill author.", tool.NewRegistry())
 
 	prompt := plugin.BuildNewSkillPrompt(desc)
-	resp, err := sess.Chat(context.Background(), []types.FluxMessage{
+	resp, err := sess.Chat(context.Background(), []types.MuxMessage{
 		{Role: "user", Content: prompt},
 	}, types.ChatOptions{Model: model, MaxTokens: 4096})
 	if err != nil {

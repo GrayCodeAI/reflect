@@ -1,13 +1,13 @@
 package session
 
 import (
-	store "github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/types"
+	store "github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // Hydrated contains both representations needed when resuming a session.
 type Hydrated struct {
-	Runtime []types.FluxMessage
+	Runtime []types.MuxMessage
 	Display []DisplayMessage
 }
 

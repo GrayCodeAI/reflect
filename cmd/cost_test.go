@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	analytics "github.com/GrayCodeAI/rho/internal/observability"
+	analytics "github.com/GrayCodeAI/decoder/internal/observability"
 )
 
 func TestCostAnalyze_JSON_Empty(t *testing.T) {

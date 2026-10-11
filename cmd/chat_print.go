@@ -14,13 +14,13 @@ import (
 	"unicode/utf8"
 
 	lipgloss "charm.land/lipgloss/v2"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	aiwatch "github.com/GrayCodeAI/rho/internal/engine/io"
-	"github.com/GrayCodeAI/rho/internal/engine/lifecycle"
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/session"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	aiwatch "github.com/GrayCodeAI/decoder/internal/engine/io"
+	"github.com/GrayCodeAI/decoder/internal/engine/lifecycle"
+	chatfeature "github.com/GrayCodeAI/decoder/internal/features/chat"
+	"github.com/GrayCodeAI/decoder/internal/observability/logger"
+	"github.com/GrayCodeAI/decoder/internal/session"
 )
 
 // Print mode and session persistence functions extracted from chat.go
@@ -41,7 +41,7 @@ func runPrint(text string) error {
 		return err
 	}
 
-	sess, cfgErr := newConfiguredRhoSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, logger.New(io.Discard, logger.Error))
+	sess, cfgErr := newConfiguredDecoderSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, logger.New(io.Discard, logger.Error))
 	if cfgErr != nil {
 		return cfgErr
 	}
@@ -138,7 +138,7 @@ func runPrint(text string) error {
 				writePrintResult(printed.String(), sessionID, sess, false, nil)
 			}
 			if !noSessionPersistence {
-				saveFluxSession(sessionID, sess)
+				saveMuxSession(sessionID, sess)
 			}
 			return nil
 		}
@@ -156,7 +156,7 @@ func runPrint(text string) error {
 		writePrintResult(printed.String(), sessionID, sess, false, nil)
 	}
 	if !noSessionPersistence {
-		saveFluxSession(sessionID, sess)
+		saveMuxSession(sessionID, sess)
 	}
 	return nil
 }
@@ -206,7 +206,7 @@ func printTextUsageFooter(usage *engine.StreamUsage, started time.Time, turns in
 // ANSI so it can be pasted into a bug report or piped to a file.
 func printTranscript(sessionID, model, response string, usage *engine.StreamUsage, started time.Time, turns int) {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# rho transcript\n")
+	fmt.Fprintf(&b, "# decoder transcript\n")
 	fmt.Fprintf(&b, "session: %s\n", sessionID)
 	if model != "" {
 		fmt.Fprintf(&b, "model:   %s\n", model)
@@ -312,7 +312,7 @@ func writePrintEvent(sessionID, eventType, content, toolName string) {
 	fmt.Println(string(data))
 }
 
-func saveFluxSession(id string, sess *engine.Session) {
+func saveMuxSession(id string, sess *engine.Session) {
 	raw := sess.RawMessages()
 	if len(raw) == 0 {
 		return
@@ -328,7 +328,7 @@ func saveFluxSession(id string, sess *engine.Session) {
 
 // runRepl starts an interactive REPL mode for multi-turn conversation without TUI.
 func runRepl() error {
-	fmt.Fprintln(os.Stderr, auditTint("Rho REPL", textPrimary)+auditTint(" — type 'exit' or 'quit' to leave, 'help' for commands", textMuted))
+	fmt.Fprintln(os.Stderr, auditTint("Decoder REPL", textPrimary)+auditTint(" — type 'exit' or 'quit' to leave, 'help' for commands", textMuted))
 	fmt.Fprintln(os.Stderr)
 
 	systemPrompt, err := buildSystemPrompt()
@@ -347,7 +347,7 @@ func runRepl() error {
 		return err
 	}
 
-	sess, cfgErr := newConfiguredRhoSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, logger.New(io.Discard, logger.Error))
+	sess, cfgErr := newConfiguredDecoderSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, logger.New(io.Discard, logger.Error))
 	if cfgErr != nil {
 		return cfgErr
 	}
@@ -482,7 +482,7 @@ func runRepl() error {
 					writePrintResult(printed.String(), sessionID, sess, false, nil)
 				}
 				if !noSessionPersistence {
-					saveFluxSession(sessionID, sess)
+					saveMuxSession(sessionID, sess)
 				}
 			}
 		}
@@ -492,7 +492,7 @@ func runRepl() error {
 	}
 }
 
-func replBuiltinResponse(input string, sess *engine.Session, settings rhoconfig.Settings, sessionID string) (string, bool, error) {
+func replBuiltinResponse(input string, sess *engine.Session, settings decoderconfig.Settings, sessionID string) (string, bool, error) {
 	switch strings.TrimSpace(input) {
 	case "/tools":
 		return builtInToolsSummary(), true, nil
@@ -511,12 +511,12 @@ func replBuiltinResponse(input string, sess *engine.Session, settings rhoconfig.
 	}
 }
 
-func replModelsSummary(settings rhoconfig.Settings, sessionProvider string) (string, bool, error) {
+func replModelsSummary(settings decoderconfig.Settings, sessionProvider string) (string, bool, error) {
 	providerName := effectiveProviderForREPL(settings, sessionProvider)
 	if providerName == "" {
-		return "No active provider selected. Set one with `rho config provider <name>` or start REPL with `--provider`.", true, nil
+		return "No active provider selected. Set one with `decoder config provider <name>` or start REPL with `--provider`.", true, nil
 	}
-	models, err := rhoconfig.FetchModelsForProvider(providerName)
+	models, err := decoderconfig.FetchModelsForProvider(providerName)
 	if err != nil {
 		return "", true, err
 	}
@@ -542,7 +542,7 @@ func replModelsSummary(settings rhoconfig.Settings, sessionProvider string) (str
 	return b.String(), true, nil
 }
 
-func effectiveProviderForREPL(settings rhoconfig.Settings, sessionProvider string) string {
+func effectiveProviderForREPL(settings decoderconfig.Settings, sessionProvider string) string {
 	if provider != "" {
 		return strings.TrimSpace(provider)
 	}
@@ -567,7 +567,7 @@ func formatModelTablePlain(rows []modelTableRow) string {
 }
 
 // watchIgnoreDirs are directory names skipped when scanning for AI directives.
-var watchIgnoreDirs = []string{".git", "node_modules", "vendor", "__pycache__", ".rho"}
+var watchIgnoreDirs = []string{".git", "node_modules", "vendor", "__pycache__", ".decoder"}
 
 // runWatch watches the working directory for AI!/AI? comment directives and
 // dispatches a targeted LLM edit for each one as files change (Aider-style

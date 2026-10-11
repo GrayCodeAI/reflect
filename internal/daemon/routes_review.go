@@ -20,14 +20,14 @@ const reviewArgMaxLen = 4096
 
 var reviewArgCharset = regexp.MustCompile(`^[^\x00-\x1f\x7f]*$`)
 
-// reviewSem bounds the number of concurrent `rho review run` subprocesses
+// reviewSem bounds the number of concurrent `decoder review run` subprocesses
 // spawned by POST /v1/review so an authenticated caller cannot exhaust CPU
 // or memory by firing unbounded review jobs.
 var reviewSem = make(chan struct{}, maxConcurrentReviews)
 
 const maxConcurrentReviews = 4
 
-// reviewTimeout bounds a spawned `rho review run` subprocess so a hung review
+// reviewTimeout bounds a spawned `decoder review run` subprocess so a hung review
 // cannot run forever and cannot block daemon shutdown.
 const reviewTimeout = 30 * time.Minute
 
@@ -97,7 +97,7 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trigger review asynchronously via rho review run. Track it in the
+	// Trigger review asynchronously via decoder review run. Track it in the
 	// server lifecycle so Stop can wait for in-flight reviews.
 	s.reviewWG.Add(1)
 	go func() {
@@ -112,7 +112,7 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), reviewTimeout)
 		defer cancel()
-		_ = exec.CommandContext(ctx, "rho", args...).Run() // #nosec G204 -- binary is fixed "rho"; args are validated (SHA regex, no "--" prefix, printable charset)
+		_ = exec.CommandContext(ctx, "decoder", args...).Run() // #nosec G204 -- binary is fixed "decoder"; args are validated (SHA regex, no "--" prefix, printable charset)
 	}()
 
 	resp := ReviewResponse{
@@ -124,8 +124,8 @@ func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReviewStatus(w http.ResponseWriter, _ *http.Request) {
-	// Run rho review status and return output.
-	out, err := exec.CommandContext(context.Background(), "rho", "review", "status").Output()
+	// Run decoder review status and return output.
+	out, err := exec.CommandContext(context.Background(), "decoder", "review", "status").Output()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

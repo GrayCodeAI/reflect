@@ -10,17 +10,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 var reviewCmd = &cobra.Command{
 	Use:   "review",
 	Short: "Continuous AI code review on commits",
-	Long: `rho review provides continuous background code review.
+	Long: `decoder review provides continuous background code review.
 
-Run 'rho review init' to install a post-commit hook, then every commit
-is automatically reviewed. View findings with 'rho review tui'
-or fix them with 'rho review fix'.`,
+Run 'decoder review init' to install a post-commit hook, then every commit
+is automatically reviewed. View findings with 'decoder review tui'
+or fix them with 'decoder review fix'.`,
 }
 
 var reviewInitCmd = &cobra.Command{
@@ -38,10 +38,10 @@ func init() {
 }
 
 const hookScript = `#!/bin/sh
-# rho review — continuous code review hook
-# Installed by 'rho review init'
+# decoder review — continuous code review hook
+# Installed by 'decoder review init'
 SHA=$(git rev-parse HEAD)
-rho review run "$SHA" --background &
+decoder review run "$SHA" --background &
 `
 
 func runReviewInit(_ *cobra.Command, _ []string) error {
@@ -60,8 +60,8 @@ func runReviewInit(_ *cobra.Command, _ []string) error {
 	// Check for existing hook.
 	if _, err := os.Stat(hookPath); err == nil && !reviewInitForce {
 		existing, _ := os.ReadFile(hookPath) // #nosec G304 -- hookPath built from internal hooksDir constant, not external input
-		if strings.Contains(string(existing), "rho review") {
-			fmt.Println(auditTint(icons.CheckBold()+" ", doneGreen) + auditTint("rho review hook already installed", textPrimary))
+		if strings.Contains(string(existing), "decoder review") {
+			fmt.Println(auditTint(icons.CheckBold()+" ", doneGreen) + auditTint("decoder review hook already installed", textPrimary))
 			return nil
 		}
 		return fmt.Errorf("post-commit hook already exists at %s\nUse --force to overwrite, or manually add:\n  %s", hookPath, strings.TrimSpace(hookScript))
@@ -74,8 +74,8 @@ func runReviewInit(_ *cobra.Command, _ []string) error {
 
 	fmt.Println(auditTint(icons.CheckBold()+" ", doneGreen) + auditTint("Installed post-commit hook at ", textPrimary) + auditTint(hookPath, textMuted))
 	fmt.Println(auditTint("  Every commit will now be reviewed automatically.", textMuted))
-	fmt.Println(auditTint("  View reviews: rho review status", textMuted))
-	fmt.Println(auditTint("  Interactive:  rho review tui", textMuted))
+	fmt.Println(auditTint("  View reviews: decoder review status", textMuted))
+	fmt.Println(auditTint("  Interactive:  decoder review tui", textMuted))
 	return nil
 }
 

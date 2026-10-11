@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/sessionquery"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/sessionquery"
 )
 
 func TestSessionQueryTool_Execute(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", tmpDir)
+	t.Setenv("DECODER_STATE_DIR", tmpDir)
 	sessDir := filepath.Join(tmpDir, "sessions")
 	_ = os.MkdirAll(sessDir, 0o755)
 

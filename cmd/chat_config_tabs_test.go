@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 func TestRenderConfigTabBar_DotIndicators(t *testing.T) {
@@ -28,12 +28,12 @@ func TestRenderConfigTabBar_DotIndicators(t *testing.T) {
 }
 
 func TestOpenConfigPanel_FirstRunOpensGateways(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{}
@@ -47,12 +47,12 @@ func TestOpenConfigPanel_FirstRunOpensGateways(t *testing.T) {
 }
 
 func TestOpenConfigAtTab_ModelsWithoutCredentialsFallsBackToGateways(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{}

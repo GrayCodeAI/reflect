@@ -81,7 +81,7 @@ func newSlackGateway(cfg SlackConfig, daemonAddr, apiKey string, s *Server) *Sla
 func (g *SlackGateway) Name() string { return "slack" }
 
 // setDaemonURL implements daemonURLSetter. Slack forwards to the daemon via
-// forwardToRho, so it needs the resolved address even though it replies via the
+// forwardToDecoder, so it needs the resolved address even though it replies via the
 // Slack Web API.
 func (g *SlackGateway) setDaemonURL(url string) { g.daemonAddr = url }
 
@@ -167,7 +167,7 @@ func (g *SlackGateway) handleMention(ctx context.Context, ev slackEventInner) {
 
 	if isPair, ok := g.auth.tryPair(ev.User, text); isPair {
 		if ok {
-			g.reply(ctx, ev.Channel, threadTS, "Paired. You can now chat with rho.")
+			g.reply(ctx, ev.Channel, threadTS, "Paired. You can now chat with decoder.")
 		} else {
 			g.reply(ctx, ev.Channel, threadTS, "Pairing failed: invalid code.")
 		}
@@ -178,7 +178,7 @@ func (g *SlackGateway) handleMention(ctx context.Context, ev slackEventInner) {
 		return
 	}
 
-	reply, err := forwardToRho(ctx, g.client, g.daemonAddr, g.apiKey, text)
+	reply, err := forwardToDecoder(ctx, g.client, g.daemonAddr, g.apiKey, text)
 	if err != nil {
 		reply = fmt.Sprintf("Error: %v", err)
 	}

@@ -14,15 +14,15 @@ func TestArchitectureDocsDoNotContainStaleContractsLanguage(t *testing.T) {
 		"README.md",
 		"AGENTS.md",
 		"docs/architecture/README.md",
-		"docs/architecture/rho-product-architecture.md",
-		"docs/architecture/rho-contract-spec.md",
-		"docs/plans/rho-contracts-migration-backlog.md",
+		"docs/architecture/decoder-product-architecture.md",
+		"docs/architecture/decoder-contract-spec.md",
+		"docs/plans/decoder-contracts-migration-backlog.md",
 	}
 
 	forbiddenPhrases := []string{
 		"eagle` (to add)",
 		"planned shared contracts layer",
-		"runtime still uses `flux/client` provider interfaces and config types",
+		"runtime still uses `mux/client` provider interfaces and config types",
 	}
 
 	for _, rel := range files {
@@ -48,11 +48,11 @@ func TestArchitectureDocsMentionCurrentReviewVerifyContracts(t *testing.T) {
 			"contracts/review",
 			"contracts/verify",
 		},
-		"docs/architecture/rho-product-architecture.md": {
+		"docs/architecture/decoder-product-architecture.md": {
 			"contracts/review",
 			"contracts/verify",
 		},
-		"docs/architecture/rho-contract-spec.md": {
+		"docs/architecture/decoder-contract-spec.md": {
 			"contracts/review",
 			"contracts/verify",
 		},

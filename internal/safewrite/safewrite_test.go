@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/safewrite"
+	"github.com/GrayCodeAI/decoder/internal/safewrite"
 )
 
 func TestWriteFile_Basic(t *testing.T) {

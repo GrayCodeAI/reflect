@@ -1,6 +1,6 @@
 # Monitoring Guide
 
-This guide covers how to monitor rho's daemon and CLI for production health,
+This guide covers how to monitor decoder's daemon and CLI for production health,
 performance, and security.
 
 ## 1. Daemon Health & Readiness
@@ -18,7 +18,7 @@ curl -sf http://localhost:4590/v1/health
 ### `GET /v1/ready` — Readiness probe
 
 Returns 200 when the daemon is fully ready to serve traffic (session factory
-configured, Flux preflight checks pass). Returns 503 with the failed
+configured, Mux preflight checks pass). Returns 503 with the failed
 dependency during startup or when dependencies are unavailable.
 
 ```bash
@@ -31,7 +31,7 @@ Returns aggregated usage statistics (sessions, messages, tool calls, cost)
 for the last N days (default 30, `?days=30`).
 
 ```bash
-curl -H "X-API-Key: $RHO_DAEMON_API_KEY" \
+curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" \
   http://localhost:4590/v1/stats
 ```
 
@@ -43,7 +43,7 @@ The daemon exposes metrics in Prometheus text exposition format at
 `GET /v1/metrics`. This endpoint requires authentication.
 
 ```bash
-curl -H "X-API-Key: $RHO_DAEMON_API_KEY" \
+curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" \
   http://localhost:4590/v1/metrics
 ```
 
@@ -51,9 +51,9 @@ Available metrics:
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `rho_daemon_active_sessions` | gauge | Number of active daemon sessions |
-| `rho_daemon_chat_concurrency_used` | gauge | Number of in-use chat concurrency slots |
-| `rho_daemon_uptime_seconds` | gauge | Daemon uptime in seconds |
+| `decoder_daemon_active_sessions` | gauge | Number of active daemon sessions |
+| `decoder_daemon_chat_concurrency_used` | gauge | Number of in-use chat concurrency slots |
+| `decoder_daemon_uptime_seconds` | gauge | Daemon uptime in seconds |
 | `http_requests_total` | counter | Total HTTP requests received |
 | `http_request_duration_ms` | histogram | HTTP request duration in milliseconds |
 | `http_rate_limited_total` | counter | Number of requests rejected by rate limiter |
@@ -70,9 +70,9 @@ text format.
 Telemetry is **opt-in**. Enable it by setting:
 
 ```bash
-export RHO_ENABLE_TELEMETRY=1
+export DECODER_ENABLE_TELEMETRY=1
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-rho daemon start
+decoder daemon start
 ```
 
 The daemon will automatically:
@@ -80,31 +80,31 @@ The daemon will automatically:
 - Initialize the OTel SDK with a batch span processor (5s batch interval).
 - Export traces to the OTLP endpoint (`OTEL_EXPORTER_OTLP_ENDPOINT`).
 - Send trace headers from `OTEL_EXPORTER_OTLP_HEADERS`.
-- Set the service name (default: `rho`) and version.
+- Set the service name (default: `decoder`) and version.
 
 ### Configuration
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `RHO_ENABLE_TELEMETRY` | `0` | Set to `1` to enable OTP telemetry |
+| `DECODER_ENABLE_TELEMETRY` | `0` | Set to `1` to enable OTP telemetry |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | _(empty)_ | OTLP collector endpoint |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | OTLP transport protocol |
 | `OTEL_EXPORTER_OTLP_HEADERS` | _(empty)_ | Comma-separated `key=value` headers |
-| `RHO_OTEL_SHUTDOWN_TIMEOUT_MS` | `2000` | Shutdown timeout in milliseconds |
+| `DECODER_OTEL_SHUTDOWN_TIMEOUT_MS` | `2000` | Shutdown timeout in milliseconds |
 
 ### OTel Conventions
 
-rho follows the OpenTelemetry semantic conventions for traces. See
+decoder follows the OpenTelemetry semantic conventions for traces. See
 [docs/OTEL-CONVENTIONS.md](OTEL-CONVENTIONS.md) for span naming and attribute
 details.
 
 ## 4. Structured Logging
 
-The daemon writes structured SLOG logs to `~/.rho/state/daemon.log` by
+The daemon writes structured SLOG logs to `~/.decoder/state/daemon.log` by
 default. Control the log level via:
 
 ```bash
-rho daemon start --log-level DEBUG
+decoder daemon start --log-level DEBUG
 ```
 
 Or via environment variable:
@@ -127,13 +127,13 @@ All daemon log entries include:
 ### Audit log
 
 Security-relevant events (auth failures, tool executions) are written to a
-tamper-evident log at `~/.rho/state/securitylog/security_events.jsonl`.
+tamper-evident log at `~/.decoder/state/securitylog/security_events.jsonl`.
 
 Verify the audit log integrity:
 
 ```bash
 # The securitylog package provides a verify command
-go run ./cmd/rho securitylog verify
+go run ./cmd/decoder securitylog verify
 ```
 
 ## 5. Prometheus Scraping
@@ -144,14 +144,14 @@ go run ./cmd/rho securitylog verify
 apiVersion: v1
 kind: Service
 metadata:
-  name: rho-daemon
+  name: decoder-daemon
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "4590"
     prometheus.io/path: "/v1/metrics"
 spec:
   selector:
-    app: rho-daemon
+    app: decoder-daemon
   ports:
     - port: 4590
       targetPort: 4590
@@ -159,18 +159,18 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rho-daemon
+  name: decoder-daemon
 spec:
   template:
     spec:
       containers:
-        - name: rho
-          image: ghcr.io/graycodeai/rho-daemon:latest
+        - name: decoder
+          image: ghcr.io/graycodeai/decoder-daemon:latest
           env:
-            - name: RHO_DAEMON_API_KEY
+            - name: DECODER_DAEMON_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: rho-secret
+                  name: decoder-secret
                   key: api-key
           ports:
             - containerPort: 4590
@@ -192,26 +192,26 @@ spec:
 
 | Alert | Condition | Severity |
 |-------|-----------|----------|
-| Daemon down | `rho_daemon_uptime_seconds` does not increase for 2+ minutes | critical |
+| Daemon down | `decoder_daemon_uptime_seconds` does not increase for 2+ minutes | critical |
 | High request latency | `histogram_quantile(0.95, http_request_duration_ms)` > 10000ms for 5 minutes | warning |
 | Rate limit saturation | `rate(http_rate_limited_total[5m])` > 10/s | warning |
 | Auth failures | `rate(auth_denied_total[5m])` > 5/s | critical (possible brute force) |
-| High concurrency | `rho_daemon_chat_concurrency_used` sustained at max for 5+ minutes | warning |
-| No active sessions | `rho_daemon_active_sessions` = 0 during business hours | warning |
+| High concurrency | `decoder_daemon_chat_concurrency_used` sustained at max for 5+ minutes | warning |
+| No active sessions | `decoder_daemon_active_sessions` = 0 during business hours | warning |
 
 ## 7. Systemd Logging
 
 When running under systemd, logs from stderr/stdout are captured by journald:
 
 ```bash
-journalctl -u rho-daemon -f
+journalctl -u decoder-daemon -f
 ```
 
 The daemon also writes its own structured log to
-`~/.rho/state/daemon.log`:
+`~/.decoder/state/daemon.log`:
 
 ```bash
-tail -f ~/.rho/state/daemon.log
+tail -f ~/.decoder/state/daemon.log
 ```
 
 ## 8. Feature Flags
@@ -220,7 +220,7 @@ Feature flags allow runtime configuration without restarts. They are
 controlled via environment variables:
 
 ```bash
-export RHO_FEATURE_<FLAG_NAME>=1
+export DECODER_FEATURE_<FLAG_NAME>=1
 ```
 
 | Flag | Default | Description |
@@ -234,5 +234,5 @@ export RHO_FEATURE_<FLAG_NAME>=1
 List all registered flags:
 
 ```bash
-rho features
+decoder features
 ```

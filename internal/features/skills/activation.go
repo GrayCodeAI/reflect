@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
 )
 
 // Activation is the resolved work needed to activate a skill in a session.
@@ -22,7 +22,7 @@ func ResolveInvocation(invoke, fullText string, active map[string]plugin.SmartSk
 	var matched *plugin.SmartSkill
 	for i := range installed {
 		skill := &installed[i]
-		if skill.Invoke == invoke || "/rho:"+skill.Name == invoke {
+		if skill.Invoke == invoke || "/decoder:"+skill.Name == invoke {
 			matched = skill
 			break
 		}

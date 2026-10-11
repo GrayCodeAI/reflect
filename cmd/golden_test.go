@@ -59,8 +59,8 @@ func TestGoldenHelp(t *testing.T) {
 				t.Fatalf("golden file %s not found (run with -update-golden to create): %v", golden, err)
 			}
 
-			if !strings.Contains(got, "rho") {
-				t.Error("help output should contain 'rho'")
+			if !strings.Contains(got, "decoder") {
+				t.Error("help output should contain 'decoder'")
 			}
 			if len(got) < 100 {
 				t.Error("help output seems too short")

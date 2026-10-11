@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/taskruntime"
+	"github.com/GrayCodeAI/decoder/internal/taskruntime"
 )
 
 // resolveTask looks up a task_id in shell background map, session BackgroundManager,

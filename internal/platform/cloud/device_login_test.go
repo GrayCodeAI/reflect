@@ -55,8 +55,8 @@ func TestStartDeviceLoginSendsGraycodeVersion(t *testing.T) {
 	if body.Label != "build-host" || body.Platform != "linux" || body.GraycodeVersion != "0.3.0" {
 		t.Fatalf("body = %+v", body)
 	}
-	if bytes.Contains(raw, []byte("rhoVersion")) {
-		t.Fatalf("body still sends rhoVersion: %s", raw)
+	if bytes.Contains(raw, []byte("decoderVersion")) {
+		t.Fatalf("body still sends decoderVersion: %s", raw)
 	}
 	if start.UserCode != "ABCD-EFGH" || start.Interval != 5 {
 		t.Fatalf("start = %+v", start)
@@ -90,7 +90,7 @@ func TestStartDeviceLoginBoundsFields(t *testing.T) {
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["label"] != "rho" || body["graycodeVersion"] != "dev" {
+	if body["label"] != "decoder" || body["graycodeVersion"] != "dev" {
 		t.Fatalf("blank fields = %+v, want fallbacks", body)
 	}
 }

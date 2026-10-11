@@ -16,11 +16,11 @@ import (
 	"sync"
 	"time"
 
-	contracts "github.com/GrayCodeAI/flux/tools"
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/eventlog/zstdz"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/eventlog/zstdz"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	contracts "github.com/GrayCodeAI/mux/tools"
 )
 
 // Message is a persisted conversation message.
@@ -127,7 +127,7 @@ func saveWithCompression(s *Session, compress bool) error {
 
 	// Write to temp file, then atomic rename. The temp name is namespaced
 	// with getpid() so two processes (or two saves of the same session from
-	// different rho instances) don't clobber each other's temp file.
+	// different decoder instances) don't clobber each other's temp file.
 	target := jsonlPathFor(s.ID)
 	tmp := fmt.Sprintf("%s.tmp.%d", target, os.Getpid())
 
@@ -291,7 +291,7 @@ func saveWithCompression(s *Session, compress bool) error {
 }
 
 // WAL (Write-Ahead Log) appends messages incrementally for crash recovery.
-// Each message is appended immediately — if rho crashes, the WAL has everything.
+// Each message is appended immediately — if decoder crashes, the WAL has everything.
 type WAL struct {
 	mu   sync.Mutex
 	f    *os.File

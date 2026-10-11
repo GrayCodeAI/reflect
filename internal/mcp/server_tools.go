@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/intelligence/memory"
-	"github.com/GrayCodeAI/rho/internal/token"
+	"github.com/GrayCodeAI/decoder/internal/intelligence/memory"
+	"github.com/GrayCodeAI/decoder/internal/token"
 )
 
 // ToolExecutor is a function that executes a named tool with JSON input.
@@ -23,25 +23,25 @@ func readOnlyAnnotations(title string) *ToolAnnotations {
 	return &ToolAnnotations{Title: title, ReadOnlyHint: boolPtr(true), DestructiveHint: boolPtr(false)}
 }
 
-// RegisterDefaultTools registers rho's standard capabilities as MCP tools.
-// If executor is non-nil, tools that delegate to rho's tool registry will
+// RegisterDefaultTools registers decoder's standard capabilities as MCP tools.
+// If executor is non-nil, tools that delegate to decoder's tool registry will
 // use it for execution; otherwise those tools return a not-configured error.
 func RegisterDefaultTools(server *MCPServer, executor ToolExecutor) {
-	server.RegisterTool(rhoChatTool(executor))
-	server.RegisterTool(rhoSearchTool(executor))
-	server.RegisterTool(rhoMemoryRecallTool(executor))
-	server.RegisterTool(rhoMemoryStoreTool(executor))
-	server.RegisterTool(rhoCompressTool(executor))
+	server.RegisterTool(decoderChatTool(executor))
+	server.RegisterTool(decoderSearchTool(executor))
+	server.RegisterTool(decoderMemoryRecallTool(executor))
+	server.RegisterTool(decoderMemoryStoreTool(executor))
+	server.RegisterTool(decoderCompressTool(executor))
 }
 
-// rhoChatTool sends a prompt to rho and returns the response.
-func rhoChatTool(executor ToolExecutor) MCPToolHandler {
+// decoderChatTool sends a prompt to decoder and returns the response.
+func decoderChatTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name: "rho_chat",
-		Description: "Send a prompt to the rho AI coding agent and receive a response. " +
+		Name: "decoder_chat",
+		Description: "Send a prompt to the decoder AI coding agent and receive a response. " +
 			"WARNING: this runs an autonomous agent that may execute shell commands and modify files.",
 		Annotations: &ToolAnnotations{
-			Title:           "Run rho agent",
+			Title:           "Run decoder agent",
 			ReadOnlyHint:    boolPtr(false),
 			DestructiveHint: boolPtr(true),
 			OpenWorldHint:   boolPtr(true),
@@ -51,7 +51,7 @@ func rhoChatTool(executor ToolExecutor) MCPToolHandler {
 			"properties": map[string]interface{}{
 				"prompt": map[string]interface{}{
 					"type":        "string",
-					"description": "The prompt or question to send to rho.",
+					"description": "The prompt or question to send to decoder.",
 				},
 			},
 			"required": []string{"prompt"},
@@ -71,12 +71,12 @@ func rhoChatTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoSearchTool searches across rho sessions.
-func rhoSearchTool(executor ToolExecutor) MCPToolHandler {
+// decoderSearchTool searches across decoder sessions.
+func decoderSearchTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_search",
-		Description: "Search across rho sessions and conversation history.",
-		Annotations: readOnlyAnnotations("Search rho sessions"),
+		Name:        "decoder_search",
+		Description: "Search across decoder sessions and conversation history.",
+		Annotations: readOnlyAnnotations("Search decoder sessions"),
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -107,12 +107,12 @@ func rhoSearchTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoMemoryRecallTool recalls information from rho's local memory store.
-func rhoMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
+// decoderMemoryRecallTool recalls information from decoder's local memory store.
+func decoderMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_memory_recall",
-		Description: "Recall stored information from rho's local persistent memory.",
-		Annotations: readOnlyAnnotations("Recall from rho memory"),
+		Name:        "decoder_memory_recall",
+		Description: "Recall stored information from decoder's local persistent memory.",
+		Annotations: readOnlyAnnotations("Recall from decoder memory"),
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -157,13 +157,13 @@ func rhoMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoMemoryStoreTool stores information to rho's local memory store.
-func rhoMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
+// decoderMemoryStoreTool stores information to decoder's local memory store.
+func decoderMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_memory_store",
-		Description: "Store information in rho's local persistent memory for future recall.",
+		Name:        "decoder_memory_store",
+		Description: "Store information in decoder's local persistent memory for future recall.",
 		Annotations: &ToolAnnotations{
-			Title:           "Store in rho memory",
+			Title:           "Store in decoder memory",
 			ReadOnlyHint:    boolPtr(false),
 			DestructiveHint: boolPtr(false), // additive write, does not destroy existing data
 		},
@@ -208,11 +208,11 @@ func rhoMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoCompressTool compresses text via the embedded token engine.
-func rhoCompressTool(executor ToolExecutor) MCPToolHandler {
+// decoderCompressTool compresses text via the embedded token engine.
+func decoderCompressTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_compress",
-		Description: "Compress text using rho's embedded token engine to reduce token usage while preserving meaning.",
+		Name:        "decoder_compress",
+		Description: "Compress text using decoder's embedded token engine to reduce token usage while preserving meaning.",
 		Annotations: readOnlyAnnotations("Compress text (token engine)"),
 		InputSchema: map[string]interface{}{
 			"type": "object",

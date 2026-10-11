@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // WorkspaceSnapshot captures the full state of a project at a point in time.
@@ -62,7 +62,7 @@ var ignoredDirs = map[string]bool{
 	".git":         true,
 	"node_modules": true,
 	"vendor":       true,
-	".rho":         true,
+	".decoder":     true,
 	"__pycache__":  true,
 	".venv":        true,
 	"dist":         true,
@@ -70,8 +70,8 @@ var ignoredDirs = map[string]bool{
 }
 
 // NewSnapshotStore creates a new SnapshotStore with the given directory.
-// If dir is empty, defaults to Rho's user state snapshots directory so
-// that state does not leak into <cwd>/.rho/ when rho is run from inside
+// If dir is empty, defaults to Decoder's user state snapshots directory so
+// that state does not leak into <cwd>/.decoder/ when decoder is run from inside
 // a Go project root.
 func NewSnapshotStore(dir string) *SnapshotStore {
 	if dir == "" {

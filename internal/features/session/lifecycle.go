@@ -1,6 +1,6 @@
 package session
 
-import store "github.com/GrayCodeAI/rho/internal/session"
+import store "github.com/GrayCodeAI/decoder/internal/session"
 
 // Load returns a durable session for an explicit resume operation.
 func Load(id string) (*store.Session, error) {

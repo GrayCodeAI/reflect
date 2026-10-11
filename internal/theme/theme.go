@@ -1,4 +1,4 @@
-// theme.go — Rho's theme system.
+// theme.go — Decoder's theme system.
 //
 // Every color in the TUI is defined here as a palette struct. To change
 // a theme, edit theme_palettes.go. To add a new theme, add a palette and
@@ -8,7 +8,7 @@
 
 package theme
 
-// BrandPrimary is Rho's fixed Talon Gold identity color. Theme accents may
+// BrandPrimary is Decoder's fixed Talon Gold identity color. Theme accents may
 // vary, but brand-bearing elements use this value across every theme.
 const BrandPrimary = "#FFD700"
 

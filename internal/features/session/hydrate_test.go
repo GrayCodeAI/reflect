@@ -3,7 +3,7 @@ package session
 import (
 	"testing"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/decoder/internal/session"
 )
 
 func TestHydrateKeepsRuntimeAndVisibleDisplayProjections(t *testing.T) {

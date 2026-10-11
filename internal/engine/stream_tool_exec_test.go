@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 type orderedReadTool struct{}
@@ -241,15 +241,15 @@ func TestToolServiceWorkingDirPropagatesContext(t *testing.T) {
 	capture := &contextCaptureTool{}
 	sess := NewSession("test", "test", "system", tool.NewRegistry(capture))
 	sess.PermSvc().SetAutonomy(safety.AutonomyYOLO)
-	sess.Tools().SetWorkingDir("/tmp/rho-working-dir")
+	sess.Tools().SetWorkingDir("/tmp/decoder-working-dir")
 
 	ch := make(chan StreamEvent, 4)
 	res := sess.executeSingleTool(context.Background(), types.ToolCall{Name: "Read", ID: "cwd"}, ch, 0, "")
 	if res.isErr || capture.ctx == nil {
 		t.Fatalf("tool failed or context missing: %#v", res)
 	}
-	if capture.ctx.WorkingDir != "/tmp/rho-working-dir" {
-		t.Fatalf("WorkingDir = %q, want %q", capture.ctx.WorkingDir, "/tmp/rho-working-dir")
+	if capture.ctx.WorkingDir != "/tmp/decoder-working-dir" {
+		t.Fatalf("WorkingDir = %q, want %q", capture.ctx.WorkingDir, "/tmp/decoder-working-dir")
 	}
 }
 

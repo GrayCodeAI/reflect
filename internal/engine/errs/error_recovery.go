@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/textutil"
+	"github.com/GrayCodeAI/decoder/internal/textutil"
 )
 
 type ErrorRecovery struct {

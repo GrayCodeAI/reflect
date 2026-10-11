@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/contracts/policy"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 )
 
 func TestConfigureInteractivePromptsSessionApprovalIsScoped(t *testing.T) {

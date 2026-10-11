@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 )
 
 var errNoInteractivePromptInput = errors.New("no interactive terminal available for permission prompt")

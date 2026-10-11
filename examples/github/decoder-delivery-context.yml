@@ -1,0 +1,47 @@
+# Decoder Delivery Context
+#
+# Copy to .github/workflows/decoder-delivery-context.yml. This workflow assumes
+# `decoder` is available on PATH (install it using your team's normal release
+# mechanism before this reporting step).
+#
+# Create a dedicated, revocable Decoder Cloud device token for CI. Do not reuse a
+# developer's local device token. Store all three values as repository secrets.
+name: Decoder Delivery Context
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  report-delivery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Install Decoder here using the release package your organization pins.
+      # The remaining steps are intentionally independent of the installer.
+      - name: Connect CI device to Decoder Cloud
+        run: |
+          decoder cloud connect \
+            --endpoint "$DECODER_CLOUD_URL" \
+            --device-id "$DECODER_CLOUD_DEVICE_ID" \
+            --project-id "$DECODER_CLOUD_PROJECT_ID" \
+            --token "$DECODER_CLOUD_DEVICE_TOKEN"
+        env:
+          DECODER_CLOUD_URL: ${{ secrets.DECODER_CLOUD_URL }}
+          DECODER_CLOUD_DEVICE_ID: ${{ secrets.DECODER_CLOUD_DEVICE_ID }}
+          DECODER_CLOUD_PROJECT_ID: ${{ secrets.DECODER_CLOUD_PROJECT_ID }}
+          DECODER_CLOUD_DEVICE_TOKEN: ${{ secrets.DECODER_CLOUD_DEVICE_TOKEN }}
+
+      - name: Report successful CI run
+        if: ${{ success() }}
+        run: decoder cloud context --ci-status succeeded
+
+      - name: Report failed CI run
+        if: ${{ failure() }}
+        run: decoder cloud context --ci-status failed

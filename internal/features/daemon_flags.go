@@ -6,16 +6,16 @@ package feature
 //
 // Override at runtime via environment variables:
 //
-//	RHO_FEATURE_TELEMETRY_OTEL=0     — disable OTel SDK (use in-memory tracer only)
-//	RHO_FEATURE_METRICS_ENDPOINT=0   — disable the /v1/metrics endpoint
-//	RHO_FEATURE_SECURITY_HEADERS=1   — enable security headers middleware
-//	RHO_FEATURE_CORS=0               — enable CORS support on daemon API
-//	RHO_FEATURE_AUDIT_LOG=1          — enable tamper-evident audit logging
+//	DECODER_FEATURE_TELEMETRY_OTEL=0     — disable OTel SDK (use in-memory tracer only)
+//	DECODER_FEATURE_METRICS_ENDPOINT=0   — disable the /v1/metrics endpoint
+//	DECODER_FEATURE_SECURITY_HEADERS=1   — enable security headers middleware
+//	DECODER_FEATURE_CORS=0               — enable CORS support on daemon API
+//	DECODER_FEATURE_AUDIT_LOG=1          — enable tamper-evident audit logging
 
 var (
 	// TelemetryOTel controls whether the full OpenTelemetry SDK is
 	// initialized (with OTLP export). Enabled by default since the SDK is
-	// always compiled in; set RHO_ENABLE_TELEMETRY=1 to actually
+	// always compiled in; set DECODER_ENABLE_TELEMETRY=1 to actually
 	// activate the OTLP exporter. This flag gates whether the SDK code path
 	// is exercised at all.
 	TelemetryOTel = Register("telemetry-otel", true,

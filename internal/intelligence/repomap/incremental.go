@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/token"
+	"github.com/GrayCodeAI/decoder/internal/token"
 )
 
 // CodeIndexer is the interface used by IncrementalReindex to store and query

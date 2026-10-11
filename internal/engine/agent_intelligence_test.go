@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/agent"
+	"github.com/GrayCodeAI/decoder/internal/engine/agent"
 )
 
 func TestAgentIntelligence_SelectMode(t *testing.T) {

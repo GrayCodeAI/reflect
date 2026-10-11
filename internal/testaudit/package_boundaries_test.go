@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	rhoModule  = "github.com/GrayCodeAI/rho"
-	fluxModule = "github.com/GrayCodeAI/flux"
+	decoderModule = "github.com/GrayCodeAI/decoder"
+	muxModule     = "github.com/GrayCodeAI/mux"
 )
 
 // supportEngines lists the sibling repos checked for boundary violations.
-// Rho now depends only on flux.
-var supportEngines = []string{"flux"}
+// Decoder now depends only on mux.
+var supportEngines = []string{"mux"}
 
 type packageImport struct {
 	file string
@@ -34,37 +34,37 @@ type packageImport struct {
 func TestPackageDependencyGraph(t *testing.T) {
 	root := repoRoot(t)
 
-	checkRhoFluxFacade(t, root)
-	checkRhoInternalLayers(t, root)
+	checkDecoderMuxFacade(t, root)
+	checkDecoderInternalLayers(t, root)
 	checkSupportRepositoryBoundaries(t, root)
 }
 
-func checkRhoFluxFacade(t *testing.T, root string) {
+func checkDecoderMuxFacade(t *testing.T, root string) {
 	paths := []string{filepath.Join(root, "internal"), filepath.Join(root, "cmd")}
 	var violations []string
 
 	for _, path := range paths {
 		for _, imp := range productionImports(t, root, path) {
-			if !strings.HasPrefix(imp.path, fluxModule+"/") {
+			if !strings.HasPrefix(imp.path, muxModule+"/") {
 				continue
 			}
-			if imp.path == fluxModule+"/engine" || strings.HasPrefix(imp.path, fluxModule+"/engine/") {
+			if imp.path == muxModule+"/engine" || strings.HasPrefix(imp.path, muxModule+"/engine/") {
 				continue
 			}
-			// Rho uses the full vendored Flux API surface for provider, graph,
+			// Decoder uses the full vendored Mux API surface for provider, graph,
 			// and tooling contracts that the engine facade does not re-export.
 			switch imp.path {
-			case fluxModule + "/llm", fluxModule + "/graph", fluxModule + "/tools":
+			case muxModule + "/llm", muxModule + "/graph", muxModule + "/tools":
 				continue
 			}
-			violations = append(violations, formatImportViolation(root, imp, "use the flux/engine facade"))
+			violations = append(violations, formatImportViolation(root, imp, "use the mux/engine facade"))
 		}
 	}
 
-	assertNoPackageViolations(t, "Rho Flux facade", violations)
+	assertNoPackageViolations(t, "Decoder Mux facade", violations)
 }
 
-func checkRhoInternalLayers(t *testing.T, root string) {
+func checkDecoderInternalLayers(t *testing.T, root string) {
 	rules := map[string][]string{
 		"internal/engine":      {"cmd", "internal/daemon", "internal/platform", "internal/bridge"},
 		"internal/permissions": {"cmd", "internal/daemon", "internal/engine", "internal/platform", "internal/bridge"},
@@ -80,18 +80,18 @@ func checkRhoInternalLayers(t *testing.T, root string) {
 			if err != nil {
 				t.Fatalf("relative path for %s: %v", imp.file, err)
 			}
-			if !strings.HasPrefix(imp.path, rhoModule+"/") {
+			if !strings.HasPrefix(imp.path, decoderModule+"/") {
 				continue
 			}
 			for _, prefix := range forbidden {
-				if strings.HasPrefix(imp.path, rhoModule+"/"+prefix+"/") || imp.path == rhoModule+"/"+prefix {
+				if strings.HasPrefix(imp.path, decoderModule+"/"+prefix+"/") || imp.path == decoderModule+"/"+prefix {
 					violations = append(violations, fmt.Sprintf("%s:%d imports %s (%s); %s must not depend on %s", filepath.ToSlash(rel), imp.line, imp.path, source, source, prefix))
 				}
 			}
 		}
 	}
 
-	assertNoPackageViolations(t, "Rho internal layers", violations)
+	assertNoPackageViolations(t, "Decoder internal layers", violations)
 }
 
 func checkSupportRepositoryBoundaries(t *testing.T, root string) {
@@ -100,8 +100,8 @@ func checkSupportRepositoryBoundaries(t *testing.T, root string) {
 	for _, owner := range supportEngines {
 		for _, repoRoot := range repositoryRoots(root, owner) {
 			for _, imp := range productionImports(t, root, repoRoot) {
-				if strings.HasPrefix(imp.path, rhoModule+"/internal/") {
-					violations = append(violations, formatImportViolation(root, imp, "support engines must not import Rho internals"))
+				if strings.HasPrefix(imp.path, decoderModule+"/internal/") {
+					violations = append(violations, formatImportViolation(root, imp, "support engines must not import Decoder internals"))
 					continue
 				}
 

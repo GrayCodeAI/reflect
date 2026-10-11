@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // newSpecModeSession builds a session whose registry includes the spec
@@ -65,7 +65,7 @@ func ensureTestConstitution(t *testing.T, s *Session) {
 		return
 	}
 	cwd, _ := os.Getwd()
-	dir := filepath.Join(cwd, ".rho", "specs", slug)
+	dir := filepath.Join(cwd, ".decoder", "specs", slug)
 	os.MkdirAll(dir, 0o700)
 	path := filepath.Join(dir, "constitution.md")
 	os.WriteFile(path, []byte("## Constitution\n"), 0o600)

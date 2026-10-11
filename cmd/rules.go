@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/GrayCodeAI/rho/internal/rules"
+	"github.com/GrayCodeAI/decoder/internal/rules"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ var rulesCmd = &cobra.Command{
 	Use:   "rules",
 	Short: "Detect, import, and export AI coding rules between tool formats",
 	Long: `rules manages AI coding rule files across different tools.
-Supported formats: rho, cursor, claudecode, copilot, gemini.
+Supported formats: decoder, cursor, claudecode, copilot, gemini.
 
 Subcommands:
   detect                   Show which AI tool rule files exist in the current directory
@@ -56,7 +56,7 @@ var rulesDetectCmd = &cobra.Command{
 
 var rulesImportCmd = &cobra.Command{
 	Use:   "import",
-	Short: "Import rules from another tool's format into rho",
+	Short: "Import rules from another tool's format into decoder",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if rulesImportFrom == "" {
 			return fmt.Errorf("--from flag is required (e.g. --from cursor)")
@@ -73,9 +73,9 @@ var rulesImportCmd = &cobra.Command{
 			return nil
 		}
 
-		// Export to rho format.
-		if err := rules.Export(".", rules.FormatRho, imported); err != nil {
-			return fmt.Errorf("export to rho format failed: %w", err)
+		// Export to decoder format.
+		if err := rules.Export(".", rules.FormatDecoder, imported); err != nil {
+			return fmt.Errorf("export to decoder format failed: %w", err)
 		}
 
 		cmd.Println(auditTint(fmt.Sprintf("Imported %d rule(s) from %s to .agents/rules/.", len(imported), rulesImportFrom), doneGreen))
@@ -88,30 +88,30 @@ var rulesImportCmd = &cobra.Command{
 
 var rulesExportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "Export rho rules to another tool's format",
+	Short: "Export decoder rules to another tool's format",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if rulesExportTo == "" {
 			return fmt.Errorf("--to flag is required (e.g. --to claudecode)")
 		}
 
-		// Read rho rules.
-		rhoRules, err := rules.Import(".", rules.FormatRho)
+		// Read decoder rules.
+		decoderRules, err := rules.Import(".", rules.FormatDecoder)
 		if err != nil {
-			return fmt.Errorf("read rho rules failed: %w", err)
+			return fmt.Errorf("read decoder rules failed: %w", err)
 		}
 
-		if len(rhoRules) == 0 {
-			cmd.Println(auditTint("No rho rules found in .agents/rules/. Nothing to export.", textMuted))
+		if len(decoderRules) == 0 {
+			cmd.Println(auditTint("No decoder rules found in .agents/rules/. Nothing to export.", textMuted))
 			return nil
 		}
 
 		to := rules.Format(rulesExportTo)
-		if err := rules.Export(".", to, rhoRules); err != nil {
+		if err := rules.Export(".", to, decoderRules); err != nil {
 			return fmt.Errorf("export to %s format failed: %w", rulesExportTo, err)
 		}
 
-		cmd.Println(auditTint(fmt.Sprintf("Exported %d rule(s) to %s format.", len(rhoRules), rulesExportTo), doneGreen))
-		for _, r := range rhoRules {
+		cmd.Println(auditTint(fmt.Sprintf("Exported %d rule(s) to %s format.", len(decoderRules), rulesExportTo), doneGreen))
+		for _, r := range decoderRules {
 			cmd.Println(auditTint("  - "+r.Name, textPrimary))
 		}
 		return nil

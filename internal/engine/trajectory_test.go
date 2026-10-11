@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestSummarizeTrajectory_ToolUsage(t *testing.T) {
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{
 			Role:    "assistant",
 			Content: "I will edit the file.",
@@ -46,7 +46,7 @@ func TestSummarizeTrajectory_ToolUsage(t *testing.T) {
 }
 
 func TestSummarizeTrajectory_NoActions(t *testing.T) {
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{Role: "user", Content: "hello"},
 		{Role: "assistant", Content: "hi there"},
 	}
@@ -60,9 +60,9 @@ func TestSummarizeTrajectory_NoActions(t *testing.T) {
 func TestBestRun_PrefersSuccess(t *testing.T) {
 	td := &TrajectoryDistiller{maxRuns: 3}
 	runs := []TrajectoryRun{
-		{ID: 1, Success: false, Messages: make([]types.FluxMessage, 10)},
-		{ID: 2, Success: true, Messages: make([]types.FluxMessage, 5)},
-		{ID: 3, Success: false, Messages: make([]types.FluxMessage, 15)},
+		{ID: 1, Success: false, Messages: make([]types.MuxMessage, 10)},
+		{ID: 2, Success: true, Messages: make([]types.MuxMessage, 5)},
+		{ID: 3, Success: false, Messages: make([]types.MuxMessage, 15)},
 	}
 
 	best := td.BestRun(runs)
@@ -77,9 +77,9 @@ func TestBestRun_PrefersSuccess(t *testing.T) {
 func TestBestRun_FallsBackToMostProgress(t *testing.T) {
 	td := &TrajectoryDistiller{maxRuns: 3}
 	runs := []TrajectoryRun{
-		{ID: 1, Success: false, Messages: make([]types.FluxMessage, 5)},
-		{ID: 2, Success: false, Messages: make([]types.FluxMessage, 12)},
-		{ID: 3, Success: false, Messages: make([]types.FluxMessage, 8)},
+		{ID: 1, Success: false, Messages: make([]types.MuxMessage, 5)},
+		{ID: 2, Success: false, Messages: make([]types.MuxMessage, 12)},
+		{ID: 3, Success: false, Messages: make([]types.MuxMessage, 8)},
 	}
 
 	best := td.BestRun(runs)

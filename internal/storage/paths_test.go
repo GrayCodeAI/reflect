@@ -26,26 +26,26 @@ func TestStorageDirsRespectOverrides(t *testing.T) {
 	}
 }
 
-func TestProviderConfigPathUsesFluxOverrideWithoutMovingRhoSettings(t *testing.T) {
-	rhoDir := filepath.Join(t.TempDir(), "rho")
-	fluxDir := filepath.Join(t.TempDir(), "flux")
-	t.Setenv(envConfigDir, rhoDir)
-	t.Setenv(envFluxConfigDir, fluxDir)
+func TestProviderConfigPathUsesMuxOverrideWithoutMovingDecoderSettings(t *testing.T) {
+	decoderDir := filepath.Join(t.TempDir(), "decoder")
+	muxDir := filepath.Join(t.TempDir(), "mux")
+	t.Setenv(envConfigDir, decoderDir)
+	t.Setenv(envMuxConfigDir, muxDir)
 
-	if got, want := ProviderConfigPath(), filepath.Join(fluxDir, "provider.json"); got != want {
-		t.Fatalf("ProviderConfigPath() = %q, want FLUX_CONFIG_DIR path %q", got, want)
+	if got, want := ProviderConfigPath(), filepath.Join(muxDir, "provider.json"); got != want {
+		t.Fatalf("ProviderConfigPath() = %q, want MUX_CONFIG_DIR path %q", got, want)
 	}
-	if got, want := SettingsPath(), filepath.Join(rhoDir, "settings.json"); got != want {
-		t.Fatalf("SettingsPath() = %q, want RHO_CONFIG_DIR path %q", got, want)
+	if got, want := SettingsPath(), filepath.Join(decoderDir, "settings.json"); got != want {
+		t.Fatalf("SettingsPath() = %q, want DECODER_CONFIG_DIR path %q", got, want)
 	}
 }
 
-func TestProviderConfigPathDefaultsToFluxDir(t *testing.T) {
-	t.Setenv(envConfigDir, filepath.Join(t.TempDir(), "rho"))
-	t.Setenv(envFluxConfigDir, "  ")
+func TestProviderConfigPathDefaultsToMuxDir(t *testing.T) {
+	t.Setenv(envConfigDir, filepath.Join(t.TempDir(), "decoder"))
+	t.Setenv(envMuxConfigDir, "  ")
 
-	if got, want := ProviderConfigPath(), filepath.Join(mustUserConfigDir(), "flux", "provider.json"); got != want {
-		t.Fatalf("ProviderConfigPath() = %q, want Flux default %q", got, want)
+	if got, want := ProviderConfigPath(), filepath.Join(mustUserConfigDir(), "mux", "provider.json"); got != want {
+		t.Fatalf("ProviderConfigPath() = %q, want Mux default %q", got, want)
 	}
 }
 

@@ -87,8 +87,8 @@ func TestEncodeDecode(t *testing.T) {
 
 	// Encode
 	deeplink := reg.Encode(recipe)
-	if !strings.HasPrefix(deeplink, "rho://recipe/") {
-		t.Fatalf("expected rho://recipe/ prefix, got %q", deeplink)
+	if !strings.HasPrefix(deeplink, "decoder://recipe/") {
+		t.Fatalf("expected decoder://recipe/ prefix, got %q", deeplink)
 	}
 
 	// Decode
@@ -129,7 +129,7 @@ func TestDecodeInvalidPrefix(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid prefix")
 	}
-	if !strings.Contains(err.Error(), "must start with rho://recipe/") {
+	if !strings.Contains(err.Error(), "must start with decoder://recipe/") {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
@@ -137,7 +137,7 @@ func TestDecodeInvalidPrefix(t *testing.T) {
 func TestDecodeInvalidBase64(t *testing.T) {
 	reg := NewRecipeRegistry(t.TempDir())
 
-	_, err := reg.Decode("rho://recipe/!!!invalid!!!")
+	_, err := reg.Decode("decoder://recipe/!!!invalid!!!")
 	if err == nil {
 		t.Fatal("expected error for invalid base64")
 	}
@@ -150,7 +150,7 @@ func TestDecodeInvalidJSON(t *testing.T) {
 	reg := NewRecipeRegistry(t.TempDir())
 
 	// Valid base64 but invalid JSON
-	_, err := reg.Decode("rho://recipe/bm90LWpzb24=")
+	_, err := reg.Decode("decoder://recipe/bm90LWpzb24=")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
@@ -270,8 +270,8 @@ func TestShare(t *testing.T) {
 	}
 
 	shareURL := reg.Share(recipe)
-	if !strings.HasPrefix(shareURL, "rho://recipe/") {
-		t.Fatalf("expected rho://recipe/ prefix, got %q", shareURL)
+	if !strings.HasPrefix(shareURL, "decoder://recipe/") {
+		t.Fatalf("expected decoder://recipe/ prefix, got %q", shareURL)
 	}
 
 	// Decode and verify minimal fields are present
@@ -369,7 +369,7 @@ func TestFormatRecipe(t *testing.T) {
 	if !strings.Contains(formatted, "Prompt: Find and fix all lint errors") {
 		t.Error("missing prompt in formatted output")
 	}
-	if !strings.Contains(formatted, "Share: rho://recipe/") {
+	if !strings.Contains(formatted, "Share: decoder://recipe/") {
 		t.Error("missing share link in formatted output")
 	}
 }

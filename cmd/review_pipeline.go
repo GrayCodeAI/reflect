@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 
-	reviewfeature "github.com/GrayCodeAI/rho/internal/features/review"
+	reviewfeature "github.com/GrayCodeAI/decoder/internal/features/review"
 )
 
 // Compatibility aliases keep existing command and workflow code stable while

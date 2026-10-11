@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	cloud "github.com/GrayCodeAI/rho/internal/platform/cloud"
+	"github.com/GrayCodeAI/decoder/internal/executiongraph"
+	cloud "github.com/GrayCodeAI/decoder/internal/platform/cloud"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ func TestCloudLoginHelpNamesDefaultEndpoint(t *testing.T) {
 	}
 }
 
-func TestCloudLoginUsesRHOCloudURL(t *testing.T) {
+func TestCloudLoginUsesDECODERCloudURL(t *testing.T) {
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/auth/device/start" {
@@ -56,7 +56,7 @@ func TestCloudLoginUsesRHOCloudURL(t *testing.T) {
 		t.Fatal("login succeeded against a failing server")
 	}
 	if hits.Load() != 1 {
-		t.Fatalf("device start hits = %d, want 1 (RHO_CLOUD_URL was not used)", hits.Load())
+		t.Fatalf("device start hits = %d, want 1 (DECODER_CLOUD_URL was not used)", hits.Load())
 	}
 }
 
@@ -110,7 +110,7 @@ func TestCloudContextReportsWorkerRejection(t *testing.T) {
 	defer server.Close()
 	useCloudClient(t, cloud.New(cloud.Config{Endpoint: server.URL, DeviceToken: "hwc_test"}), cloud.DeviceConfig{ProjectID: "project_0123456789"}, nil)
 
-	out, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/rho")
+	out, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/decoder")
 	if err == nil || !strings.Contains(err.Error(), "Device not found") {
 		t.Fatalf("error = %v, want the Worker's rejection", err)
 	}
@@ -128,7 +128,7 @@ func TestCloudContextReportsSuccessOnlyWhenAccepted(t *testing.T) {
 	defer server.Close()
 	useCloudClient(t, cloud.New(cloud.Config{Endpoint: server.URL, DeviceToken: "hwc_test"}), cloud.DeviceConfig{ProjectID: "project_0123456789"}, nil)
 
-	out, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/rho", "--ci-run", "42", "--ci-status", "succeeded")
+	out, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/decoder", "--ci-run", "42", "--ci-status", "succeeded")
 	if err != nil || !strings.Contains(out, "synced to GrayCode Cloud") {
 		t.Fatalf("out = %q, err = %v", out, err)
 	}
@@ -144,11 +144,11 @@ func TestCloudContextRejectsUnknownStatusFlags(t *testing.T) {
 	defer server.Close()
 	useCloudClient(t, cloud.New(cloud.Config{Endpoint: server.URL, DeviceToken: "hwc_test"}), cloud.DeviceConfig{ProjectID: "project_0123456789"}, nil)
 
-	_, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/rho", "--ci-run", "42", "--ci-status", "passed")
+	_, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/decoder", "--ci-run", "42", "--ci-status", "passed")
 	if err == nil || !strings.Contains(err.Error(), "--ci-status") {
 		t.Fatalf("error = %v, want a --ci-status error", err)
 	}
-	_, err = runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/rho", "--deployment", "d1", "--deployment-environment", "prod", "--deployment-status", "done")
+	_, err = runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/decoder", "--deployment", "d1", "--deployment-environment", "prod", "--deployment-status", "done")
 	if err == nil || !strings.Contains(err.Error(), "--deployment-status") || !strings.Contains(err.Error(), "rolled_back") {
 		t.Fatalf("error = %v, want a --deployment-status error listing rolled_back", err)
 	}
@@ -190,7 +190,7 @@ func TestExplicitCloudCommandsReportLoadErrors(t *testing.T) {
 	noGitRemote(t)
 	broken := errors.New("GrayCode Cloud configuration is incomplete")
 	useCloudClient(t, nil, cloud.DeviceConfig{}, broken)
-	if _, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/rho"); !errors.Is(err, broken) {
+	if _, err := runCloudCommand(t, newCloudContextCmd(), "--repository", "GrayCodeAI/decoder"); !errors.Is(err, broken) {
 		t.Fatalf("context error = %v, want the load failure", err)
 	}
 	missionDir := t.TempDir()
@@ -319,12 +319,12 @@ func useTokenStorage(t *testing.T, where string, plaintext bool) {
 func TestCloudConnectWarnsAboutPlaintextTokenStore(t *testing.T) {
 	captureCloudSave(t)
 	promptable(t, true, "hwc_prompted")
-	useTokenStorage(t, "plaintext file /home/dev/.config/rho/.tokens (mode 0600)", true)
+	useTokenStorage(t, "plaintext file /home/dev/.config/decoder/.tokens (mode 0600)", true)
 	out, err := runCloudCommand(t, newCloudConnectCmd(), connectIDs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "Warning:") || !strings.Contains(out, "/home/dev/.config/rho/.tokens") {
+	if !strings.Contains(out, "Warning:") || !strings.Contains(out, "/home/dev/.config/decoder/.tokens") {
 		t.Fatalf("output = %q, want a plaintext token warning naming the file", out)
 	}
 
@@ -338,9 +338,9 @@ func TestCloudConnectWarnsAboutPlaintextTokenStore(t *testing.T) {
 func TestCloudStatusShowsTokenStorage(t *testing.T) {
 	cfg := cloud.DeviceConfig{Endpoint: cloud.DefaultEndpoint, DeviceID: "device_0123456789", ProjectID: "project_0123456789"}
 	useCloudClient(t, cloud.New(cloud.Config{Endpoint: cfg.Endpoint, DeviceToken: "hwc_test"}), cfg, nil)
-	useTokenStorage(t, "plaintext file /tmp/rho/.tokens (mode 0600)", true)
+	useTokenStorage(t, "plaintext file /tmp/decoder/.tokens (mode 0600)", true)
 	out, err := runCloudCommand(t, newCloudStatusCmd())
-	if err != nil || !strings.Contains(out, "Device token: plaintext file /tmp/rho/.tokens") || !strings.Contains(out, "not an OS credential store") {
+	if err != nil || !strings.Contains(out, "Device token: plaintext file /tmp/decoder/.tokens") || !strings.Contains(out, "not an OS credential store") {
 		t.Fatalf("out = %q, err = %v", out, err)
 	}
 }

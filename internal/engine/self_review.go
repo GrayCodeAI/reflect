@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // SelfReview implements "rubber duck debugging" -- asking the model to explain
@@ -102,8 +102,8 @@ SUGGESTIONS: <comma-separated list of improvements, or "none">`)
 }
 
 // buildReviewMessages wraps the review prompt in a message slice.
-func buildReviewMessages(prompt string) []types.FluxMessage {
-	return []types.FluxMessage{
+func buildReviewMessages(prompt string) []types.MuxMessage {
+	return []types.MuxMessage{
 		{Role: "user", Content: prompt},
 	}
 }

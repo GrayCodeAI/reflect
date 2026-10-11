@@ -11,13 +11,13 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	analytics "github.com/GrayCodeAI/rho/internal/observability"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/theme"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	analytics "github.com/GrayCodeAI/decoder/internal/observability"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/theme"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // init() registers a large batch of simple /slash commands via
@@ -88,7 +88,7 @@ func init() {
 					m.themePicker = NewThemePicker()
 				}
 				// Pre-select the current saved theme.
-				current := rhoconfig.LoadGlobalSettings().Theme
+				current := decoderconfig.LoadGlobalSettings().Theme
 				m.themePicker.OpenWithCurrent(current)
 				m.viewDirty = true
 				m.updateViewportContent()
@@ -96,7 +96,7 @@ func init() {
 			}
 			// Inline: /theme <name>
 			themeName := args[0]
-			if err := rhoconfig.SetGlobalSetting("theme", themeName); err != nil {
+			if err := decoderconfig.SetGlobalSetting("theme", themeName); err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 			} else {
 				// Apply immediately — full palette swap, no restart needed.
@@ -117,7 +117,7 @@ func init() {
 				m.messages = append(m.messages, displayMsg{role: "system", content: "Usage: /color <hex-color>"})
 				return m, nil
 			}
-			if err := rhoconfig.SetGlobalSetting("agentColor", args[0]); err != nil {
+			if err := decoderconfig.SetGlobalSetting("agentColor", args[0]); err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 			} else {
 				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Agent color set to: %s", args[0])})
@@ -132,12 +132,12 @@ func init() {
 		description: "toggle fast mode (cheapest model for this provider)",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			savedModel := rhoconfig.ActiveModel(context.Background())
+			savedModel := decoderconfig.ActiveModel(context.Background())
 			if m.session.Model() == savedModel {
 				providerName := strings.TrimSpace(m.session.Provider())
-				fastModel := rhoconfig.CheapestModelForProvider(providerName, m.session.Model())
+				fastModel := decoderconfig.CheapestModelForProvider(providerName, m.session.Model())
 				if strings.TrimSpace(fastModel) == "" {
-					fastModel = rhoconfig.DefaultModelForProvider(providerName)
+					fastModel = decoderconfig.DefaultModelForProvider(providerName)
 				}
 				if strings.TrimSpace(fastModel) == "" {
 					m.messages = append(m.messages, displayMsg{role: "error", content: "Fast mode: no catalog model resolved for this provider"})
@@ -166,7 +166,7 @@ func init() {
 			level := strings.ToLower(args[0])
 			switch level {
 			case "low", "medium", "high":
-				_ = rhoconfig.SetGlobalSetting("reasoningEffort", level)
+				_ = decoderconfig.SetGlobalSetting("reasoningEffort", level)
 				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Reasoning effort → %s", level)})
 			default:
 				m.messages = append(m.messages, displayMsg{role: "error", content: "Valid levels: low, medium, high"})
@@ -321,14 +321,14 @@ func init() {
 		description: "toggle compact mode (removes outer padding)",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			settings := rhoconfig.LoadGlobalSettings()
+			settings := decoderconfig.LoadGlobalSettings()
 			current := settings.CompactMode
 			newVal := !current
 			valStr := "false"
 			if newVal {
 				valStr = "true"
 			}
-			if err := rhoconfig.SetGlobalSetting("compact_mode", valStr); err != nil {
+			if err := decoderconfig.SetGlobalSetting("compact_mode", valStr); err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 			} else {
 				state := "disabled"
@@ -350,7 +350,7 @@ func init() {
 		usage:       "/scroll-speed <1-100>",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
 			if len(args) < 1 {
-				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Usage: /scroll-speed <1-100>\nCurrent: %d", rhoconfig.LoadGlobalSettings().ScrollSpeed)})
+				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Usage: /scroll-speed <1-100>\nCurrent: %d", decoderconfig.LoadGlobalSettings().ScrollSpeed)})
 				return m, nil
 			}
 			speed, err := strconv.Atoi(args[0])
@@ -358,7 +358,7 @@ func init() {
 				m.messages = append(m.messages, displayMsg{role: "error", content: "Scroll speed must be 1-100"})
 				return m, nil
 			}
-			if err := rhoconfig.SetGlobalSetting("scroll_speed", args[0]); err != nil {
+			if err := decoderconfig.SetGlobalSetting("scroll_speed", args[0]); err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 			} else {
 				m.messages = append(m.messages, displayMsg{role: "system", content: "Scroll speed → " + args[0]})
@@ -373,7 +373,7 @@ func init() {
 		description: "toggle natural scrolling (invert direction)",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			settings := rhoconfig.LoadGlobalSettings()
+			settings := decoderconfig.LoadGlobalSettings()
 			current := settings.InvertScroll
 			newVal := !current
 			valStr := "false"
@@ -384,7 +384,7 @@ func init() {
 			if newVal {
 				enabled = "enabled"
 			}
-			if err := rhoconfig.SetGlobalSetting("invert_scroll", valStr); err != nil {
+			if err := decoderconfig.SetGlobalSetting("invert_scroll", valStr); err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 			} else {
 				m.messages = append(m.messages, displayMsg{role: "system", content: "Natural scrolling " + enabled})
@@ -400,13 +400,13 @@ func init() {
 		usage:       "/scroll-mode <auto|wheel|trackpad>",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
 			if len(args) < 1 {
-				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Usage: /scroll-mode <auto|wheel|trackpad>\nCurrent: %s", rhoconfig.LoadGlobalSettings().ScrollMode)})
+				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Usage: /scroll-mode <auto|wheel|trackpad>\nCurrent: %s", decoderconfig.LoadGlobalSettings().ScrollMode)})
 				return m, nil
 			}
 			mode := strings.ToLower(args[0])
 			switch mode {
 			case "auto", "wheel", "trackpad":
-				if err := rhoconfig.SetGlobalSetting("scrollmode", mode); err != nil {
+				if err := decoderconfig.SetGlobalSetting("scrollmode", mode); err != nil {
 					m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 				} else {
 					m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Scroll mode → %s", mode)})
@@ -445,7 +445,7 @@ func init() {
 				level = "256-color"
 			}
 
-			m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Terminal Setup Recommendations:\n\nColor Support: %s\nScroll Mode: %s (use /scroll-mode to change)\nScroll Speed: %d (use /scroll-speed to change)\nCompact Mode: %v (use /compact-mode to toggle)\n\nTips:\n- Set COLORTERM=truecolor for best color experience\n- Use tmux with set -g default-terminal \"tmux-256color\" for 256-color support\n- Enable mouse reporting in your terminal for full TUI interaction", level, rhoconfig.LoadGlobalSettings().ScrollMode, rhoconfig.LoadGlobalSettings().ScrollSpeed, rhoconfig.LoadGlobalSettings().CompactMode)})
+			m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Terminal Setup Recommendations:\n\nColor Support: %s\nScroll Mode: %s (use /scroll-mode to change)\nScroll Speed: %d (use /scroll-speed to change)\nCompact Mode: %v (use /compact-mode to toggle)\n\nTips:\n- Set COLORTERM=truecolor for best color experience\n- Use tmux with set -g default-terminal \"tmux-256color\" for 256-color support\n- Enable mouse reporting in your terminal for full TUI interaction", level, decoderconfig.LoadGlobalSettings().ScrollMode, decoderconfig.LoadGlobalSettings().ScrollSpeed, decoderconfig.LoadGlobalSettings().CompactMode)})
 			return m, nil
 		},
 	})
@@ -457,7 +457,7 @@ func init() {
 		usage:       "/pager-config <lines|linenumbers> <value>",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
 			if len(args) < 2 {
-				s := rhoconfig.LoadGlobalSettings()
+				s := decoderconfig.LoadGlobalSettings()
 				ln := false
 				messages := fmt.Sprintf("Pager Configuration:\n  lines: %d (0 = unlimited)\n  linenumbers: %v\n\nUsage: /pager-config <lines|linenumbers> <value>", s.PaginatorLines, ln)
 				if s.PaginatorShowLineNums != nil {
@@ -475,7 +475,7 @@ func init() {
 					m.messages = append(m.messages, displayMsg{role: "error", content: "Lines must be a positive number (0 = unlimited)"})
 					return m, nil
 				}
-				if err := rhoconfig.SetGlobalSetting("paginatorlines", value); err != nil {
+				if err := decoderconfig.SetGlobalSetting("paginatorlines", value); err != nil {
 					m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 				} else {
 					m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Pager lines → %d", lines)})
@@ -484,13 +484,13 @@ func init() {
 			case "linenumbers", "linenums", "ln":
 				switch strings.ToLower(value) {
 				case "1", "true", "yes", "on":
-					if err := rhoconfig.SetGlobalSetting("paginatorshowlinenumbers", "true"); err != nil {
+					if err := decoderconfig.SetGlobalSetting("paginatorshowlinenumbers", "true"); err != nil {
 						m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 					} else {
 						m.messages = append(m.messages, displayMsg{role: "system", content: "Pager line numbers → enabled"})
 					}
 				case "0", "false", "no", "off":
-					if err := rhoconfig.SetGlobalSetting("paginatorshowlinenumbers", "false"); err != nil {
+					if err := decoderconfig.SetGlobalSetting("paginatorshowlinenumbers", "false"); err != nil {
 						m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 					} else {
 						m.messages = append(m.messages, displayMsg{role: "system", content: "Pager line numbers → disabled"})
@@ -531,10 +531,10 @@ func init() {
 	// /upgrade — check for updates
 	subcommandRegistry.Register(&delegatingCommand{
 		name:        "upgrade",
-		description: "check for rho updates",
+		description: "check for decoder updates",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			return m.startPromptCommand("/upgrade", "Check for rho updates and show the latest available version.")
+			return m.startPromptCommand("/upgrade", "Check for decoder updates and show the latest available version.")
 		},
 	})
 
@@ -784,7 +784,7 @@ func init() {
 			style := strings.ToLower(args[0])
 			switch style {
 			case "concise", "normal", "detailed":
-				_ = rhoconfig.SetGlobalSetting("outputStyle", style)
+				_ = decoderconfig.SetGlobalSetting("outputStyle", style)
 				m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Output style → %s", style)})
 			default:
 				m.messages = append(m.messages, displayMsg{role: "error", content: "Valid styles: concise, normal, detailed"})
@@ -929,15 +929,15 @@ func init() {
 		},
 	})
 
-	// /feedback <msg> — submit feedback saved to Rho user state.
+	// /feedback <msg> — submit feedback saved to Decoder user state.
 	subcommandRegistry.Register(&delegatingCommand{
 		name:        "feedback",
-		description: "submit feedback (saved to Rho user state)",
+		description: "submit feedback (saved to Decoder user state)",
 		usage:       "/feedback <message>",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
 			body := strings.TrimSpace(strings.TrimPrefix(text, "/feedback"))
 			if body == "" {
-				m.messages = append(m.messages, displayMsg{role: "system", content: "Usage: /feedback <message>\nCaptures session context and saves feedback to Rho user state."})
+				m.messages = append(m.messages, displayMsg{role: "system", content: "Usage: /feedback <message>\nCaptures session context and saves feedback to Decoder user state."})
 				return m, nil
 			}
 			feedDir := filepath.Join(storage.StateDir(), "feedback")
@@ -1042,7 +1042,7 @@ func init() {
 		description: "show provider deployment status",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			report, err := rhoconfig.DeploymentStatusReport(context.Background(), m.session.Model())
+			report, err := decoderconfig.DeploymentStatusReport(context.Background(), m.session.Model())
 			if err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: fmt.Sprintf("Provider status failed: %v", err)})
 				return m, nil
@@ -1058,7 +1058,7 @@ func init() {
 		description: "refresh the model catalog",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			summary, err := rhoconfig.RefreshModelCatalogV1(context.Background())
+			summary, err := decoderconfig.RefreshModelCatalogV1(context.Background())
 			if err != nil {
 				m.messages = append(m.messages, displayMsg{role: "error", content: fmt.Sprintf("Model catalog refresh failed: %v", err)})
 				return m, nil

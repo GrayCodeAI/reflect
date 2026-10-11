@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/gitcmd"
+	"github.com/GrayCodeAI/decoder/internal/gitcmd"
 )
 
 // allowedGitSubcommands is the set of git subcommands the agent may run.

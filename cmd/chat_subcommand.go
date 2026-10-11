@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
-	commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
+	commandfeature "github.com/GrayCodeAI/decoder/internal/features/commands"
 )
 
 // ChatSubcommand is a single slash-command handler. Implementations live in

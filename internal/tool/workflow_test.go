@@ -31,7 +31,7 @@ func TestWorkflowTool_Name(t *testing.T) {
 }
 
 func TestListWorkflows_Empty(t *testing.T) {
-	// Change to a temp dir with no .rho/workflows/
+	// Change to a temp dir with no .decoder/workflows/
 	tmp := t.TempDir()
 	orig, _ := os.Getwd()
 	os.Chdir(tmp)

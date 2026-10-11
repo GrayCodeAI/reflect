@@ -10,9 +10,9 @@ import (
 	"time"
 	"unicode"
 
-	contracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	contracts "github.com/GrayCodeAI/decoder/internal/contracts/policy"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 var permissionANSIRe = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))`)

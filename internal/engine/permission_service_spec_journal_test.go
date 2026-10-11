@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
 )
 
 func TestPermissionServiceAdvanceSpecStageJournalsFact(t *testing.T) {

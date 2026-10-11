@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // synthesisTailMessages is how many recent messages feed the exhaustion prompt.
@@ -46,7 +46,7 @@ func (s *Session) SynthesisForExhaustion(ctx context.Context, reason string) str
 
 	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	resp, err := s.ChatLLM().Chat(callCtx, []types.FluxMessage{
+	resp, err := s.ChatLLM().Chat(callCtx, []types.MuxMessage{
 		{Role: "user", Content: b.String()},
 	}, types.ChatOptions{
 		Provider:  s.ChatLLM().Provider(),

@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	appName          = "rho"
+	appName          = "decoder"
 	legacyAppName    = "hawk"
-	envConfigDir     = "RHO_CONFIG_DIR"
-	envFluxConfigDir = "FLUX_CONFIG_DIR"
-	envStateDir      = "RHO_STATE_DIR"
-	envCacheDir      = "RHO_CACHE_DIR"
+	envConfigDir     = "DECODER_CONFIG_DIR"
+	envMuxConfigDir  = "MUX_CONFIG_DIR"
+	envStateDir      = "DECODER_STATE_DIR"
+	envCacheDir      = "DECODER_CACHE_DIR"
 	projectIDHashLen = 12
 )
 
@@ -24,15 +24,15 @@ func legacyEnvDir(legacyKey string) string {
 	return strings.TrimSpace(os.Getenv(legacyKey))
 }
 
-// resolveAppDir returns the current Rho app directory under root. Legacy
+// resolveAppDir returns the current Decoder app directory under root. Legacy
 // environment-variable overrides remain supported explicitly, but an
-// auto-detected Hawk directory must not silently become Rho's active state:
+// auto-detected Hawk directory must not silently become Decoder's active state:
 // it produces confusing paths and can be unwritable after the rebrand.
 func resolveAppDir(root string) string {
 	return filepath.Join(root, appName)
 }
 
-// ConfigDir returns the per-user configuration directory for Rho.
+// ConfigDir returns the per-user configuration directory for Decoder.
 func ConfigDir() string {
 	if dir := cleanEnvDir(envConfigDir); dir != "" {
 		return dir
@@ -75,12 +75,12 @@ func SettingsPath() string {
 }
 
 func ProviderConfigPath() string {
-	// Flux owns provider routing state and resolves it from FLUX_CONFIG_DIR,
+	// Mux owns provider routing state and resolves it from MUX_CONFIG_DIR,
 	// defaulting to its own directory under the user config root.
-	if dir := cleanEnvDir(envFluxConfigDir); dir != "" {
+	if dir := cleanEnvDir(envMuxConfigDir); dir != "" {
 		return filepath.Join(dir, "provider.json")
 	}
-	return filepath.Join(mustUserConfigDir(), "flux", "provider.json")
+	return filepath.Join(mustUserConfigDir(), "mux", "provider.json")
 }
 
 func SessionsDir() string {
@@ -149,8 +149,8 @@ func mustUserConfigDir() string {
 		// (e.g. unset HOME in a cron/daemon context). Fall back to a
 		// stable, writable location under the OS temp dir so the process
 		// still functions; the effective paths are also overridable via
-		// RHO_CONFIG_DIR / RHO_STATE_DIR / RHO_CACHE_DIR.
-		return filepath.Join(os.TempDir(), "rho-config")
+		// DECODER_CONFIG_DIR / DECODER_STATE_DIR / DECODER_CACHE_DIR.
+		return filepath.Join(os.TempDir(), "decoder-config")
 	}
 	return dir
 }
@@ -158,7 +158,7 @@ func mustUserConfigDir() string {
 func mustUserCacheDir() string {
 	dir, err := os.UserCacheDir()
 	if err != nil || dir == "" {
-		return filepath.Join(os.TempDir(), "rho-cache")
+		return filepath.Join(os.TempDir(), "decoder-cache")
 	}
 	return dir
 }

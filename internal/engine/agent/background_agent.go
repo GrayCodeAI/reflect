@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
 
-	"github.com/GrayCodeAI/rho/internal/taskruntime"
+	"github.com/GrayCodeAI/decoder/internal/taskruntime"
 )
 
 // BackgroundAgentPool manages async sub-agents that run in the background.

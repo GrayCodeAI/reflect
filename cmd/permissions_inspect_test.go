@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/permissions"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 )
 
 func TestInspectionToolCall_SelectsPowerShellRuntime(t *testing.T) {

@@ -1,7 +1,7 @@
-# Plan: Fix Critical + High-Impact Review Findings — rho
+# Plan: Fix Critical + High-Impact Review Findings — decoder
 
 > Branch: `fix/critical-and-high-review-2026-06`
-> PR: <https://github.com/GrayCodeAI/rho/pull/50>
+> PR: <https://github.com/GrayCodeAI/decoder/pull/50>
 > Status: **✅ COMPLETE — all 9 items + extensive follow-up committed.**
 > Constraint: **no new go.mod / go.sum dependencies** for any item in this plan.
 >
@@ -81,12 +81,12 @@ These were documented in the original plan as out-of-scope-for-this-PR. They rem
 
 ## Context
 
-A deep code review of `flux` and `rho` (companion plan at
-`../flux/docs/plans/fix-critical-and-high-review.md`) surfaced 7 critical
-and 9 high items. This plan covers **all rho items** (C3, C4, C5, H5,
+A deep code review of `mux` and `decoder` (companion plan at
+`../mux/docs/plans/fix-critical-and-high-review.md`) surfaced 7 critical
+and 9 high items. This plan covers **all decoder items** (C3, C4, C5, H5,
 H6, H7, H8, H9) broken into a sequence of small, reviewable PRs.
 
-## Scope (rho)
+## Scope (decoder)
 
 | ID | Severity | Title | File(s) | Effort |
 |----|----------|-------|---------|--------|
@@ -101,9 +101,9 @@ H6, H7, H8, H9) broken into a sequence of small, reviewable PRs.
 
 ## Out of scope (deferred to next plan)
 
-- H10 from flux: `//nolint:errcheck` on type-assertion that can panic.
+- H10 from mux: `//nolint:errcheck` on type-assertion that can panic.
 - M1–M20 medium items.
-- L-tier quick wins (e.g. `cosmenticFlags` typo, `cmd/.rho/` leaked state).
+- L-tier quick wins (e.g. `cosmenticFlags` typo, `cmd/.decoder/` leaked state).
 - `internal/intelligence/repomap/` documentation (large, separate effort).
 - Anything that requires a new dependency.
 
@@ -131,7 +131,7 @@ PRs can be merged individually; the branch is a namespace.
 ## PR 1 — Surface silent migration error (C4)
 
 **What**: `cmd/root.go:114` calls `MigrateProviderSecrets()` and discards
-the error. If migration fails, secrets may remain in `~/.rho/.env` while
+the error. If migration fails, secrets may remain in `~/.decoder/.env` while
 the agent is told to ignore that file.
 
 **Fix**:
@@ -240,7 +240,7 @@ core. Mitigation: keep both code paths behind a feature flag for one
 release; metric for "wait latency" before/after.
 
 **Rollback**: feature flag. If regressions appear, set
-`RHO_MULTIAGENT_POLLING=1` to revert.
+`DECODER_MULTIAGENT_POLLING=1` to revert.
 
 ---
 
@@ -367,7 +367,7 @@ legitimate-input fix, not a security regression.
 > This section records the original review finding only. Do not recreate the
 > removed sandbox package or Docker fallback from this plan.
 
-**Bug**: `internal/sandbox/seatbelt.go:70-108` `DefaultRhoPolicy` defaults
+**Bug**: `internal/sandbox/seatbelt.go:70-108` `DefaultDecoderPolicy` defaults
 to `AllowWrite: true` and `AllowProcess: true`. A sandboxed bash can write
 and spawn processes out of the box.
 
@@ -471,7 +471,7 @@ behavioral changes, only structural.
 
 ```bash
 go mod verify
-go build ./cmd/rho
+go build ./cmd/decoder
 go test -race -count=1 -shuffle=on ./...
 go vet ./...
 golangci-lint run
@@ -499,10 +499,10 @@ Coverage target: maintained at 60%+ (CI gate).
 
 ## Cross-repo coordination
 
-- **flux PR 4 (C2 — Vertex fix)** and **rho PR 4 (H6 — Session
+- **mux PR 4 (C2 — Vertex fix)** and **decoder PR 4 (H6 — Session
   decomposition)** are independent.
-- **flux PR 8 (H4 — FluxError)** is a prerequisite for any future
-  rho-side `errors.As(err, &fluxErr)` use (currently none). No
+- **mux PR 8 (H4 — MuxError)** is a prerequisite for any future
+  decoder-side `errors.As(err, &muxErr)` use (currently none). No
   ordering dependency.
 - The two repos' branches are independent and can be merged in any
   order.

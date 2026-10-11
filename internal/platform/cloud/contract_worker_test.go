@@ -14,7 +14,7 @@ import (
 )
 
 // contractWorker is an httptest stand-in for the GrayCode Cloud Worker that
-// enforces the request schemas of the rho <-> GrayCode Cloud wire contract the
+// enforces the request schemas of the decoder <-> GrayCode Cloud wire contract the
 // way the Worker's zod schemas do: strict objects (unknown keys rejected),
 // enums, string lengths in UTF-16 code units, integer bounds, RFC 3339
 // timestamps and the opaqueID pattern. A schema violation is a 400 with the
@@ -284,7 +284,7 @@ func validateUsage(body map[string]any) error {
 			[]string{"sessionId", "provider", "model", "inputTokens", "outputTokens", "cachedInputTokens", "reasoningTokens", "tokensSaved", "estimatedCostMicros", "durationMs", "status", "errorCode"},
 		),
 		f.opaque("eventId"), f.opaque("deviceId"), f.opaque("projectId"), f.opaque("sessionId"),
-		f.enum("capability", "rho", "graycode"),
+		f.enum("capability", "decoder", "graycode"),
 		f.str("provider", 0, 100, false), f.str("model", 0, 100, false), f.str("errorCode", 0, 100, false),
 		f.integer("tokensUsed", 0, 10_000_000),
 		f.integer("durationMs", 0, 86_400_000),

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/decoder/internal/testutil"
 )
 
 func TestMain(m *testing.M) {

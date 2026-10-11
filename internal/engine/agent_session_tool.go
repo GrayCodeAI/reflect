@@ -7,17 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
 
-	engagent "github.com/GrayCodeAI/rho/internal/engine/agent"
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/gitworktree"
-	"github.com/GrayCodeAI/rho/internal/hooks"
-	"github.com/GrayCodeAI/rho/internal/prompts"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	engagent "github.com/GrayCodeAI/decoder/internal/engine/agent"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/gitworktree"
+	"github.com/GrayCodeAI/decoder/internal/hooks"
+	"github.com/GrayCodeAI/decoder/internal/prompts"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 // WireAgentTool sets up typed sub-agent spawning via SpawnController.
@@ -56,7 +56,7 @@ func (s *Session) spawnSubAgentRequest(ctx context.Context, req agentcontracts.S
 			Agent:         string(mode),
 			Depth:         depth,
 			Mode:          "one-shot",
-			Provider:      "rho",
+			Provider:      "decoder",
 			Label:         truncateSummary(norm.Prompt, 200),
 			AgentProvider: s.ChatLLM().Provider(),
 			AgentModel:    s.ChatLLM().Model(),

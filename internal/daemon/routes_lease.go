@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/session"
 )
 
 // handleAcquireLease creates or refreshes a single-owner lease on a session,

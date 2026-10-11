@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
 const StreamChunkCoalesceInterval = 16 * time.Millisecond

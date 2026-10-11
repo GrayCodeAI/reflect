@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // SkillProvider defines the interface for skill sources.
@@ -237,7 +237,7 @@ func SkillRoots(cwd string) []string {
 	if home, err := os.UserHomeDir(); err == nil {
 		roots = append(
 			roots,
-			filepath.Join(home, ".rho", "skills"),
+			filepath.Join(home, ".decoder", "skills"),
 			filepath.Join(home, ".agents", "skills"),
 			filepath.Join(home, ".claude", "skills"),
 			filepath.Join(home, ".codex", "skills"),

@@ -67,8 +67,8 @@ func TestNotebookEditTool_Execute_InvalidJSON(t *testing.T) {
 func TestConfigTool_Execute(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	rhoDir := filepath.Join(dir, ".rho")
-	_ = os.MkdirAll(rhoDir, 0o755)
+	decoderDir := filepath.Join(dir, ".decoder")
+	_ = os.MkdirAll(decoderDir, 0o755)
 
 	ctx := context.Background()
 	ctx = WithToolContext(ctx, &ToolContext{

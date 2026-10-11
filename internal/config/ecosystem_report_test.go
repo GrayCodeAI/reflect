@@ -10,8 +10,8 @@ func TestFormatEcosystemPanel(t *testing.T) {
 	t.Parallel()
 	out := FormatEcosystemPanel(context.Background(), "anthropic", "claude-sonnet-4-20250514")
 	for _, want := range []string{
-		"Ecosystem (flux · token engine):",
-		"flux:",
+		"Ecosystem (mux · token engine):",
+		"mux:",
 		"token:",
 	} {
 		if !strings.Contains(out, want) {

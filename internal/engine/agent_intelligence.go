@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/agent"
+	"github.com/GrayCodeAI/decoder/internal/engine/agent"
 )
 
 // AgentIntelligence provides smart routing, auto-spawning, and synthesis for agents.

@@ -5,15 +5,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/decoder/internal/engine/cost"
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/engine"
 )
 
-// configModelOption is one row in the /config model picker (display from flux, id for settings).
+// configModelOption is one row in the /config model picker (display from mux, id for settings).
 type configModelOption struct {
 	ID               string
 	CanonicalID      string
@@ -44,7 +44,7 @@ func InvalidateModelCache() {
 	modelSyncAttempted = make(map[string]bool)
 	modelSyncMu.Unlock()
 	invalidatePlatformContextCache()
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 }
 
 // InvalidateModelCacheProvider drops one gateway's cached picker rows.
@@ -56,7 +56,7 @@ func InvalidateModelCacheProvider(provider string) {
 	modelSyncMu.Lock()
 	delete(modelSyncAttempted, provider)
 	modelSyncMu.Unlock()
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 }
 
 func fetchModelsAsync(provider string) tea.Cmd {
@@ -64,19 +64,19 @@ func fetchModelsAsync(provider string) tea.Cmd {
 		ctx := context.Background()
 		provider = strings.TrimSpace(provider)
 		if provider == "" {
-			provider = rhoconfig.DefaultModelProviderFilter(ctx)
+			provider = decoderconfig.DefaultModelProviderFilter(ctx)
 		}
-		entries, err := rhoconfig.ListEngineModels(ctx, provider, false)
+		entries, err := decoderconfig.ListEngineModels(ctx, provider, false)
 		if err != nil {
-			if _, derr := rhoconfig.ListEngineModels(ctx, provider, true); derr == nil {
+			if _, derr := decoderconfig.ListEngineModels(ctx, provider, true); derr == nil {
 				InvalidateModelCacheProvider(provider)
-				entries, err = rhoconfig.ListEngineModels(ctx, provider, false)
+				entries, err = decoderconfig.ListEngineModels(ctx, provider, false)
 			}
 		}
 		if err != nil {
 			return modelsFetchedMsg{provider: provider, err: err}
 		}
-		opts := configModelOptionsFromFlux(entries)
+		opts := configModelOptionsFromMux(entries)
 		if len(opts) > 0 {
 			modelCacheMu.Lock()
 			modelCache[provider] = opts
@@ -86,7 +86,7 @@ func fetchModelsAsync(provider string) tea.Cmd {
 	}
 }
 
-func configModelOptionsFromFlux(entries []rhoconfig.EngineModel) []configModelOption {
+func configModelOptionsFromMux(entries []decoderconfig.EngineModel) []configModelOption {
 	opts := make([]configModelOption, len(entries))
 	for i, e := range entries {
 		opts[i] = configModelOption{
@@ -170,10 +170,10 @@ func ensureModelCacheLoaded(provider string) {
 	modelSyncMu.Unlock()
 
 	ctx := context.Background()
-	entries, err := rhoconfig.ListEngineModels(ctx, provider, false)
+	entries, err := decoderconfig.ListEngineModels(ctx, provider, false)
 	if err != nil {
-		if _, derr := rhoconfig.ListEngineModels(ctx, provider, true); derr == nil {
-			entries, err = rhoconfig.ListEngineModels(ctx, provider, false)
+		if _, derr := decoderconfig.ListEngineModels(ctx, provider, true); derr == nil {
+			entries, err = decoderconfig.ListEngineModels(ctx, provider, false)
 		}
 	}
 	if err != nil || len(entries) == 0 {
@@ -182,7 +182,7 @@ func ensureModelCacheLoaded(provider string) {
 		modelSyncMu.Unlock()
 		return
 	}
-	opts := configModelOptionsFromFlux(entries)
+	opts := configModelOptionsFromMux(entries)
 	modelCacheMu.Lock()
 	modelCache[provider] = opts
 	modelCacheMu.Unlock()
@@ -252,9 +252,9 @@ func loadConfigModelOptions(provider string) []configModelOption {
 		return cached
 	}
 	modelCacheMu.RUnlock()
-	entries, err := rhoconfig.ListEngineModels(context.Background(), provider, false)
+	entries, err := decoderconfig.ListEngineModels(context.Background(), provider, false)
 	if err == nil && len(entries) > 0 {
-		opts := configModelOptionsFromFlux(entries)
+		opts := configModelOptionsFromMux(entries)
 		modelCacheMu.Lock()
 		modelCache[provider] = opts
 		modelCacheMu.Unlock()

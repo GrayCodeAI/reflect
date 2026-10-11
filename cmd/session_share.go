@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/session"
 	"github.com/spf13/cobra"
 )
 
 // sessionShareCmd shares a session. It uploads the export to a configured
-// hosted endpoint (RHO_SHARE_URL) when one is set, else falls back to the
+// hosted endpoint (DECODER_SHARE_URL) when one is set, else falls back to the
 // local content-derived deeplink + export path.
 var sessionShareCmd = &cobra.Command{
 	Use:   "share [session-id]",
@@ -40,7 +40,7 @@ func runSessionShare(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("export session: %w", err)
 	}
 
-	host := strings.TrimSpace(os.Getenv("RHO_SHARE_URL"))
+	host := strings.TrimSpace(os.Getenv("DECODER_SHARE_URL"))
 	if host != "" {
 		url, err := uploadShare(context.Background(), host, s.ID, data)
 		if err != nil {
@@ -56,7 +56,7 @@ func runSessionShare(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("could not generate a share link for session %q", s.ID)
 	}
 	fmt.Printf("Share deeplink: %s\n", link)
-	fmt.Printf("(Set RHO_SHARE_URL to a share service that accepts POST /v1/shares for a hosted URL; GrayCode Cloud does not host session shares.)\n")
+	fmt.Printf("(Set DECODER_SHARE_URL to a share service that accepts POST /v1/shares for a hosted URL; GrayCode Cloud does not host session shares.)\n")
 	return nil
 }
 

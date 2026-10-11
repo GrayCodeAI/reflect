@@ -6,12 +6,12 @@ cd "$ROOT_DIR"
 
 failed=0
 
-if rg -n '"github\.com/GrayCodeAI/rho/cmd' internal/features --glob '*.go' --glob '!**/*_test.go'; then
+if rg -n '"github\.com/GrayCodeAI/decoder/cmd' internal/features --glob '*.go' --glob '!**/*_test.go'; then
   echo "feature packages must not import the CLI composition root" >&2
   failed=1
 fi
 
-if rg -n '"github\.com/GrayCodeAI/rho/internal/features/' internal/features --glob '*.go' --glob '!**/*_test.go'; then
+if rg -n '"github\.com/GrayCodeAI/decoder/internal/features/' internal/features --glob '*.go' --glob '!**/*_test.go'; then
   echo "feature packages must not import one another directly; use contracts or platform seams" >&2
   failed=1
 fi
@@ -25,4 +25,4 @@ if ((failed)); then
   exit 1
 fi
 
-echo "Rho feature boundary guard passed"
+echo "Decoder feature boundary guard passed"

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
 )
 
 const (

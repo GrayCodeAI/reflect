@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 )
 
 func TestFilterConfigModelOptions(t *testing.T) {
@@ -45,7 +45,7 @@ func TestModelOptionIsActive(t *testing.T) {
 }
 
 func TestConfigModelOptionsCarryResolvedEngineIdentity(t *testing.T) {
-	opts := configModelOptionsFromFlux([]rhoconfig.EngineModel{{
+	opts := configModelOptionsFromMux([]decoderconfig.EngineModel{{
 		ID: "models/gemini-pro", CanonicalID: "google/gemini-pro",
 		ProviderID: "google", GatewayID: "gemini", Capabilities: []string{"tools", "vision"},
 	}})

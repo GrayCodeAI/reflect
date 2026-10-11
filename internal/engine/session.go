@@ -10,29 +10,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/decoder/internal/engine/cost"
 
-	"github.com/GrayCodeAI/rho/internal/engine/streaming"
-	"github.com/GrayCodeAI/rho/internal/engine/validation"
+	"github.com/GrayCodeAI/decoder/internal/engine/streaming"
+	"github.com/GrayCodeAI/decoder/internal/engine/validation"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
-	"github.com/GrayCodeAI/rho/internal/conversationarc"
-	"github.com/GrayCodeAI/rho/internal/engine/planning"
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/observability/metrics"
-	"github.com/GrayCodeAI/rho/internal/observability/oteltrace"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/prompts"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/resilience/ratelimit"
-	"github.com/GrayCodeAI/rho/internal/schedule"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/snapshot"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
+	"github.com/GrayCodeAI/decoder/internal/conversationarc"
+	"github.com/GrayCodeAI/decoder/internal/engine/planning"
+	"github.com/GrayCodeAI/decoder/internal/eventlog"
+	"github.com/GrayCodeAI/decoder/internal/observability/logger"
+	"github.com/GrayCodeAI/decoder/internal/observability/metrics"
+	"github.com/GrayCodeAI/decoder/internal/observability/oteltrace"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/prompts"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/resilience/ratelimit"
+	"github.com/GrayCodeAI/decoder/internal/schedule"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/snapshot"
+	"github.com/GrayCodeAI/decoder/internal/tool"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // MemoryRecaller abstracts memory recall/remember so engine avoids importing memory directly.
@@ -50,7 +50,7 @@ type SnapshotTracker interface {
 	TrackCtx(ctx context.Context, message string) (string, error)
 }
 
-// Session manages a conversation with an LLM via flux.
+// Session manages a conversation with an LLM via mux.
 // The mu RWMutex protects the remaining session metadata for concurrent
 // access. Transcript and system-context state are owned by PersistenceService.
 //
@@ -92,7 +92,7 @@ type Session struct {
 	// milestones/phase) loaded per session. See conversationarc package.
 	arc *conversationarc.Arc
 	// incremental is the opt-in incremental system-context reconciler for
-	// dynamic sections (e.g. memories). Nil unless RHO_INCREMENTAL_CONTEXT=1.
+	// dynamic sections (e.g. memories). Nil unless DECODER_INCREMENTAL_CONTEXT=1.
 	// See incremental.go.
 	incremental *memoryIncremental
 	// learnFn persists structured lessons produced by failure reflection to a
@@ -163,9 +163,9 @@ type Session struct {
 	workMode WorkMode
 }
 
-// NewSession creates a conversation session through Flux's engine facade.
+// NewSession creates a conversation session through Mux's engine facade.
 func NewSession(provider, model, systemPrompt string, registry *tool.Registry) *Session {
-	return NewRhoSession(context.Background(), gateway.Selection{
+	return NewDecoderSession(context.Background(), gateway.Selection{
 		Provider: provider,
 		Model:    model,
 	}, provider, model, systemPrompt, registry)
@@ -692,10 +692,10 @@ func (s *Session) ForkConversation(nodeID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	msgs := make([]types.FluxMessage, 0, len(history))
+	msgs := make([]types.MuxMessage, 0, len(history))
 	for _, node := range history {
 		if node.Role == "user" || node.Role == "assistant" {
-			msgs = append(msgs, types.FluxMessage{Role: node.Role, Content: node.Content})
+			msgs = append(msgs, types.MuxMessage{Role: node.Role, Content: node.Content})
 		}
 	}
 	p.SetRawMessages(msgs)
@@ -719,10 +719,10 @@ func (s *Session) SwitchBranch(nodeID string) error {
 	if err != nil {
 		return err
 	}
-	msgs := make([]types.FluxMessage, 0, len(history))
+	msgs := make([]types.MuxMessage, 0, len(history))
 	for _, node := range history {
 		if node.Role == "user" || node.Role == "assistant" {
-			msgs = append(msgs, types.FluxMessage{Role: node.Role, Content: node.Content})
+			msgs = append(msgs, types.MuxMessage{Role: node.Role, Content: node.Content})
 		}
 	}
 	p.SetRawMessages(msgs)
@@ -889,7 +889,7 @@ func (s *Session) EscalatePermission(requestID string) bool {
 	return s.perms.EscalatePermission(requestID)
 }
 
-// SetConversationGraph attaches Rho's product-owned conversation graph and
+// SetConversationGraph attaches Decoder's product-owned conversation graph and
 // seeds it from an already-resumed linear transcript when the graph is new.
 func (s *Session) SetConversationGraph(graph *session.ConversationGraph) {
 	if s.persist != nil {
@@ -1055,7 +1055,7 @@ func (s *Session) EnsureSkillCatalogStatement() string {
 	if digest != last {
 		msg := plugin.RenderSkillCatalogMessage(invocable, digest)
 		if p := s.Persistence(); p != nil {
-			p.AppendUserJournaled(types.FluxMessage{Role: "user", Content: msg})
+			p.AppendUserJournaled(types.MuxMessage{Role: "user", Content: msg})
 		}
 		s.mu.Lock()
 		s.lastSkillCatalogDigest = digest
@@ -1072,7 +1072,7 @@ func (s *Session) CostValue() *cost.Cost {
 	return &s.Cost
 }
 
-func (s *Session) LoadMessages(msgs []types.FluxMessage) {
+func (s *Session) LoadMessages(msgs []types.MuxMessage) {
 	s.Persistence().SetRawMessages(msgs)
 }
 
@@ -1086,7 +1086,7 @@ func (s *Session) MessageCount() int {
 // AddUser/AddAssistant and the agent loop (stream.go) all write through it,
 // and compaction/governor paths read it. Delegating here means TUI/CLI
 // consumers — notably saveSession — see the real, populated transcript.
-func (s *Session) RawMessages() []types.FluxMessage {
+func (s *Session) RawMessages() []types.MuxMessage {
 	if p := s.Persistence(); p != nil {
 		return p.RawMessages()
 	}
@@ -1095,7 +1095,7 @@ func (s *Session) RawMessages() []types.FluxMessage {
 
 // Chat implements the LLMClient interface by delegating to the underlying client.
 // This allows Session to be passed to components that need LLM access (e.g. Reflector, SelfReview).
-func (s *Session) Chat(ctx context.Context, msgs []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (s *Session) Chat(ctx context.Context, msgs []types.MuxMessage, opts types.ChatOptions) (*types.MuxResponse, error) {
 	if s.ChatLLM() == nil {
 		return nil, fmt.Errorf("session: no LLM client configured")
 	}
@@ -1124,7 +1124,7 @@ func (s *Session) Schedule() *schedule.Manager {
 						Priority: 1,
 					})
 				} else {
-					p.AppendUserJournaled(types.FluxMessage{
+					p.AppendUserJournaled(types.MuxMessage{
 						Role:    "user",
 						Content: content,
 					})

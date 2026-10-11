@@ -1,7 +1,7 @@
 // Package pathsafe centralizes sensitive-path policy so low-level packages
 // (for example config) can consult it without depending on the large tool
 // package. It blocks reads and writes to credential-bearing files such as
-// ~/.ssh keys, cloud credentials, and rho's own provider/env files.
+// ~/.ssh keys, cloud credentials, and decoder's own provider/env files.
 package pathsafe
 
 import (
@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/env"
-	"github.com/GrayCodeAI/rho/internal/home"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/env"
+	"github.com/GrayCodeAI/decoder/internal/home"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // BlockedPathSuffixes are path suffixes that should never be read or written.
@@ -94,17 +94,17 @@ func IsSensitivePath(path string) string {
 	homeDir := home.MustDir()
 
 	if homeDir != "" {
-		rhoProv := filepath.Join(homeDir, ".rho", "provider.json")
-		if clean == rhoProv {
-			return "access to ~/.rho/provider.json is blocked for security (API credentials)"
+		decoderProv := filepath.Join(homeDir, ".decoder", "provider.json")
+		if clean == decoderProv {
+			return "access to ~/.decoder/provider.json is blocked for security (API credentials)"
 		}
-		rhoEnv := filepath.Join(homeDir, ".rho", "env")
-		if clean == rhoEnv {
-			return "access to ~/.rho/env is blocked for security (API keys)"
+		decoderEnv := filepath.Join(homeDir, ".decoder", "env")
+		if clean == decoderEnv {
+			return "access to ~/.decoder/env is blocked for security (API keys)"
 		}
-		rhoDotEnv := filepath.Join(homeDir, ".rho", ".env")
-		if clean == rhoDotEnv {
-			return "access to ~/.rho/.env is blocked for security (API keys)"
+		decoderDotEnv := filepath.Join(homeDir, ".decoder", ".env")
+		if clean == decoderDotEnv {
+			return "access to ~/.decoder/.env is blocked for security (API keys)"
 		}
 	}
 
@@ -112,14 +112,14 @@ func IsSensitivePath(path string) string {
 		return "access to provider.json is blocked for security (API credentials)"
 	}
 
-	if cfgDir := strings.TrimSpace(env.Getenv("RHO_CONFIG_DIR")); cfgDir != "" {
+	if cfgDir := strings.TrimSpace(env.Getenv("DECODER_CONFIG_DIR")); cfgDir != "" {
 		customEnv := filepath.Join(cfgDir, "env")
 		if matchesResolvedPath(clean, customEnv) {
-			return "access to rho env file is blocked for security (API keys)"
+			return "access to decoder env file is blocked for security (API keys)"
 		}
 		customDotEnv := filepath.Join(cfgDir, ".env")
 		if matchesResolvedPath(clean, customDotEnv) {
-			return "access to rho .env is blocked for security (API keys)"
+			return "access to decoder .env is blocked for security (API keys)"
 		}
 	}
 

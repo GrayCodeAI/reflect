@@ -11,13 +11,13 @@ import (
 )
 
 // versionLine is the single user-facing version format shared by
-// `rho --version` and `rho version`.
+// `decoder --version` and `decoder version`.
 func versionLine() string {
 	ver := DisplayVersion()
 	if ver != "" && !strings.HasPrefix(ver, "v") && !strings.HasPrefix(ver, "V") {
 		ver = "v" + ver
 	}
-	line := auditTint("rho", textPrimary) + " " + auditTint(ver, rhoColor)
+	line := auditTint("decoder", textPrimary) + " " + auditTint(ver, decoderColor)
 	if d := strings.TrimSpace(buildDate); d != "" && d != "unknown" {
 		line += auditTint(" (built "+d+")", textMuted)
 	}
@@ -28,7 +28,7 @@ func versionLine() string {
 //
 // In order of preference:
 //  1. the version injected via ldflags (release archives, `make build`);
-//  2. the module version recorded by `go install .../cmd/rho@vX.Y.Z`;
+//  2. the module version recorded by `go install .../cmd/decoder@vX.Y.Z`;
 //  3. the repository VERSION file (local `go build` / `go run` checkouts);
 //  4. "dev".
 func DisplayVersion() string {
@@ -53,7 +53,7 @@ var readBuildInfo = debug.ReadBuildInfo
 
 // releaseModuleVersion returns the main module's version without the leading
 // "v" when the binary was built from a tagged module (`go install
-// github.com/GrayCodeAI/rho/cmd/rho@v0.3.0`), and "" for development builds:
+// github.com/GrayCodeAI/decoder/cmd/decoder@v0.3.0`), and "" for development builds:
 // "(devel)", pseudo-versions (untagged commits such as @main) and versions
 // with build metadata (e.g. "+dirty" from a modified checkout).
 func releaseModuleVersion() string {

@@ -7,15 +7,15 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Rho: .agents/rules/*.md
+// Decoder: .agents/rules/*.md
 // ---------------------------------------------------------------------------
 
-func readRho(dir string) ([]Rule, error) {
+func readDecoder(dir string) ([]Rule, error) {
 	rulesDir := filepath.Join(dir, ".agents", "rules")
-	return readMDDir(rulesDir, ".md", FormatRho)
+	return readMDDir(rulesDir, ".md", FormatDecoder)
 }
 
-func writeRho(dir string, rules []Rule) error {
+func writeDecoder(dir string, rules []Rule) error {
 	rulesDir := filepath.Join(dir, ".agents", "rules")
 	if err := os.MkdirAll(rulesDir, 0o750); err != nil {
 		return err

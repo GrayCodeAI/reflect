@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 )
 
 // TestDryRun_DeniesEverythingRegardlessOfTierOrStage covers the dry-run

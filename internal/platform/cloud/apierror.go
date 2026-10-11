@@ -38,7 +38,7 @@ func (e *APIError) Error() string {
 		msg = fmt.Sprintf("GrayCode Cloud %s failed: %s", e.Operation, status)
 	}
 	if e.StatusCode == http.StatusUnauthorized {
-		msg += "; the device token was rejected or revoked, run `rho cloud login` to reconnect"
+		msg += "; the device token was rejected or revoked, run `decoder cloud login` to reconnect"
 	}
 	return msg
 }

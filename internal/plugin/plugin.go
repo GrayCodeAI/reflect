@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
-// Manifest defines a rho plugin.
+// Manifest defines a decoder plugin.
 type Manifest struct {
 	Name        string       `json:"name"`
 	Version     string       `json:"version"`

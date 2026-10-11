@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 // GitProvider integrates with GitHub/GitLab/Bitbucket APIs for issue management,

@@ -24,7 +24,7 @@ var agentFiles = []string{
 }
 
 // sharedAgentFiles lists instruction files under a shared resource directory.
-// Tau reads `.agents/` resources; Rho honors the same layout in addition to
+// Tau reads `.agents/` resources; Decoder honors the same layout in addition to
 // the root-level AGENTS.md, so a repo can keep shared agent instructions in
 // `.agents/AGENTS.md`.
 var sharedAgentFiles = []string{

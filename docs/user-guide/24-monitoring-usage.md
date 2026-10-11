@@ -1,6 +1,6 @@
 # Monitoring and Usage
 
-Rho tracks token usage, costs, and session activity for monitoring and debugging.
+Decoder tracks token usage, costs, and session activity for monitoring and debugging.
 
 ---
 
@@ -11,8 +11,8 @@ Token usage is tracked per session and aggregated.
 ### View Usage
 
 ```bash
-rho usage
-rho doctor    # Full health report
+decoder usage
+decoder doctor    # Full health report
 ```
 
 Usage shows:
@@ -24,12 +24,12 @@ Usage shows:
 
 ## Telemetry
 
-Rho can send anonymous usage telemetry.
+Decoder can send anonymous usage telemetry.
 
 ### Enable/Disable
 
 ```json
-// ~/.rho/settings.json
+// ~/.decoder/settings.json
 {
   "telemetry": {
     "enabled": false
@@ -40,7 +40,7 @@ Rho can send anonymous usage telemetry.
 Or:
 
 ```bash
-rho --telemetry    # Enable
+decoder --telemetry    # Enable
 haw --no-telemetry  # Disable
 ```
 
@@ -77,7 +77,7 @@ Accessible via `/ecosystem` in TUI.
 
 ## Cloud Integration
 
-Rho Cloud provides managed usage tracking:
+Decoder Cloud provides managed usage tracking:
 
 - Organization-level metrics
 - Budget alerts

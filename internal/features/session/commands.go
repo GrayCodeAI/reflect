@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/decoder/internal/session"
 )
 
 // HistoryReport formats the saved-session listing for a terminal client.

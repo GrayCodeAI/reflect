@@ -6,7 +6,7 @@ import (
 )
 
 func TestPostResponseReportsTokOnlyRedactions(t *testing.T) {
-	t.Setenv("RHO_STATE_DIR", t.TempDir())
+	t.Setenv("DECODER_STATE_DIR", t.TempDir())
 	pipeline := NewIntegrationPipeline()
 	secret := "github_pat_abcdefghijklmnopqrstuvwxyz1234567890"
 

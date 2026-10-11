@@ -3,7 +3,7 @@ package compact
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCountClearableToolResults(t *testing.T) {
 
 func TestIsThinkingMessage(t *testing.T) {
 	// Empty message
-	result := isThinkingMessage(types.FluxMessage{})
+	result := isThinkingMessage(types.MuxMessage{})
 	if result {
 		t.Error("expected false for empty message")
 	}
@@ -130,7 +130,7 @@ func TestReadSessionMemory_NonExistent(t *testing.T) {
 
 func TestIsCompactBoundary(t *testing.T) {
 	// Empty message
-	result := IsCompactBoundary(types.FluxMessage{})
+	result := IsCompactBoundary(types.MuxMessage{})
 	if result {
 		t.Error("expected false for empty message")
 	}

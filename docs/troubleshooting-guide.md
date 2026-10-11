@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-A practical guide for diagnosing common rho daemon and CLI issues.
+A practical guide for diagnosing common decoder daemon and CLI issues.
 
 ## Table of Contents
 
@@ -29,27 +29,27 @@ because the auth middleware would be open to the network.
 **Fix:** Set an API key:
 
 ```bash
-export RHO_DAEMON_API_KEY=$(openssl rand -base64 32)
-rho daemon start --host 0.0.0.0 --port 4590
+export DECODER_DAEMON_API_KEY=$(openssl rand -base64 32)
+decoder daemon start --host 0.0.0.0 --port 4590
 ```
 
 Or bind to loopback only (no API key required, but not remotely accessible):
 
 ```bash
-rho daemon start --host 127.0.0.1 --port 4590
+decoder daemon start --host 127.0.0.1 --port 4590
 ```
 
 ### "permission denied" on state directory
 
-The daemon writes logs, PID files, and the audit log to `~/.rho/state/`.
+The daemon writes logs, PID files, and the audit log to `~/.decoder/state/`.
 
 **Fix:**
 
 ```bash
-mkdir -p ~/.rho/state
-chmod 750 ~/.rho/state
-# If running under systemd as user 'rho', ensure ownership:
-chown -R rho:rho ~/.rho
+mkdir -p ~/.decoder/state
+chmod 750 ~/.decoder/state
+# If running under systemd as user 'decoder', ensure ownership:
+chown -R decoder:decoder ~/.decoder
 ```
 
 ### "port already in use"
@@ -63,7 +63,7 @@ Another process is using port 4590.
 lsof -i :4590
 
 # Or use a different port
-rho daemon start --port 4591
+decoder daemon start --port 4591
 ```
 
 ---
@@ -72,7 +72,7 @@ rho daemon start --port 4591
 
 ### `GET /v1/ready` returns 503
 
-The readiness probe fails when Flux's local preflight doesn't pass. This
+The readiness probe fails when Mux's local preflight doesn't pass. This
 checks provider state, catalog, credentials, and model selection.
 
 **Diagnosis:**
@@ -83,9 +83,9 @@ curl -v http://localhost:4590/v1/ready
 
 Check the response body for the specific failed check. Common causes:
 
-- No model configured — set `RHO_MODEL` or provider credentials.
-- Flux catalog not initialized — the Go modules are independent sibling
-  repositories; from a full parent workspace, run `make setup` in rho to
+- No model configured — set `DECODER_MODEL` or provider credentials.
+- Mux catalog not initialized — the Go modules are independent sibling
+  repositories; from a full parent workspace, run `make setup` in decoder to
   regenerate the parent `go.work`:
   ```bash
   make setup
@@ -102,11 +102,11 @@ failed to start.
 
 ```bash
 # Check if the process is running
-ps aux | grep rho
+ps aux | grep decoder
 
 # Check logs
-journalctl -u rho-daemon -n 50
-tail -50 ~/.rho/state/daemon.log
+journalctl -u decoder-daemon -n 50
+tail -50 ~/.decoder/state/daemon.log
 ```
 
 ---
@@ -120,7 +120,7 @@ The daemon requires `Authorization: Bearer <key>` or `X-API-Key: <key>`.
 **Fix:**
 
 ```bash
-curl -H "X-API-Key: $RHO_DAEMON_API_KEY" http://localhost:4590/v1/stats
+curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" http://localhost:4590/v1/stats
 ```
 
 ### "constant time comparison" errors in logs
@@ -131,16 +131,16 @@ No action needed.
 
 ### Forgotten API key
 
-The API key is written to `~/.rho/state/daemon.key` (permissions 0600).
+The API key is written to `~/.decoder/state/daemon.key` (permissions 0600).
 
 ```bash
-cat ~/.rho/state/daemon.key
+cat ~/.decoder/state/daemon.key
 ```
 
 **Security note:** Remove this file in production after initial testing:
 
 ```bash
-rm ~/.rho/state/daemon.key
+rm ~/.decoder/state/daemon.key
 ```
 
 ---
@@ -152,7 +152,7 @@ your request. The default limits are:
 
 - **General API**: 10 req/min, burst 4
 - **Chat**: 30 req/min, burst 6
-- **Concurrent chat sessions**: 4 (configurable via `RHO_DAEMON_MAX_CONCURRENT`)
+- **Concurrent chat sessions**: 4 (configurable via `DECODER_DAEMON_MAX_CONCURRENT`)
 
 **Fix:**
 
@@ -170,7 +170,7 @@ your request. The default limits are:
 CORS is **disabled by default**. Enable it when serving browser-based clients:
 
 ```bash
-rho daemon start --cors https://app.example.com --cors https://admin.example.com
+decoder daemon start --cors https://app.example.com --cors https://admin.example.com
 ```
 
 Use `--cors '*'` only for development — it allows any origin.
@@ -181,7 +181,7 @@ The CORS middleware handles OPTIONS preflight automatically when the `cors`
 feature flag is enabled. If you're getting 405, ensure CORS is enabled:
 
 ```bash
-export RHO_FEATURE_CORS=1
+export DECODER_FEATURE_CORS=1
 ```
 
 ---
@@ -197,7 +197,7 @@ mode) or when the engine is not ready (daemon mode).
 curl http://localhost:4590/v1/ready
 ```
 
-If readiness fails, the session factory exists but Flux preflight is not
+If readiness fails, the session factory exists but Mux preflight is not
 satisfied (missing model, credentials, etc.).
 
 ---
@@ -210,7 +210,7 @@ The metrics endpoint is protected by the same API key authentication as other
 endpoints.
 
 ```bash
-curl -H "X-API-Key: $RHO_DAEMON_API_KEY" http://localhost:4590/v1/metrics
+curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" http://localhost:4590/v1/metrics
 ```
 
 ### Metrics output is empty
@@ -226,7 +226,7 @@ Prometheus version supports this format (Prometheus 2.20+).
 For troubleshooting, try the JSON format:
 
 ```bash
-curl -H "X-API-Key: $RHO_DAEMON_API_KEY" \
+curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" \
   "http://localhost:4590/v1/metrics?format=json"
 ```
 
@@ -239,13 +239,13 @@ curl -H "X-API-Key: $RHO_DAEMON_API_KEY" \
 Telemetry is **opt-in**. You must explicitly enable it:
 
 ```bash
-export RHO_ENABLE_TELEMETRY=1
+export DECODER_ENABLE_TELEMETRY=1
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-rho daemon start
+decoder daemon start
 ```
 
 **Important**: Setting `OTEL_EXPORTER_OTLP_ENDPOINT` alone does **not**
-enable telemetry. The `RHO_ENABLE_TELEMETRY=1` flag is required.
+enable telemetry. The `DECODER_ENABLE_TELEMETRY=1` flag is required.
 
 ### "telemetry initialization failed" warning in logs
 
@@ -264,7 +264,7 @@ curl -v http://localhost:4318/v1/traces
 
 The OTel SDK uses a batch span processor with a 5-second flush interval.
 On shutdown, the daemon waits up to 2 seconds (configurable via
-`RHO_OTEL_SHUTDOWN_TIMEOUT_MS`) to flush pending spans.
+`DECODER_OTEL_SHUTDOWN_TIMEOUT_MS`) to flush pending spans.
 
 To force a flush, send SIGTERM to the daemon — it will flush telemetry
 before shutting down.
@@ -275,25 +275,25 @@ before shutting down.
 
 ### Security log won't open
 
-The audit log is stored in `~/.rho/state/securitylog/`. If the directory
+The audit log is stored in `~/.decoder/state/securitylog/`. If the directory
 doesn't exist or isn't writable:
 
 ```bash
-mkdir -p ~/.rho/state/securitylog
-chmod 700 ~/.rho/state/securitylog
+mkdir -p ~/.decoder/state/securitylog
+chmod 700 ~/.decoder/state/securitylog
 ```
 
 ### "log tail does not match head pointer (truncated or tampered)"
 
 This error means the security log has been modified or truncated. The
 tamper-evident design detected an inconsistency. Restore from a backup
-of the `~/.rho/state/securitylog/` directory.
+of the `~/.decoder/state/securitylog/` directory.
 
 ### Lost the HMAC key
 
 The HMAC key (`sel.key`) is required to verify the audit log. If it's
 lost, all entries become unverifiable. **Always back up the entire
-`~/.rho/state/securitylog/` directory.**
+`~/.decoder/state/securitylog/` directory.**
 
 ---
 
@@ -312,13 +312,13 @@ audit log for the `denied` event type.
 
 1. Check the metrics endpoint for request duration:
    ```bash
-   curl -H "X-API-Key: $RHO_DAEMON_API_KEY" \
+   curl -H "X-API-Key: $DECODER_DAEMON_API_KEY" \
      "http://localhost:4590/v1/metrics?format=json"
    ```
-2. Check concurrent sessions: `rho_daemon_chat_concurrency_used`
+2. Check concurrent sessions: `decoder_daemon_chat_concurrency_used`
 3. If at capacity, increase the concurrency limit:
    ```bash
-   export RHO_DAEMON_MAX_CONCURRENT=8
+   export DECODER_DAEMON_MAX_CONCURRENT=8
    ```
 
 ### High memory usage
@@ -334,41 +334,41 @@ large contexts can consume significant memory. Consider:
 
 ## Systemd Issues
 
-### "Failed to start rho-daemon.service: Unit not found"
+### "Failed to start decoder-daemon.service: Unit not found"
 
 Install the unit file, the service user and the binary it runs:
 
 ```bash
-sudo useradd --system --home-dir /var/lib/rho --shell /usr/sbin/nologin rho
-sudo install -m 0755 ~/.rho/bin/rho /usr/local/bin/rho
-sudo cp packaging/systemd/rho-daemon.service /etc/systemd/system/
-# Optional: sudo install -D -m 0600 /dev/null /etc/rho/daemon.env, then add
-# RHO_DAEMON_API_KEY=<key> (the key is read from the environment, not argv).
+sudo useradd --system --home-dir /var/lib/decoder --shell /usr/sbin/nologin decoder
+sudo install -m 0755 ~/.decoder/bin/decoder /usr/local/bin/decoder
+sudo cp packaging/systemd/decoder-daemon.service /etc/systemd/system/
+# Optional: sudo install -D -m 0600 /dev/null /etc/decoder/daemon.env, then add
+# DECODER_DAEMON_API_KEY=<key> (the key is read from the environment, not argv).
 sudo systemctl daemon-reload
-sudo systemctl enable --now rho-daemon
+sudo systemctl enable --now decoder-daemon
 ```
 
 ### "Permission denied" accessing state directory
 
-The unit runs as user `rho` with `ProtectSystem=strict` and
+The unit runs as user `decoder` with `ProtectSystem=strict` and
 `ProtectHome=true`, so the only writable locations are the directories
-systemd creates for it (`StateDirectory=rho`, `CacheDirectory=rho`) and a
-private `/tmp`. Config lives in `/var/lib/rho/config`, state (sessions, security
-log, `run/daemon.log`) in `/var/lib/rho/state`, and cache in `/var/cache/rho`.
+systemd creates for it (`StateDirectory=decoder`, `CacheDirectory=decoder`) and a
+private `/tmp`. Config lives in `/var/lib/decoder/config`, state (sessions, security
+log, `run/daemon.log`) in `/var/lib/decoder/state`, and cache in `/var/cache/decoder`.
 Home directories are hidden from the service, so do not point
-`ReadWritePaths=` or the `RHO_*_DIR` variables at `/home`, `/root` or `%h`
+`ReadWritePaths=` or the `DECODER_*_DIR` variables at `/home`, `/root` or `%h`
 (`%h` is always `/root` in a system unit). To let the agent edit project
 checkouts, add them explicitly, for example `ReadWritePaths=/srv/projects`
-in a drop-in (`sudo systemctl edit rho-daemon`).
+in a drop-in (`sudo systemctl edit decoder-daemon`).
 
 ### Daemon not logging to journald
 
 If using the systemd unit, logs go to both journald (stdout/stderr) and
-`/var/lib/rho/state/run/daemon.log`. Check:
+`/var/lib/decoder/state/run/daemon.log`. Check:
 
 ```bash
-journalctl -u rho-daemon -f
-sudo tail -f /var/lib/rho/state/run/daemon.log
+journalctl -u decoder-daemon -f
+sudo tail -f /var/lib/decoder/state/run/daemon.log
 ```
 
 If journald logs are missing, verify that stdout/stderr are not being

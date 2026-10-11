@@ -5,7 +5,7 @@
 **Date:** 2026-07-05
 **Source:** Historical comparison document; feature and market claims require
 independent revalidation. Architecture status is tracked in
-`docs/architecture/rho-architecture-baseline.md`.
+`docs/architecture/decoder-architecture-baseline.md`.
 
 ---
 
@@ -27,14 +27,14 @@ Numeric scores are intentionally not used as current architecture evidence.
 
 ## Phase 1: High Priority (Immediate - Score Impact: +0.5)
 
-### 1. Add VS Code Extension Integration (rho repo)
+### 1. Add VS Code Extension Integration (decoder repo)
 
 **Effort:** Large (2-3 weeks)
 **Priority:** HIGH
 
 **What:**
-- Create `rho-vscode` repo for VS Code extension
-- Use Rho SDK for communication
+- Create `decoder-vscode` repo for VS Code extension
+- Use Decoder SDK for communication
 - Add WebSocket transport for real-time updates
 
 **Why:**
@@ -45,12 +45,12 @@ Numeric scores are intentionally not used as current architecture evidence.
 **Implementation Plan:**
 ```bash
 # Create new repo
-mkdir rho-vscode
-cd rho-vscode
+mkdir decoder-vscode
+cd decoder-vscode
 
 # Initialize
 git init
-go mod init github.com/GrayCodeAI/rho-vscode
+go mod init github.com/GrayCodeAI/decoder-vscode
 
 # Add extension scaffold
 mkdir -p cmd extension/src
@@ -64,8 +64,8 @@ go get golang.org/x/net/websocket
 # Create extension files
 cat > extension/package.json << 'EOF'
 {
-  "name": "rho",
-  "displayName": "Rho",
+  "name": "decoder",
+  "displayName": "Decoder",
   "description": "AI coding assistant in terminal",
   "version": "0.1.0",
   "engines": { "vscode": "^1.90.0" },
@@ -75,14 +75,14 @@ cat > extension/package.json << 'EOF'
   "contributes": {
     "commands": [
       {
-        "command": "rho.activate",
-        "title": "Activate Rho"
+        "command": "decoder.activate",
+        "title": "Activate Decoder"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "rho.activate",
+          "command": "decoder.activate",
           "when": "editorLangId"
         }
       ]
@@ -94,22 +94,22 @@ EOF
 # Add extension scaffold
 cat > extension/src/extension.ts << 'EOF'
 import * as vscode from 'vscode';
-import * as rhosdk from '@graycodeai/rhosdk';
+import * as decodersdk from '@graycodeai/decodersdk';
 
 export function activate(context: vscode.ExtensionContext) {
-  const client = new rhosdk.Client();
+  const client = new decodersdk.Client();
   
   // Register completion provider
   vscode.languages.registerCompletionItemProvider(
     'go',
-    new RhoCompletionProvider(client),
+    new DecoderCompletionProvider(client),
     'g', 'h'
   );
   
   // Register hover provider
   vscode.languages.registerHoverProvider(
     'go',
-    new RhoHoverProvider(client)
+    new DecoderHoverProvider(client)
   );
 }
 EOF
@@ -123,7 +123,7 @@ vsce publish
 
 **Repository Structure:**
 ```
-rho-vscode/
+decoder-vscode/
 ├── extension/           # VS Code extension code
 │   ├── src/
 │   │   ├── extension.ts
@@ -140,25 +140,25 @@ rho-vscode/
 
 ---
 
-### 2. Add Extension Marketplace (rho repo)
+### 2. Add Extension Marketplace (decoder repo)
 
 **Effort:** Medium (1-2 weeks)
 **Priority:** HIGH
 
 **What:**
 - Create marketplace for community extensions
-- Add extension discovery endpoint to rho
+- Add extension discovery endpoint to decoder
 - Create `starling` integration
 - Add version compatibility checking
 
 **Why:**
 - Top agents have 100+ extensions
-- Build ecosystem around Rho
+- Build ecosystem around Decoder
 - Increase adoption
 
 **Implementation Plan:**
 ```go
-// Add to rho
+// Add to decoder
 package marketplace
 
 // Extension represents a community extension
@@ -305,12 +305,12 @@ cat >> SKILL.md << 'EOF'
 
 To discover available extensions, use:
 ```
-rho extensions list
+decoder extensions list
 ```
 
 To install an extension:
 ```
-rho extensions install <extension-id>
+decoder extensions install <extension-id>
 ```
 EOF
 ```
@@ -431,7 +431,7 @@ go build forum.go
 
 ---
 
-### 5. Add More Extension Points (rho)
+### 5. Add More Extension Points (decoder)
 
 **Effort:** Small (3-5 days)
 **Priority:** MEDIUM
@@ -499,7 +499,7 @@ func main() {
 
 ## Phase 3: Low Priority (Backlog - Score Impact: +0.2)
 
-### 6. Add AI Code Completion (flux)
+### 6. Add AI Code Completion (mux)
 
 **Effort:** Medium (1-2 weeks)
 **Priority:** LOW
@@ -514,7 +514,7 @@ func main() {
 
 ---
 
-### 7. Add Debugging Support (rho)
+### 7. Add Debugging Support (decoder)
 
 **Effort:** Large (2-3 weeks)
 **Priority:** LOW
@@ -530,7 +530,7 @@ func main() {
 
 ---
 
-### 8. Add Web UI for Monitoring (rho)
+### 8. Add Web UI for Monitoring (decoder)
 
 **Effort:** Small (3-5 days)
 **Priority:** LOW
@@ -562,7 +562,7 @@ func main() {
 
 ---
 
-### 10. Add Completion Endpoint to flux
+### 10. Add Completion Endpoint to mux
 
 **Effort:** Medium (1 week)
 **Priority:** LOW
@@ -579,7 +579,7 @@ func main() {
 
 ## Detailed Repo-Specific Roadmap
 
-### **rho** (Main Repo) - Primary Product
+### **decoder** (Main Repo) - Primary Product
 
 | Phase | Improvement | Effort | Impact | Status |
 |-------|--------------|--------|--------|--------|
@@ -590,7 +590,7 @@ func main() {
 | 3 | Add Web UI for monitoring | Small | +0.2 | Planned |
 | 3 | Add SDK analytics | Small | +0.1 | Planned |
 
-Current architecture status: see `docs/architecture/rho-architecture-baseline.md`.
+Current architecture status: see `docs/architecture/decoder-architecture-baseline.md`.
 
 ---
 
@@ -628,7 +628,7 @@ Current architecture status: see `docs/architecture/rho-architecture-baseline.md
 
 ---
 
-### **flux** (LLM Runtime)
+### **mux** (LLM Runtime)
 
 | Phase | Improvement | Effort | Impact | Status |
 |-------|--------------|--------|--------|--------|
@@ -657,7 +657,7 @@ Current architecture status: see `docs/architecture/rho-architecture-baseline.md
 
 The roadmap is sequenced by product value and implementation effort. It does
 not assign target architecture scores. Current architecture status is tracked
-in `docs/architecture/rho-architecture-baseline.md`.
+in `docs/architecture/decoder-architecture-baseline.md`.
 
 ---
 
@@ -667,7 +667,7 @@ in `docs/architecture/rho-architecture-baseline.md`.
 |------|--------|------------|
 | Marketplace competition | High | Focus on quality extensions |
 | Community building | Medium | Active engagement, good docs |
-| Development velocity | Medium | Prioritize rho SDK first |
+| Development velocity | Medium | Prioritize decoder SDK first |
 | Adoption curve | Medium | VS Code extension is key |
 
 ---

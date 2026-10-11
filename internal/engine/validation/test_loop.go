@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/decoder/internal/fsutil"
 )
 
 // TestLoop implements an auto-test loop similar to Aider's auto_test feature.

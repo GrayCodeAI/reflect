@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 func TestNewNotifier(t *testing.T) {
@@ -258,7 +258,7 @@ func TestSetTerminalTitle(t *testing.T) {
 		t.Fatal("expected Sound and Desktop to be disabled")
 	}
 
-	n.SetTerminalTitle("rho: running")
+	n.SetTerminalTitle("decoder: running")
 	n.ClearTitle()
 }
 

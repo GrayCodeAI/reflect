@@ -1,9 +1,9 @@
 package compact
 
 import (
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
 )
 
 type APICompactConfig struct {
@@ -30,7 +30,7 @@ var mutatingTools = map[string]bool{
 	"NotebookEdit": true,
 }
 
-func APICompactMessages(msgs []types.FluxMessage, cfg APICompactConfig) []types.FluxMessage {
+func APICompactMessages(msgs []types.MuxMessage, cfg APICompactConfig) []types.MuxMessage {
 	totalTokens := token.EstimateTokens(msgs)
 	if totalTokens < cfg.TriggerTokens {
 		return msgs
@@ -41,7 +41,7 @@ func APICompactMessages(msgs []types.FluxMessage, cfg APICompactConfig) []types.
 		return msgs
 	}
 
-	result := make([]types.FluxMessage, len(msgs))
+	result := make([]types.MuxMessage, len(msgs))
 	copy(result, msgs)
 
 	freed := 0
@@ -101,7 +101,7 @@ func APICompactMessages(msgs []types.FluxMessage, cfg APICompactConfig) []types.
 	return result
 }
 
-func CountClearableToolResults(msgs []types.FluxMessage) int {
+func CountClearableToolResults(msgs []types.MuxMessage) int {
 	count := 0
 	for _, m := range msgs {
 		if len(m.ToolResults) > 0 && m.ToolResults[0].Content != "[Old tool result content cleared]" {
@@ -114,6 +114,6 @@ func CountClearableToolResults(msgs []types.FluxMessage) int {
 	return count
 }
 
-func isThinkingMessage(m types.FluxMessage) bool {
+func isThinkingMessage(m types.MuxMessage) bool {
 	return len(m.Content) > 0 && m.Content[0] == '<' && len(m.ToolUse) == 0
 }

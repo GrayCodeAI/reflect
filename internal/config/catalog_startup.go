@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/env"
+	"github.com/GrayCodeAI/decoder/internal/env"
 )
 
 type gatewayModelCount struct {
@@ -72,13 +72,13 @@ func CatalogStatusLine(ctx context.Context) string {
 	return formatCatalogGatewayStatus("Catalog: ", rows, h.Models)
 }
 
-// CatalogReady reports whether the flux catalog cache exists and has models.
+// CatalogReady reports whether the mux catalog cache exists and has models.
 func CatalogReady(ctx context.Context) bool {
 	h := CatalogHealthReport(ctx)
 	return h.Error == "" && h.Models > 0 && !h.Stale
 }
 
-// CatalogStartupOptions controls automatic catalog refresh at rho startup.
+// CatalogStartupOptions controls automatic catalog refresh at decoder startup.
 type CatalogStartupOptions struct {
 	ForceRefresh    bool
 	SkipAutoRefresh bool
@@ -86,7 +86,7 @@ type CatalogStartupOptions struct {
 }
 
 // PrepareCatalogForSession ensures a usable, fresh catalog before chat/print.
-// By default rho auto-discovers when the cache is missing, empty, or stale.
+// By default decoder auto-discovers when the cache is missing, empty, or stale.
 func PrepareCatalogForSession(ctx context.Context, out io.Writer, opts CatalogStartupOptions) error {
 	h := CatalogHealthReport(ctx)
 	if !catalogNeedsAutoRefresh(h, opts) {
@@ -146,7 +146,7 @@ func catalogNeedsAutoRefresh(h CatalogHealth, opts CatalogStartupOptions) bool {
 	return h.Stale
 }
 
-// AutoRefreshCatalog runs flux discover (remote + live APIs when keys are set).
+// AutoRefreshCatalog runs mux discover (remote + live APIs when keys are set).
 func AutoRefreshCatalog(ctx context.Context, out io.Writer, verbose bool) error {
 	if out != nil {
 		if verbose {
@@ -180,12 +180,12 @@ func AutoRefreshCatalog(ctx context.Context, out io.Writer, verbose bool) error 
 // TryAutoRefreshCatalog refreshes once when the cache cannot be read (e.g. mid-session).
 func TryAutoRefreshCatalog(ctx context.Context) error {
 	if !autoRefreshCatalogEnabled() {
-		return fmt.Errorf("automatic catalog refresh is disabled (RHO_AUTO_REFRESH_CATALOG=0)")
+		return fmt.Errorf("automatic catalog refresh is disabled (DECODER_AUTO_REFRESH_CATALOG=0)")
 	}
 	return AutoRefreshCatalog(ctx, nil, false)
 }
 
-// RefreshCatalogAfterCredentials runs flux discover after /config saves API keys.
+// RefreshCatalogAfterCredentials runs mux discover after /config saves API keys.
 func RefreshCatalogAfterCredentials(ctx context.Context, out io.Writer) error {
 	if !autoRefreshCatalogEnabled() {
 		return nil
@@ -209,7 +209,7 @@ func StartupCatalogPrefetch(ctx context.Context) {
 	}()
 }
 
-// DiscoverCatalogAfterSetup runs during optional rho setup after API keys are saved.
+// DiscoverCatalogAfterSetup runs during optional decoder setup after API keys are saved.
 func DiscoverCatalogAfterSetup(ctx context.Context, out io.Writer) {
 	if out == nil {
 		out = os.Stdout
@@ -225,11 +225,11 @@ func catalogRefreshFailureHint(ctx context.Context) string {
 	if !HasConfiguredDeployment(ctx) {
 		return "No API keys in " + CredentialStoreName() + ". Run /config to paste a key or set up Ollama."
 	}
-	return "Check network access and stored keys (" + CredentialStoreName() + "). Run rho preflight or /config."
+	return "Check network access and stored keys (" + CredentialStoreName() + "). Run decoder preflight or /config."
 }
 
 func autoRefreshCatalogEnabled() bool {
-	switch strings.ToLower(strings.TrimSpace(env.Getenv("RHO_AUTO_REFRESH_CATALOG"))) {
+	switch strings.ToLower(strings.TrimSpace(env.Getenv("DECODER_AUTO_REFRESH_CATALOG"))) {
 	case "0", "false", "no", "off":
 		return false
 	default:
@@ -238,7 +238,7 @@ func autoRefreshCatalogEnabled() bool {
 }
 
 func catalogRefreshAlways() bool {
-	switch strings.ToLower(strings.TrimSpace(env.Getenv("RHO_CATALOG_REFRESH_ALWAYS"))) {
+	switch strings.ToLower(strings.TrimSpace(env.Getenv("DECODER_CATALOG_REFRESH_ALWAYS"))) {
 	case "1", "true", "yes", "on":
 		return true
 	default:

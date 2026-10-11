@@ -7,41 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASING.md).
 
 > **Version history.** The next release, **v0.3.0**, is the first published
-> under the `rho` name and module path `github.com/GrayCodeAI/rho`. Sections
+> under the `decoder` name and module path `github.com/GrayCodeAI/decoder`. Sections
 > labelled `hawk` below are kept as the historical record of the project
 > before the rename: `hawk 0.2.0` is the `v0.2.0` tag, which (like `v0.1.0`
 > and `v0.1.1`) was built from the `github.com/GrayCodeAI/hawk` module and
 > ships `hawk_*` archives; the sections marked "untagged" used an earlier
 > numbering that was never tagged. Names in those sections are the names of
-> the time (for example Flux was called eyrie, and several companion repos
+> the time (for example Mux was called eyrie, and several companion repos
 > have since been retired).
 
 ## [Unreleased]
+
+### Changed
+
+- The module, CLI, environment variables, state paths, integrations and packaging now use Decoder, backed by the renamed Mux module; Go 1.27.2 is required.
 
 ### Added
 - **Release process and guards**: `docs/RELEASING.md` (release PR checklist, tag protection, what the release workflow publishes, how to verify a release, status of every distribution channel); `scripts/check-release-tag.sh`, used by the release workflow and `make release-check`, refuses a tag that is not `v` + `VERSION` or has no `CHANGELOG.md` section; `make release-snapshot` builds every archive locally without publishing or signing.
 - **windows/arm64 release archives**: GoReleaser and the CI build matrix now cover all six linux/darwin/windows × amd64/arm64 targets.
 
 ### Changed
-- **Version 0.3.0**: `VERSION` is `0.3.0`, the first release under the rho name (the Go proxy already holds the hawk-era v0.1.0–v0.2.0), and the compatibility matrix `stable` entry pins rho 0.3.0 with flux 0.0.1.
+- **Version 0.3.0**: `VERSION` is `0.3.0`, the first release under the decoder name (the Go proxy already holds the hawk-era v0.1.0–v0.2.0), and the compatibility matrix `stable` entry pins decoder 0.3.0 with mux 0.0.1.
 - **Release workflow can publish**: it installs syft for the SBOMs, signs `checksums.txt` inside GoReleaser with cosign keyless signing (`checksums.txt.sigstore.json`), re-verifies the published signature, takes the release notes from this file, builds with `GOWORK=off` and `-trimpath`, and drops the unused `packages: write` permission and sibling checkout.
 - **Binary size budget enforced**: `make size-check` fails above `SIZE_LIMIT_MB` (70 MiB; linux/amd64 is 59.6 MiB today) and CI runs it instead of only warning above 98 MB.
 - **`make release` no longer publishes** from a workstation; releases come only from the tag-triggered workflow.
 - **npm scaffolding kept unpublished**: packages are marked `"private": true` with the correct MIT license, and assembly stamps the meta package and its `optionalDependencies` and reads GoReleaser v2's output paths. Nothing is published to npm.
-- **Dependency renamed eyrie → flux**: rho now depends on
-  `github.com/GrayCodeAI/flux v0.0.1` (the provider runtime was renamed).
-  All imports, env vars (`EYRIE_CONFIG_DIR` → `FLUX_CONFIG_DIR`,
-  `EYRIE_MODEL_CATALOG_PATH` → `FLUX_MODEL_CATALOG_PATH`), boundary-guard
+- **Dependency renamed eyrie → mux**: decoder now depends on
+  `github.com/GrayCodeAI/mux v0.0.1` (the provider runtime was renamed).
+  All imports, env vars (`EYRIE_CONFIG_DIR` → `MUX_CONFIG_DIR`,
+  `EYRIE_MODEL_CATALOG_PATH` → `MUX_MODEL_CATALOG_PATH`), boundary-guard
   scripts, ecosystem manifest entries, docs, and internal identifiers were
   renamed to match. User state paths move from `~/.../eyrie/provider.json`
-  to `~/.../flux/provider.json`.
+  to `~/.../mux/provider.json`.
 - **Makefile lint pin matches CI**: `make lint`/`lint-fix`/`setup` install `golangci-lint@v2.1.0` (was `@latest`), the same version CI enforces.
 - **Docs truth and housekeeping**: SECURITY.md/CONTRIBUTING.md now describe the actual Go toolchain (golangci-lint, go vet, govulncheck) instead of the polyglot template's ruff/mypy/pip-audit/pnpm-lock language, CONTRIBUTING documents `make setup`/`boundaries`/`test-10x`/`smoke`, and the planning docs (`SPEC_DRIVEN_PLAN.md`, `SPEC_DRIVEN_PHASE2_PLAN.md`, `internal/engine/REFACTOR_PLAN.md`) moved to `docs/plans/`.
 
 ### Security
-- **`install.sh` verifies releases fail-closed**: with cosign installed it verifies `checksums.txt.sigstore.json` against the exact release-workflow identity and aborts on a missing or invalid signature; without cosign it warns and reports the signature as not verified, and `RHO_REQUIRE_COSIGN=1` makes cosign mandatory. The SHA-256 check always runs, flags are parsed strictly (unknown flags exit 2), and releases older than v0.3.0 (hawk-era archives) are refused.
-- **GitHub Action installs signed release archives** through `install.sh` with cosign required, instead of building an unverified `curl | tar` source tarball; `rho-version` accepts `0.3.0`, `v0.3.0` or `latest`, and Go is no longer needed.
-- **systemd unit**: runs as a dedicated `rho` user with state in `StateDirectory`/`CacheDirectory` (the old `%h` paths were hidden by `ProtectHome=true`), reads the daemon API key from an `EnvironmentFile` instead of the command line, and links the troubleshooting guide instead of a dead domain.
+- **`install.sh` verifies releases fail-closed**: with cosign installed it verifies `checksums.txt.sigstore.json` against the exact release-workflow identity and aborts on a missing or invalid signature; without cosign it warns and reports the signature as not verified, and `DECODER_REQUIRE_COSIGN=1` makes cosign mandatory. The SHA-256 check always runs, flags are parsed strictly (unknown flags exit 2), and releases older than v0.3.0 (hawk-era archives) are refused.
+- **GitHub Action installs signed release archives** through `install.sh` with cosign required, instead of building an unverified `curl | tar` source tarball; `decoder-version` accepts `0.3.0`, `v0.3.0` or `latest`, and Go is no longer needed.
+- **systemd unit**: runs as a dedicated `decoder` user with state in `StateDirectory`/`CacheDirectory` (the old `%h` paths were hidden by `ProtectHome=true`), reads the daemon API key from an `EnvironmentFile` instead of the command line, and links the troubleshooting guide instead of a dead domain.
 - **Session lock TOCTOU eliminated**: `AcquireLock`'s stat → stale-if->5min → remove → O_EXCL dance could delete a live lock on misjudged staleness and let two instances open the same session. Mutual exclusion now uses an OS advisory lock (`gofrs/flock`, promoted to a direct dependency); a crashed holder's lock is reclaimed instantly because the kernel drops the flock at process death. The lock file keeps PID/timestamps purely as diagnostics.
 - **Hardened atomic writes for state files**: global settings, checkpoint file contents and restores, handovers, and named checkpoints now go through `internal/safewrite` (same 0600 mode as before, plus fsync+rename atomicity and symlink refusal at the destination).
 - **Dead shell-injection surface removed**: `AssumptionTracker.VerifyCommandSucceeds` ran caller-supplied strings through `sh -c`, bypassing the permission stack; it had zero callers and is deleted. `SelfHealer.RunScript` no longer shell-evaluates the script path (double evaluation) and invokes it directly via `/bin/sh`.
@@ -54,22 +58,22 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Homebrew publisher and install instructions**: the `brews` stanza (deprecated in GoReleaser v2) targeted a `GrayCodeAI/homebrew-tap` repository and token that do not exist; the README no longer offers Homebrew or npm installs.
 - **`flake.nix` and its `.envrc`**: the flake depended on five deleted repositories and could not evaluate.
 - **ast-grep configuration** (`sgconfig.yaml`, `rules/`, lefthook hook): ast-grep never discovered the config and CI never ran it.
-- **BREAKING — `rho credentials migrate` removed**: the subcommand, its man page entry, and the `MigrateEnvFileCredentials` wrappers are gone, and `rho path` no longer reports legacy `~/.rho/env` / `~/.rho/.env` files. Save keys through `/config`.
-- **BREAKING — settings model/provider migration removed**: `LoadSettings` no longer moves `model`/`provider` from `settings.json` into Flux's `provider.json`, and `SetActiveSelection` is deleted. Stale `model`/`provider` values left in `settings.json` are now ignored on load (Flux's selection wins; `--settings` overrides still apply); select the model in `/config`.
-- **BREAKING — startup provider-secrets migration removed**: print/REPL/watch/TUI startup no longer calls `MigrateProviderSecrets`, and the method is dropped from the gateway `CatalogMaintenance` interface. `rho path` still fails when `provider.json` holds secrets; remove those fields manually.
-- **BREAKING — `shared/types` guards removed**: `scripts/check-shared-types-imports.sh`, the `contracts-guard` make target, its lefthook and CI steps, and the matching testaudit checks are deleted because the package no longer exists. The ecosystem boundary guards still block `rho/internal` imports.
+- **BREAKING — `decoder credentials migrate` removed**: the subcommand, its man page entry, and the `MigrateEnvFileCredentials` wrappers are gone, and `decoder path` no longer reports legacy `~/.decoder/env` / `~/.decoder/.env` files. Save keys through `/config`.
+- **BREAKING — settings model/provider migration removed**: `LoadSettings` no longer moves `model`/`provider` from `settings.json` into Mux's `provider.json`, and `SetActiveSelection` is deleted. Stale `model`/`provider` values left in `settings.json` are now ignored on load (Mux's selection wins; `--settings` overrides still apply); select the model in `/config`.
+- **BREAKING — startup provider-secrets migration removed**: print/REPL/watch/TUI startup no longer calls `MigrateProviderSecrets`, and the method is dropped from the gateway `CatalogMaintenance` interface. `decoder path` still fails when `provider.json` holds secrets; remove those fields manually.
+- **BREAKING — `shared/types` guards removed**: `scripts/check-shared-types-imports.sh`, the `contracts-guard` make target, its lefthook and CI steps, and the matching testaudit checks are deleted because the package no longer exists. The ecosystem boundary guards still block `decoder/internal` imports.
 
 ## [hawk 0.2.0] — 2026-07-13
 
 ### Changed
-- **Rho/Flux production boundary completed**: Rho owns the product face,
-  sessions, tools, permissions, and public schemas while Flux v0.2.1 (then
-  named eyrie; flux itself has only tagged v0.0.1) owns
+- **Decoder/Mux production boundary completed**: Decoder owns the product face,
+  sessions, tools, permissions, and public schemas while Mux v0.2.1 (then
+  named eyrie; mux itself has only tagged v0.0.1) owns
   credentials, catalog resolution, provider transport, resilience, and usage
-  telemetry behind the stable `flux/engine` facade.
+  telemetry behind the stable `mux/engine` facade.
 - **Provider routing and usage attribution hardened**: resolved route changes,
   continuation segments, and terminal usage are propagated without duplicate
-  accounting, and production Flux calls use exactly one resilience layer.
+  accounting, and production Mux calls use exactly one resilience layer.
 - **Daemon conversations are durable**: JSON and SSE chat requests create or
   resume persisted sessions, expose stable session IDs, preserve metadata, and
   distinguish invalid, missing, and corrupt state.
@@ -80,18 +84,18 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Permission system unified into two independent axes**: the old `PermissionMode` (`default`/`acceptEdits`/`bypassPermissions`/`dontAsk`/`plan`) is removed. `/autonomy` now controls the 5-tier trust ladder (`Always Ask`/`Scout`/`Builder`/`Operator`/`Autonomous`, bare `/autonomy` opens a picker), and `/spec` controls an independent, orthogonal spec-driven workflow gate (`Specify → Plan → Tasks → ApproveImplementation`, bare `/spec` opens a picker) that blocks Write/Edit/Bash regardless of trust tier — including at Autonomous. Fixes a real bug where the old Plan Mode's write-block could be silently bypassed at high autonomy tiers, since tier and mode were checked independently with no ordering guarantee.
 - **Fixed `PermissionService.SetAutonomy`/`Autonomy()`**: previously wrote to/read from a shadow field the permission engine's `CheckTool` never consulted, meaning autonomy tier changes may not have reliably taken effect. Now both read/write the same `PermissionEngine.Autonomy` field the check logic uses.
 - **`--permission-mode` CLI flag removed**; `--dangerously-skip-permissions` unchanged (now maps to the Autonomous tier). New `--dry-run` flag added as an unconditional kill switch (deny every tool call, regardless of tier or spec stage) — replaces `dontAsk`'s hard-lockout role.
-- **Version re-baselined to `0.1.0`** across `cmd/rho/main.go`, `cmd/daemon.go`,
-  `flake.nix`, `.github/workflows/release.yml`, and the `update`/daemon test suites, aligning rho
-  with the rest of the GrayCodeAI ecosystem (`flux`, `shrike`, `harrier`, `kestrel`, `merlin`).
-- **Architecture boundary hardening**: Rho now owns runtime request/response DTOs, transport config/provider seams, and review/verification product-boundary contracts, with `flux/client` usage restricted to internal adapters and guarded in CI.
-- **`shared/types` removed**: Rho no longer ships the old shared type path, and local boundary checks now block any attempt to reintroduce it.
+- **Version re-baselined to `0.1.0`** across `cmd/decoder/main.go`, `cmd/daemon.go`,
+  `flake.nix`, `.github/workflows/release.yml`, and the `update`/daemon test suites, aligning decoder
+  with the rest of the GrayCodeAI ecosystem (`mux`, `shrike`, `harrier`, `kestrel`, `merlin`).
+- **Architecture boundary hardening**: Decoder now owns runtime request/response DTOs, transport config/provider seams, and review/verification product-boundary contracts, with `mux/client` usage restricted to internal adapters and guarded in CI.
+- **`shared/types` removed**: Decoder no longer ships the old shared type path, and local boundary checks now block any attempt to reintroduce it.
 
 ### Added
-- **Spec-driven workflow (`/spec`)**: independent, orthogonal permission gate that walks the model through `Specify → Plan → Tasks`, writing real `spec.md`/`plan.md`/`tasks.md` files to `.rho/specs/<slug>/`, and requires explicit `ApproveImplementation` approval (always prompts, at any trust tier) before Write/Edit/Bash unlock. The approval prompt shows the actual written content, not a blind yes/no.
+- **Spec-driven workflow (`/spec`)**: independent, orthogonal permission gate that walks the model through `Specify → Plan → Tasks`, writing real `spec.md`/`plan.md`/`tasks.md` files to `.decoder/specs/<slug>/`, and requires explicit `ApproveImplementation` approval (always prompts, at any trust tier) before Write/Edit/Bash unlock. The approval prompt shows the actual written content, not a blind yes/no.
 - **`/autonomy` and `/spec` picker overlays**: bare `/autonomy` or `/spec` opens an arrow-key-navigable, filterable picker (Esc/Enter) instead of requiring subcommand syntax; typed subcommands (`/autonomy tier scout`, `/spec status`, etc.) still work.
 - **Watch mode (`--watch`)**: file-watcher loop that acts on `AI!` (do-now) and `AI?` (answer) code comments. Off by default.
-- **GitHub Action** (`.github/actions/rho`): interactive mode on `@rho` mentions, automation mode on labeled issues/PRs, and skill dispatch for `/`-prefixed prompts.
-- **Messaging gateways**: opt-in Telegram, Discord, and Slack gateways on the daemon for chatting with rho from messaging apps.
+- **GitHub Action** (`.github/actions/decoder`): interactive mode on `@decoder` mentions, automation mode on labeled issues/PRs, and skill dispatch for `/`-prefixed prompts.
+- **Messaging gateways**: opt-in Telegram, Discord, and Slack gateways on the daemon for chatting with decoder from messaging apps.
 - **AST repo-map** (`internal/context/repomap`): structural repository map for richer model context.
 - **Auto codebase analysis on first run** (`internal/autoinit`): opt-in seeding of project context.
 - **Auto-lint / auto-fix cycle**: runs the matching linter after edits and iterates on fixes with bounded retries (opt-in).
@@ -113,7 +117,7 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 
 ### Added — Round 2 ecosystem improvements (2026-06-01)
 - **Cavecrew personas** (`internal/multiagent/agents`): three new
-  built-in personas built into GrayCode Rho
+  built-in personas built into GrayCode Decoder
   (`cavecrew-investigator`, `cavecrew-builder`, `cavecrew-reviewer`).
   Each enforces a strict output format so downstream agents can parse
   outputs mechanically:
@@ -152,7 +156,7 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
   and a command label. API: `Record`, `AggregateForSession`,
   `ListForSession`, `PruneForSession`. Scoped to a single session so
   callers can selectively compact their own history. Companion to
-  shrike's `internal/tracking.Tracker` (shrike tracks globally, rho tracks
+  shrike's `internal/tracking.Tracker` (shrike tracks globally, decoder tracks
   per-session).
 
 ### Added — Production Hardening (top-50 OSS parity)
@@ -187,16 +191,16 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 ## [hawk 0.4.0, untagged] — 2026-05-05
 
 ### Added
-- **Exec Subcommand**: `rho exec "prompt"` — full engine non-interactive mode with `--output-format json`, `--auto` autonomy levels, `--worktree` isolation, `--agent` personas, `--session-id` resume, stdin piping
-- **Daemon Server**: `rho daemon start/stop/status` — background HTTP server with JSON + SSE streaming on `/v1/chat`, `/v1/health`, `/v1/sessions`
-- **Mission Mode**: `rho mission "prompt"` — multi-agent orchestration decomposing work into parallel features executed in isolated git worktrees. `--dry-run` for planning only
-- **Session Search**: `rho search "query"` — full-text search across all saved sessions with `--json` output
-- **Custom Agents**: `rho agent list/create/show/remove` — markdown persona definitions in `~/.rho/agents/` with YAML frontmatter (name, description, model)
-- **Snapshot System**: Shadow git tracking of every file change. `rho snapshot list/restore/diff` + `/snapshot` slash command. Auto-snapshots on every Write/Edit tool call
+- **Exec Subcommand**: `decoder exec "prompt"` — full engine non-interactive mode with `--output-format json`, `--auto` autonomy levels, `--worktree` isolation, `--agent` personas, `--session-id` resume, stdin piping
+- **Daemon Server**: `decoder daemon start/stop/status` — background HTTP server with JSON + SSE streaming on `/v1/chat`, `/v1/health`, `/v1/sessions`
+- **Mission Mode**: `decoder mission "prompt"` — multi-agent orchestration decomposing work into parallel features executed in isolated git worktrees. `--dry-run` for planning only
+- **Session Search**: `decoder search "query"` — full-text search across all saved sessions with `--json` output
+- **Custom Agents**: `decoder agent list/create/show/remove` — markdown persona definitions in `~/.decoder/agents/` with YAML frontmatter (name, description, model)
+- **Snapshot System**: Shadow git tracking of every file change. `decoder snapshot list/restore/diff` + `/snapshot` slash command. Auto-snapshots on every Write/Edit tool call
 - **Waza Workflows**: `/think` (plan before code), `/hunt` (root-cause diagnosis), `/check` (pre-ship review with auto-fix), `/design` (screenshot-driven UI iteration)
 - **Structured Compaction**: Summary template with Goal/Constraints/Progress/Files/Decisions/Errors/Instructions/Next sections for better intent preservation
 - **Doom Loop Detection**: Lowered threshold to 3 (from 4). Two-tier escalation: first detection injects redirect prompt, doom loop hard-stops with "ask user for help"
-- **Session Persistence for exec**: All exec runs saved to `~/.rho/sessions/` and searchable via `rho search`
+- **Session Persistence for exec**: All exec runs saved to `~/.decoder/sessions/` and searchable via `decoder search`
 
 ### Packages Added
 - `mission/` — Multi-agent orchestration with worktree-based parallel workers
@@ -271,5 +275,5 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 ### Added
 - Project scaffold with cobra CLI and Bubbletea TUI
 - Interactive chat REPL with textarea input, spinner, lipgloss styling
-- flux wired as LLM provider dependency
+- mux wired as LLM provider dependency
 - GitHub Actions CI

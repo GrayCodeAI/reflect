@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/decoder/internal/permissions/stableid"
 )
 
 func TestStableRuleStoreResetAdvancesGeneration(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
+	commandfeature "github.com/GrayCodeAI/decoder/internal/features/commands"
 )
 
 func TestSlashCommands_NotEmpty(t *testing.T) {

@@ -22,14 +22,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/decoder/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/netutil"
-	"github.com/GrayCodeAI/rho/internal/observability/metrics"
-	"github.com/GrayCodeAI/rho/internal/securitylog"
-	rhosession "github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/netutil"
+	"github.com/GrayCodeAI/decoder/internal/observability/metrics"
+	"github.com/GrayCodeAI/decoder/internal/securitylog"
+	decodersession "github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 const maxRequestBodyBytes = 1 << 20
@@ -76,10 +76,10 @@ func (e *InvalidChatRequestError) Unwrap() error { return e.Err }
 // version is set via SetVersion from main.go at startup.
 var version = "0.0.0"
 
-// SetVersion propagates the canonical rho version into the daemon.
+// SetVersion propagates the canonical decoder version into the daemon.
 func SetVersion(v string) { version = v }
 
-// Server is the rho daemon HTTP server for programmatic/CI access.
+// Server is the decoder daemon HTTP server for programmatic/CI access.
 type Server struct {
 	addr      string
 	mux       *http.ServeMux
@@ -94,14 +94,14 @@ type Server struct {
 	apiKey       string
 	gateways     *gatewayManager
 
-	// readyFn reports whether Flux's preflight/readiness dependencies are
+	// readyFn reports whether Mux's preflight/readiness dependencies are
 	// initialized and the server can serve real traffic. It is consulted by
 	// GET /v1/ready. A nil probe fails closed: a session factory alone does not
-	// prove that Flux's catalog, credentials, and model selection are ready.
+	// prove that Mux's catalog, credentials, and model selection are ready.
 	readyMu sync.RWMutex
 	readyFn func() (bool, string)
 
-	// graphFactory projects a persisted Rho session into the portable,
+	// graphFactory projects a persisted Decoder session into the portable,
 	// privacy-safe execution graph. The composition root supplies the builder;
 	// the daemon owns only HTTP validation, authentication, and encoding.
 	graphMu      sync.RWMutex
@@ -127,7 +127,7 @@ type Server struct {
 	// POST /v1/cancel to abort an in-flight generation (H10).
 	cancelMu sync.Mutex
 	cancels  map[string]*cancelEntry
-	// reviewWG tracks in-flight `rho review run` subprocesses spawned by
+	// reviewWG tracks in-flight `decoder review run` subprocesses spawned by
 	// POST /v1/review so Stop can wait for them.
 	reviewWG sync.WaitGroup
 	// General per-IP token bucket for non-chat API routes.
@@ -348,7 +348,7 @@ func (s *Server) Start() (string, error) {
 		s.gateways.Start(context.Background())
 	}
 
-	slog.Info("rho daemon started", "addr", actualAddr)
+	slog.Info("decoder daemon started", "addr", actualAddr)
 	return actualAddr, nil
 }
 
@@ -387,7 +387,7 @@ func (s *Server) warnInsecureAuthConfig() {
 		return
 	}
 	slog.Warn(
-		"rho daemon started without API key authentication; only loopback access allowed",
+		"decoder daemon started without API key authentication; only loopback access allowed",
 		"addr", s.addr,
 		"hint", "Set Config.APIKey to enable authentication, or keep the default loopback bind.",
 	)
@@ -456,7 +456,7 @@ func (s *Server) SetGraphFactory(factory GraphFactory) {
 	s.graphMu.Unlock()
 }
 
-// ready evaluates readiness using the installed Flux probe. It fails closed
+// ready evaluates readiness using the installed Mux probe. It fails closed
 // when the engine is absent or the composition root did not install a probe;
 // merely having a factory does not prove provider readiness.
 func (s *Server) ready() (bool, string) {
@@ -469,7 +469,7 @@ func (s *Server) ready() (bool, string) {
 	if s.newSession == nil {
 		return false, "engine not configured"
 	}
-	return false, "Flux readiness probe not configured"
+	return false, "Mux readiness probe not configured"
 }
 
 func (s *Server) routes() {
@@ -555,11 +555,11 @@ func (s *Server) cancelSession(sessionID string) bool {
 	return true
 }
 
-// maxConcurrentFromEnv reads RHO_DAEMON_MAX_CONCURRENT (clamped to >= 1) so
+// maxConcurrentFromEnv reads DECODER_DAEMON_MAX_CONCURRENT (clamped to >= 1) so
 // operators can tune the global chat concurrency cap without a rebuild.
 func maxConcurrentFromEnv() int {
 	n := defaultMaxConcurrentChat
-	if raw := os.Getenv("RHO_DAEMON_MAX_CONCURRENT"); raw != "" {
+	if raw := os.Getenv("DECODER_DAEMON_MAX_CONCURRENT"); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
 			n = parsed
 		}
@@ -721,12 +721,12 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var saved *rhosession.Session
+	var saved *decodersession.Session
 	if requestedID != "" {
 		var loadErr error
-		saved, loadErr = rhosession.Load(sessionID)
+		saved, loadErr = decodersession.Load(sessionID)
 		if loadErr != nil {
-			if !errors.Is(loadErr, rhosession.ErrNotFound) {
+			if !errors.Is(loadErr, decodersession.ErrNotFound) {
 				slog.Error("load continuation session failed", "err", loadErr, "session_id", sessionID)
 				writeJSON(w, http.StatusInternalServerError, ErrorResponse{
 					Error: "session load failed",
@@ -798,7 +798,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if saved != nil {
-		sess.LoadMessages(rhosession.ToRuntimeMessages(saved.Messages))
+		sess.LoadMessages(decodersession.ToRuntimeMessages(saved.Messages))
 		if err := sess.ReplayJournal(saved.Events); err != nil {
 			slog.Error("replay session event journal failed", "err", err, "session_id", sessionID)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "session event journal replay failed"})
@@ -822,7 +822,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		}
 		if requested > max {
 			writeJSON(w, http.StatusBadRequest, ErrorResponse{
-				Error: fmt.Sprintf("autonomy %q exceeds the daemon's configured maximum (%s); the daemon is non-interactive and cannot approve escalated permissions. Raise Config.MaxAutonomy (RHO_DAEMON_AUTONOMY) to allow it", requested.String(), max.String()),
+				Error: fmt.Sprintf("autonomy %q exceeds the daemon's configured maximum (%s); the daemon is non-interactive and cannot approve escalated permissions. Raise Config.MaxAutonomy (DECODER_DAEMON_AUTONOMY) to allow it", requested.String(), max.String()),
 				Code:  "autonomy_denied",
 			})
 			return
@@ -882,11 +882,11 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 // streamSSE writes a streaming response as SSE events, observing client
 // disconnect via r.Context().Done() so the handler does not keep pushing
 // events to a dead connection.
-func streamSSE(s *Server, w http.ResponseWriter, r *http.Request, events <-chan engine.StreamEvent, sessionID string, req ChatRequest, sess *engine.Session, saved *rhosession.Session, start time.Time) {
+func streamSSE(s *Server, w http.ResponseWriter, r *http.Request, events <-chan engine.StreamEvent, sessionID string, req ChatRequest, sess *engine.Session, saved *decodersession.Session, start time.Time) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Rho-Session-ID", sessionID)
+	w.Header().Set("X-Decoder-Session-ID", sessionID)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	flusher, _ := w.(http.Flusher)
@@ -977,7 +977,7 @@ func (s *Server) abortStreamedSession(sessionID string) {
 }
 
 // writeJSONResponse accumulates events and writes a single JSON response.
-func writeJSONResponse(s *Server, w http.ResponseWriter, events <-chan engine.StreamEvent, sessionID string, req ChatRequest, sess *engine.Session, saved *rhosession.Session, start time.Time) {
+func writeJSONResponse(s *Server, w http.ResponseWriter, events <-chan engine.StreamEvent, sessionID string, req ChatRequest, sess *engine.Session, saved *decodersession.Session, start time.Time) {
 	var response strings.Builder
 	var totalIn, totalOut, turns int
 
@@ -1000,7 +1000,7 @@ func writeJSONResponse(s *Server, w http.ResponseWriter, events <-chan engine.St
 		return
 	}
 	s.trackSession(sessionID, req, saved, start, turns)
-	w.Header().Set("X-Rho-Session-ID", sessionID)
+	w.Header().Set("X-Decoder-Session-ID", sessionID)
 
 	writeJSON(w, http.StatusOK, ChatResponse{
 		SessionID:  sessionID,
@@ -1013,7 +1013,7 @@ func writeJSONResponse(s *Server, w http.ResponseWriter, events <-chan engine.St
 }
 
 func validSessionID(id string) bool {
-	return rhosession.ValidID(id)
+	return decodersession.ValidID(id)
 }
 
 // CancelRequest is the JSON body for POST /v1/cancel.
@@ -1092,7 +1092,7 @@ func (s *Server) sessionLock(id string) *sync.Mutex {
 	return &s.sessionLocks[hash%uint64(len(s.sessionLocks))]
 }
 
-func persistDaemonSession(id string, req ChatRequest, sess *engine.Session, previous *rhosession.Session, startedAt time.Time) error {
+func persistDaemonSession(id string, req ChatRequest, sess *engine.Session, previous *decodersession.Session, startedAt time.Time) error {
 	createdAt := startedAt
 	name := ""
 	if previous != nil {
@@ -1107,20 +1107,20 @@ func persistDaemonSession(id string, req ChatRequest, sess *engine.Session, prev
 	if j := sess.Persistence().Journal(); j != nil {
 		j.AppendSessionTitle(name)
 	}
-	return rhosession.Save(&rhosession.Session{
+	return decodersession.Save(&decodersession.Session{
 		ID:        id,
 		Model:     sess.Model(),
 		Provider:  sess.Provider(),
 		Agent:     req.Agent,
 		CWD:       req.CWD,
 		Name:      name,
-		Messages:  rhosession.FromRuntimeMessages(sess.RawMessages()),
+		Messages:  decodersession.FromRuntimeMessages(sess.RawMessages()),
 		Events:    sess.JournalWire(),
 		CreatedAt: createdAt,
 	})
 }
 
-func (s *Server) trackSession(id string, req ChatRequest, previous *rhosession.Session, startedAt time.Time, turns int) {
+func (s *Server) trackSession(id string, req ChatRequest, previous *decodersession.Session, startedAt time.Time, turns int) {
 	createdAt := startedAt
 	if previous != nil && !previous.CreatedAt.IsZero() {
 		createdAt = previous.CreatedAt

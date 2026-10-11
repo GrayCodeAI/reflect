@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	reviewcontracts "github.com/GrayCodeAI/rho/internal/contracts/review"
-	contracts "github.com/GrayCodeAI/rho/internal/contracts/types"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/types"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	reviewcontracts "github.com/GrayCodeAI/decoder/internal/contracts/review"
+	contracts "github.com/GrayCodeAI/decoder/internal/contracts/types"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 	"github.com/spf13/cobra"
 )
 
@@ -121,9 +121,9 @@ func runReviewRun(_ *cobra.Command, args []string) error {
 		}
 	}
 
-	// Resolve the provider through Rho's Flux engine boundary.
+	// Resolve the provider through Decoder's Mux engine boundary.
 	ctx := context.Background()
-	selection := rhoconfig.EffectiveSelection(ctx, rhoconfig.SelectionOptions{
+	selection := decoderconfig.EffectiveSelection(ctx, decoderconfig.SelectionOptions{
 		ProviderOverride: strings.TrimSpace(provider),
 		ModelOverride:    strings.TrimSpace(reviewRunModel),
 	})
@@ -144,7 +144,7 @@ func runReviewRun(_ *cobra.Command, args []string) error {
 		defer cancel()
 	}
 
-	// Run Rho's own multi-concern review pipeline through the provider.
+	// Run Decoder's own multi-concern review pipeline through the provider.
 	concerns := DefaultConcerns()
 	if strings.TrimSpace(reviewRunConcerns) != "" {
 		wanted := map[string]bool{}
@@ -169,7 +169,7 @@ func runReviewRun(_ *cobra.Command, args []string) error {
 		model = reviewRunModel
 	}
 	chatFn := func(chatCtx context.Context, prompt string) (string, error) {
-		resp, chatErr := chatProvider.Chat(chatCtx, []types.FluxMessage{{Role: "user", Content: prompt}}, types.ChatOptions{
+		resp, chatErr := chatProvider.Chat(chatCtx, []types.MuxMessage{{Role: "user", Content: prompt}}, types.ChatOptions{
 			Provider: providerID,
 			Model:    model,
 		})

@@ -9,9 +9,9 @@ import (
 )
 
 // CHANGELOG.md follows Keep a Changelog: one [Unreleased] section on top,
-// released rho versions newest first, each with unique subsection headings.
-// Entries from before the rename to rho are kept verbatim under "[hawk …]"
-// headings so they cannot be mistaken for rho versions.
+// released decoder versions newest first, each with unique subsection headings.
+// Entries from before the rename to decoder are kept verbatim under "[hawk …]"
+// headings so they cannot be mistaken for decoder versions.
 var (
 	changelogReleaseHeading    = regexp.MustCompile(`^## \[(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\] — \d{4}-\d{2}-\d{2}$`)
 	changelogHistoricalHeading = regexp.MustCompile(`^## \[hawk [^\]]+\]`)

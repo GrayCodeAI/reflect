@@ -534,14 +534,14 @@ func TestParsePersonaFile_NameFromFilename(t *testing.T) {
 
 func TestNewPersonaRegistry_DefaultDir(t *testing.T) {
 	stateDir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", stateDir)
+	t.Setenv("DECODER_STATE_DIR", stateDir)
 
 	r := NewPersonaRegistry("")
 	if r.Dir == "" {
 		t.Error("default dir should not be empty")
 	}
-	if strings.Contains(r.Dir, ".rho") {
-		t.Errorf("default dir should not contain .rho, got %q", r.Dir)
+	if strings.Contains(r.Dir, ".decoder") {
+		t.Errorf("default dir should not contain .decoder, got %q", r.Dir)
 	}
 	if !strings.HasPrefix(r.Dir, stateDir) {
 		t.Errorf("default dir should be under state dir %q, got %q", stateDir, r.Dir)

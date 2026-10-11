@@ -7,11 +7,11 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 )
 
 func credentialsStoreLabel() string {
-	return rhoconfig.CredentialStoreName()
+	return decoderconfig.CredentialStoreName()
 }
 
 func configGatewayRemovePrompt(step int, gatewayName string) string {
@@ -37,15 +37,15 @@ func (m chatModel) configKeyDetailView() string {
 	accentStyle := configAccentStyle()
 	activeStyle := configActiveStyle()
 	providerName := strings.TrimSpace(m.configProvider)
-	displayName := rhoconfig.GatewayDisplayName(providerName)
-	masked := rhoconfig.MaskCredentialForProvider(context.Background(), providerName)
+	displayName := decoderconfig.GatewayDisplayName(providerName)
+	masked := decoderconfig.MaskCredentialForProvider(context.Background(), providerName)
 
 	var b strings.Builder
 	b.WriteString(renderConfigBreadcrumb(displayName+" key") + "\n\n")
 	b.WriteString(mutedStyle.Render("  Gateway: ") + accentStyle.Render(displayName) + "\n")
 	b.WriteString(mutedStyle.Render("  Key: ") + activeStyle.Render(masked) + "\n")
 	b.WriteString(mutedStyle.Render("  Stored in: "+credentialsStoreLabel()) + "\n")
-	if reg := rhoconfig.GatewayRegionLabel(providerName); reg != "" || rhoconfig.NeedsGatewayRegion(providerName) || rhoconfig.HasRegionOptions(providerName) {
+	if reg := decoderconfig.GatewayRegionLabel(providerName); reg != "" || decoderconfig.NeedsGatewayRegion(providerName) || decoderconfig.HasRegionOptions(providerName) {
 		if reg == "" {
 			reg = "(not set — press g)"
 		}
@@ -68,32 +68,32 @@ func (m chatModel) startConfigKeyForProvider(provider string) (chatModel, tea.Cm
 	if provider == "" {
 		return m, nil
 	}
-	if rhoconfig.NeedsGatewayRegion(provider) {
+	if decoderconfig.NeedsGatewayRegion(provider) {
 		m.configPostSaveKeysProvider = provider
 		return m.startConfigGatewayRegion(provider), nil
 	}
 
-	name := rhoconfig.GatewayDisplayName(provider)
+	name := decoderconfig.GatewayDisplayName(provider)
 	m.configNotice = "Paste API key for " + name
 	return m.startConfigEntry(configEntryAPIKeyPaste, provider)
 }
 
 func (m chatModel) startConfigKeyReplace(provider string) (chatModel, tea.Cmd) {
-	if rhoconfig.NeedsGatewayRegion(provider) {
+	if decoderconfig.NeedsGatewayRegion(provider) {
 		m.configPostSaveKeysProvider = provider
 		return m.startConfigGatewayRegion(provider), nil
 	}
 
 	m.configReplaceProvider = provider
 	m.configEntry = configEntryNone
-	m.configNotice = "Paste replacement API key for " + rhoconfig.GatewayDisplayName(provider)
+	m.configNotice = "Paste replacement API key for " + decoderconfig.GatewayDisplayName(provider)
 	return m.startConfigEntry(configEntryAPIKeyPaste, provider)
 }
 
 func (m chatModel) beginConfigGatewayKeyRemove(provider string) chatModel {
 	m.configKeysPendingRemove = provider
 	m.configKeysRemoveStep = 1
-	name := rhoconfig.GatewayDisplayName(provider)
+	name := decoderconfig.GatewayDisplayName(provider)
 	m.configNotice = configGatewayRemoveNotice(1, name)
 	return m
 }
@@ -116,7 +116,7 @@ func (m chatModel) advanceConfigGatewayKeyRemove() (chatModel, tea.Cmd) {
 	}
 	if m.configKeysRemoveStep < 2 {
 		m.configKeysRemoveStep = 2
-		name := rhoconfig.GatewayDisplayName(trimmedProvider)
+		name := decoderconfig.GatewayDisplayName(trimmedProvider)
 		m.configNotice = configGatewayRemoveNotice(2, name)
 		return m, nil
 	}
@@ -131,7 +131,7 @@ func (m chatModel) confirmConfigGatewayKeyRemove() (chatModel, tea.Cmd) {
 	m.configKeysPendingRemove = ""
 	m.configKeysRemoveStep = 0
 	m.configSaving = true
-	m.configNotice = fmt.Sprintf("Removing key for %s…", rhoconfig.GatewayDisplayName(trimmedProvider))
+	m.configNotice = fmt.Sprintf("Removing key for %s…", decoderconfig.GatewayDisplayName(trimmedProvider))
 	if m.configEntry == configEntryKeyView {
 		m.configEntry = configEntryNone
 		m.configProvider = ""
@@ -164,7 +164,7 @@ func (m chatModel) handleConfigKeyViewKey(msg tea.KeyMsg) (chatModel, tea.Cmd) {
 		}
 		return m.startConfigKeyReplace(trimmedProvider)
 	default:
-		if (rhoconfig.HasRegionOptions(trimmedProvider) || rhoconfig.GatewayRegionLabel(trimmedProvider) != "") && strings.EqualFold(key.Text, "g") {
+		if (decoderconfig.HasRegionOptions(trimmedProvider) || decoderconfig.GatewayRegionLabel(trimmedProvider) != "") && strings.EqualFold(key.Text, "g") {
 			return m.startConfigGatewayRegion(trimmedProvider), nil
 		}
 		return m, nil

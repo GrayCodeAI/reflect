@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/installtxn"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/installtxn"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // defaultIndexURL is the rolling release asset published by
@@ -309,7 +309,7 @@ func (rc *RegistryClient) Install(repo, skillName, scope string) (string, error)
 	_ = os.MkdirAll(destBase, 0o750)
 
 	// Clone into a temp dir, then copy the skill(s).
-	tmpDir, err := os.MkdirTemp("", "rho-skill-*")
+	tmpDir, err := os.MkdirTemp("", "decoder-skill-*")
 	if err != nil {
 		return "", fmt.Errorf("create temp dir: %w", err)
 	}
@@ -439,7 +439,7 @@ func (rc *RegistryClient) Install(repo, skillName, scope string) (string, error)
 	return msg, nil
 }
 
-// Remove uninstalls a skill by name from Rho user state.
+// Remove uninstalls a skill by name from Decoder user state.
 func Remove(name string) error {
 	dirs := []string{
 		filepath.Join(storage.StateDir(), "skills", name),

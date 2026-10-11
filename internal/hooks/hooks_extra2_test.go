@@ -48,7 +48,7 @@ func TestValidateHTTPHookURL_RejectsLocalhostByDefault(t *testing.T) {
 }
 
 func TestValidateHTTPHookURL_AllowsLocalhostWithOverride(t *testing.T) {
-	t.Setenv("RHO_HOOKS_ALLOW_LOCAL", "1")
+	t.Setenv("DECODER_HOOKS_ALLOW_LOCAL", "1")
 	if err := ValidateHTTPHookURL("http://localhost:8080/hook"); err != nil {
 		t.Errorf("expected localhost hook URL to be allowed with override, got: %v", err)
 	}

@@ -3,11 +3,11 @@ package session
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestRemoveLastExchangesSkipsToolMessages(t *testing.T) {
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{Role: "system", Content: "system"},
 		{Role: "user", Content: "one"},
 		{Role: "assistant", Content: "two"},
@@ -20,7 +20,7 @@ func TestRemoveLastExchangesSkipsToolMessages(t *testing.T) {
 }
 
 func TestRemoveLastExchangesDoesNotRemoveIncompletePair(t *testing.T) {
-	messages := []types.FluxMessage{{Role: "system"}, {Role: "user", Content: "only user"}}
+	messages := []types.MuxMessage{{Role: "system"}, {Role: "user", Content: "only user"}}
 	got, removed := RemoveLastExchanges(messages, 1)
 	if removed != 0 || len(got) != len(messages) {
 		t.Fatalf("got messages=%#v removed=%d", got, removed)

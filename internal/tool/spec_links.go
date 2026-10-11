@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/decoder/internal/spec"
 )
 
 // SpecLinksTool checks and generates bidirectional links between spec

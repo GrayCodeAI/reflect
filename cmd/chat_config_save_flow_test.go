@@ -8,25 +8,25 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/GrayCodeAI/flux/catalog"
-	"github.com/GrayCodeAI/flux/credentials"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/mux/catalog"
+	"github.com/GrayCodeAI/mux/credentials"
 )
 
 func TestFinishConfigEntry_APIKeyPaste_SavesBeforeProbe(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() {
 		credentials.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = configSaveTestTransport(http.StatusUnauthorized)
 	t.Cleanup(func() { http.DefaultTransport = oldTransport })
 
-	if _, err := rhoconfig.CredentialInferenceForProvider("xiaomi_mimo_payg"); err != nil {
+	if _, err := decoderconfig.CredentialInferenceForProvider("xiaomi_mimo_payg"); err != nil {
 		t.Fatalf("CredentialInferenceForProvider: %v", err)
 	}
 
@@ -111,7 +111,7 @@ func TestConfigGatewaysSelect_AddKeyOpensPaste(t *testing.T) {
 		}
 	}
 	if sel < 0 {
-		t.Skip("all gateways already have keys in this environment") // TODO: https://github.com/GrayCodeAI/rho/issues/28
+		t.Skip("all gateways already have keys in this environment") // TODO: https://github.com/GrayCodeAI/decoder/issues/28
 	}
 	m.configSel = sel
 	next, _ := m.handleConfigGatewaysSelect()
@@ -134,7 +134,7 @@ func configSaveTestTransport(status int) http.RoundTripper {
 	})
 }
 
-// roundTripFunc is defined in flux/runtime tests; duplicate here for rho cmd tests.
+// roundTripFunc is defined in mux/runtime tests; duplicate here for decoder cmd tests.
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -142,12 +142,12 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestHandleConfigKey_EnterOnPasteSubmits(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() {
 		credentials.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = configSaveTestTransport(http.StatusUnauthorized)
@@ -197,12 +197,12 @@ func TestStartConfigEntry_APIKeyPasteHasNoPlaceholder(t *testing.T) {
 }
 
 func TestHandleConfigApplyCredentialsMsg_CatalogFailureDoesNotBlameProvider(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() {
 		credentials.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 	if err := store.Set(t.Context(), credentials.AccountForEnv("POOLSIDE_API_KEY"), "poolside-test-key"); err != nil {
 		t.Fatalf("store key: %v", err)
@@ -218,19 +218,19 @@ func TestHandleConfigApplyCredentialsMsg_CatalogFailureDoesNotBlameProvider(t *t
 		t.Fatalf("catalog failure blamed provider key: %q", next.configNotice)
 	}
 	if !strings.Contains(next.configNotice, "model catalog unavailable") ||
-		!strings.Contains(next.configNotice, "rho models refresh") {
+		!strings.Contains(next.configNotice, "decoder models refresh") {
 		t.Fatalf("catalog recovery guidance missing: %q", next.configNotice)
 	}
 }
 
-// Skipped: integration test requiring specific flux model catalog state
+// Skipped: integration test requiring specific mux model catalog state
 func TestHandleConfigApplyCredentialsMsg_ValidationFailureDoesNotBlameProvider(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() {
 		credentials.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 	if err := store.Set(t.Context(), credentials.AccountForEnv("CONCENTRATE_API_KEY"), "concentrate-test-key"); err != nil {
 		t.Fatalf("store key: %v", err)
@@ -250,14 +250,14 @@ func TestHandleConfigApplyCredentialsMsg_ValidationFailureDoesNotBlameProvider(t
 	}
 }
 
-// Skipped: integration test requiring specific flux model catalog state
+// Skipped: integration test requiring specific mux model catalog state
 func TestHandleConfigApplyCredentialsMsg_AuthenticationFailureBlamesKey(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &credentials.MapStore{}
 	credentials.SetDefaultStore(store)
 	t.Cleanup(func() {
 		credentials.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 	if err := store.Set(t.Context(), credentials.AccountForEnv("CONCENTRATE_API_KEY"), "concentrate-test-key"); err != nil {
 		t.Fatalf("store key: %v", err)

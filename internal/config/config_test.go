@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
+	"github.com/GrayCodeAI/decoder/internal/testutil"
 )
 
 func TestLoadAgentsMD(t *testing.T) {
@@ -169,8 +169,8 @@ func TestLoadSettingsUsesUserConfigOnly(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	configDir := filepath.Join(home, "config")
-	t.Setenv("RHO_CONFIG_DIR", configDir)
-	t.Setenv("FLUX_CONFIG_DIR", filepath.Join(home, "flux"))
+	t.Setenv("DECODER_CONFIG_DIR", configDir)
+	t.Setenv("MUX_CONFIG_DIR", filepath.Join(home, "mux"))
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestSetGlobalSettingAndSettingValue(t *testing.T) {
 	if err := SetGlobalSetting("maxBudgetUSD", "2.5"); err != nil {
 		t.Fatal(err)
 	}
-	// Rho: API keys rejected from settings file
+	// Decoder: API keys rejected from settings file
 	if err := SetGlobalSetting("apiKey.openai", "sk-test"); err == nil {
 		t.Fatal("expected error setting api key in settings")
 	}

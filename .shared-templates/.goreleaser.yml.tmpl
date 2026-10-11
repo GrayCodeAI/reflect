@@ -1,11 +1,11 @@
 # Canonical GrayCodeAI goreleaser config for Go binary repos.
-# Source of truth: .shared-templates/.goreleaser.yml.tmpl (rho's
+# Source of truth: .shared-templates/.goreleaser.yml.tmpl (decoder's
 # .goreleaser.yml is the reference rendering).
 #
 # Placeholders rendered per repo (ALL-CAPS, distinct from goreleaser's own
 # `{{.Version}}`-style Go template fields, which are left as-is below):
-#   {{NAME}}        — short repo name (e.g. rho)
-#   {{MAIN_PKG}}    — main package path (e.g. ./ or ./cmd/rho)
+#   {{NAME}}        — short repo name (e.g. decoder)
+#   {{MAIN_PKG}}    — main package path (e.g. ./ or ./cmd/decoder)
 #   {{DESCRIPTION}} — short single-line description for the release header
 #   {{VERSION_PKG}} — Go package path holding Version vars
 #                     (e.g. main or github.com/GrayCodeAI/<name>/internal/version)

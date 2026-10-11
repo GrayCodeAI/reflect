@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // Stage identifies where in the tool pipeline an interceptor runs.

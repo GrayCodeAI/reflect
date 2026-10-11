@@ -6,8 +6,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
+	"github.com/GrayCodeAI/decoder/internal/engine"
+	chatfeature "github.com/GrayCodeAI/decoder/internal/features/chat"
 )
 
 // Streaming and prompt command functions extracted from chat.go

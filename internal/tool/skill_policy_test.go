@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
 )
 
 func TestSkillTool_PolicyAndRendering(t *testing.T) {

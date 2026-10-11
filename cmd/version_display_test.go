@@ -6,8 +6,8 @@ import (
 	"runtime/debug"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/provider/gateway"
 )
 
 func TestDisplayVersion_FromVERSIONFile(t *testing.T) {
@@ -26,7 +26,7 @@ func stubBuildInfo(t *testing.T, mainVersion string) {
 	t.Helper()
 	prev := readBuildInfo
 	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Path: "github.com/GrayCodeAI/rho", Version: mainVersion}}, true
+		return &debug.BuildInfo{Main: debug.Module{Path: "github.com/GrayCodeAI/decoder", Version: mainVersion}}, true
 	}
 	t.Cleanup(func() { readBuildInfo = prev })
 }
@@ -80,12 +80,12 @@ func TestDisplayVersion_ReleaseBuild(t *testing.T) {
 }
 
 func TestChatConnectionStatus_NoCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{session: nil}
@@ -96,12 +96,12 @@ func TestChatConnectionStatus_NoCredentials(t *testing.T) {
 }
 
 func TestChatBottomRightStatus_NoCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	decoderconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		decoderconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{inputIndicator: &InputIndicator{}}

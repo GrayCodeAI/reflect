@@ -1,9 +1,9 @@
-// Package gateway is Rho's single boundary to Flux's provider runtime. It is
-// the only package that imports Flux; everything else speaks the rho-owned
+// Package gateway is Decoder's single boundary to Mux's provider runtime. It is
+// the only package that imports Mux; everything else speaks the decoder-owned
 // Provider interface and the internal/types DTOs.
 //
-// rho = product face (UX/agent/sessions) · flux = provider engine
-// One-way dependency only: flux never imports rho. See README ecosystems.
+// decoder = product face (UX/agent/sessions) · mux = provider engine
+// One-way dependency only: mux never imports decoder. See README ecosystems.
 package gateway
 
 import (
@@ -11,21 +11,21 @@ import (
 	"log/slog"
 	"sync"
 
-	fluxengine "github.com/GrayCodeAI/flux/engine"
-	"github.com/GrayCodeAI/flux/llm"
+	muxengine "github.com/GrayCodeAI/mux/engine"
+	"github.com/GrayCodeAI/mux/llm"
 )
 
-// Gateway is Rho's single boundary to the Flux provider runtime. It embeds
+// Gateway is Decoder's single boundary to the Mux provider runtime. It embeds
 // Provider so every engine method is forwarded, and it is the only type that
-// constructs one (via New). All other Rho packages hold a *Gateway or speak
-// the Provider interface — never an *fluxengine.Engine.
+// constructs one (via New). All other Decoder packages hold a *Gateway or speak
+// the Provider interface — never an *muxengine.Engine.
 //
-// Construction is centralized here: New is the only call to fluxengine.New and
-// the place Rho declares its identity to the credential store.
-// Gateway is Rho's single boundary to the Flux provider runtime. It embeds the
+// Construction is centralized here: New is the only call to muxengine.New and
+// the place Decoder declares its identity to the credential store.
+// Gateway is Decoder's single boundary to the Mux provider runtime. It embeds the
 // Provider roles so every engine method is forwarded, and it is the only type
-// that constructs one (via New). All other Rho packages hold a *Gateway or speak
-// the Provider interface — never an *fluxengine.Engine. *Gateway satisfies the
+// that constructs one (via New). All other Decoder packages hold a *Gateway or speak
+// the Provider interface — never an *muxengine.Engine. *Gateway satisfies the
 // composite Provider interface.
 type Gateway struct {
 	Generator
@@ -37,32 +37,32 @@ type Gateway struct {
 	CatalogMaintenance
 }
 
-// declareRhoIdentity sets Flux's OS keychain service name to "rho" so existing
-// credentials (filed under "rho") stay readable under Flux's now host-neutral
-// default. It is idempotent and runs exactly once. Called from New so the
+// declareDecoderIdentity selects the "decoder" OS keychain namespace instead of
+// Mux's host-neutral default. Credentials must be configured in this namespace.
+// It is idempotent and runs exactly once. Called from New so the
 // identity is always declared before any credential read, no matter which New
 // path runs first.
-var declareRhoIdentity = sync.OnceFunc(func() {
-	fluxengine.SetSecretStoreServiceName("rho")
+var declareDecoderIdentity = sync.OnceFunc(func() {
+	muxengine.SetSecretStoreServiceName("decoder")
 })
 
-// New composes the Flux engine for one effective settings snapshot and wraps it
-// as a Provider. It is the single composition root — every fluxengine.New call
-// in Rho flows through here.
+// New composes the Mux engine for one effective settings snapshot and wraps it
+// as a Provider. It is the single composition root — every muxengine.New call
+// in Decoder flows through here.
 func New(ctx context.Context, providers []CustomProviderConfig) (*Gateway, error) {
-	// Declare rho's identity to the credential store FIRST, before
+	// Declare decoder's identity to the credential store FIRST, before
 	// constructing the engine, so no credential read ever happens under
-	// Flux's host-neutral default service name. The OnceFunc makes this
+	// Mux's host-neutral default service name. The OnceFunc makes this
 	// safe to call from every construction path.
-	declareRhoIdentity()
+	declareDecoderIdentity()
 
 	gateways := customGatewaysFromSettings(providers)
-	eng, err := fluxengine.New(fluxengine.Options{CustomGateways: gateways})
+	eng, err := muxengine.New(muxengine.Options{CustomGateways: gateways})
 	if err != nil {
 		return nil, err
 	}
 	// Gap-05: env-gated opt-in wiring of media/STT backends to the router
-	// facade. No-op unless RHO_MEDIA=1 / RHO_STT=1.
+	// facade. No-op unless DECODER_MEDIA=1 / DECODER_STT=1.
 	wireOptionalBackends(eng)
 	p := newEngineProvider(eng)
 	return &Gateway{
@@ -76,17 +76,17 @@ func New(ctx context.Context, providers []CustomProviderConfig) (*Gateway, error
 	}, nil
 }
 
-// BuildCustomGateways maps Rho's OpenAI-compatible provider config onto
-// Flux's CustomGateway spec. Shared by gateway.New, config.flux_engine, and
+// BuildCustomGateways maps Decoder's OpenAI-compatible provider config onto
+// Mux's CustomGateway spec. Shared by gateway.New, config.mux_engine, and
 // engine.session_factory so a new CustomProviderConfig field only needs wiring
 // in one place.
-func BuildCustomGateways(providers []CustomProviderConfig) []fluxengine.CustomGateway {
-	gateways := make([]fluxengine.CustomGateway, 0, len(providers))
+func BuildCustomGateways(providers []CustomProviderConfig) []muxengine.CustomGateway {
+	gateways := make([]muxengine.CustomGateway, 0, len(providers))
 	for _, provider := range providers {
 		if provider.Name == "" && provider.BaseURL == "" {
 			continue
 		}
-		gateways = append(gateways, fluxengine.CustomGateway{
+		gateways = append(gateways, muxengine.CustomGateway{
 			ID: provider.Name, BaseURL: provider.BaseURL,
 			CredentialEnv: provider.APIKeyEnv, DefaultModel: provider.Model,
 		})
@@ -95,11 +95,11 @@ func BuildCustomGateways(providers []CustomProviderConfig) []fluxengine.CustomGa
 }
 
 // customGatewaysFromSettings is the internal alias kept for backward compat.
-func customGatewaysFromSettings(providers []CustomProviderConfig) []fluxengine.CustomGateway {
+func customGatewaysFromSettings(providers []CustomProviderConfig) []muxengine.CustomGateway {
 	return BuildCustomGateways(providers)
 }
 
-// CustomProviderConfig is Rho's spec for a user-defined OpenAI-compatible
+// CustomProviderConfig is Decoder's spec for a user-defined OpenAI-compatible
 // provider. Kept here (rather than reusing config.CustomProviderConfig) so the
 // gateway package does not import config and create an import cycle.
 type CustomProviderConfig struct {
@@ -109,7 +109,7 @@ type CustomProviderConfig struct {
 	Model     string
 }
 
-// ModelInfo is Rho's product-facing view of Flux model metadata.
+// ModelInfo is Decoder's product-facing view of Mux model metadata.
 type ModelInfo struct {
 	Name        string  `json:"name"`
 	Provider    string  `json:"provider"`
@@ -120,7 +120,7 @@ type ModelInfo struct {
 	Recommended bool    `json:"recommended,omitempty"`
 }
 
-func fromEngineModel(model fluxengine.Model) ModelInfo {
+func fromEngineModel(model muxengine.Model) ModelInfo {
 	return ModelInfo{
 		Name: model.ID, Provider: model.ProviderID,
 		ContextSize: model.ContextWindow,
@@ -129,7 +129,7 @@ func fromEngineModel(model fluxengine.Model) ModelInfo {
 	}
 }
 
-// ChatClient returns a rho ChatClient bound to this gateway's Provider.
+// ChatClient returns a decoder ChatClient bound to this gateway's Provider.
 func (g *Gateway) ChatClient() *translateProvider {
 	return newChatClientProvider(g)
 }
@@ -142,10 +142,10 @@ func (g *Gateway) MustSelectProvider() Provider {
 	return g
 }
 
-// NewFromEngine wraps an existing *fluxengine.Engine as a Gateway. Tests that
-// inject an Flux SecretStore (e.g. compaction-support detection) use it so the
-// rest of Rho still speaks the Gateway boundary.
-func NewFromEngine(eng *fluxengine.Engine) *Gateway {
+// NewFromEngine wraps an existing *muxengine.Engine as a Gateway. Tests that
+// inject an Mux SecretStore (e.g. compaction-support detection) use it so the
+// rest of Decoder still speaks the Gateway boundary.
+func NewFromEngine(eng *muxengine.Engine) *Gateway {
 	if eng == nil {
 		return nil
 	}
@@ -162,8 +162,8 @@ func NewFromEngine(eng *fluxengine.Engine) *Gateway {
 }
 
 // --- Stateless package-level lookups -------------------------------------
-// These delegate Flux reads to one shared default gateway so rho-owned
-// policy packages (routing, config) never import Flux themselves. flux's
+// These delegate Mux reads to one shared default gateway so decoder-owned
+// policy packages (routing, config) never import Mux themselves. mux's
 // Engine reloads its catalog and provider config from disk on every method
 // call, so a single long-lived gateway returns identical freshness to
 // constructing one per call — this just avoids redundant construction. It
@@ -277,7 +277,7 @@ func ProviderForModel(ctx context.Context, modelName string) string {
 	return g.ProviderForModel(ctx, modelName)
 }
 
-// PreferredModel returns Flux's tier-preferred model for a provider.
+// PreferredModel returns Mux's tier-preferred model for a provider.
 func PreferredModel(ctx context.Context, provider string, class ModelClass, fallback string) string {
 	g := defaultGateway(ctx)
 	if g == nil {
@@ -322,46 +322,46 @@ func ModelNames(ctx context.Context) []string {
 	return g.ModelNames(ctx)
 }
 
-// --- rho-owned mirror of Flux's ModelClass tier enum -------------------
+// --- decoder-owned mirror of Mux's ModelClass tier enum -------------------
 // Kept here (rather than importing neutral constants) so the boundary stays
-// one-way; values match fluxengine.ModelClass.
-type ModelClass = fluxengine.ModelClass
+// one-way; values match muxengine.ModelClass.
+type ModelClass = muxengine.ModelClass
 
 const (
 	ModelClassEconomical = llm.ModelClassEconomical
 	ModelClassBalanced   = llm.ModelClassBalanced
 	ModelClassPremium    = llm.ModelClassPremium
-	CheckFail            = fluxengine.CheckFail
+	CheckFail            = muxengine.CheckFail
 )
 
 // NormalizeProviderID canonicalizes a host-facing provider/gateway id.
 func NormalizeProviderID(id string) string {
-	return fluxengine.NormalizeProviderID(id)
+	return muxengine.NormalizeProviderID(id)
 }
 
-// --- Flux report/type re-exports config internals consume ----------------
-// These alias Flux types that a few config-only report paths return. They
-// live in gateway (the single Flux importer) rather than config.
+// --- Mux report/type re-exports config internals consume ----------------
+// These alias Mux types that a few config-only report paths return. They
+// live in gateway (the single Mux importer) rather than config.
 
 type (
-	PreflightReport         = fluxengine.PreflightReport
-	PreflightOptions        = fluxengine.PreflightOptions
-	ProviderStateSecurity   = fluxengine.ProviderStateSecurity
-	DeploymentSummary       = fluxengine.DeploymentSummary
-	CredentialStorageReport = fluxengine.CredentialStorageReport
-	CredentialStatus        = fluxengine.CredentialStatus
-	CredentialResolution    = fluxengine.CredentialResolution
-	CredentialProvider      = fluxengine.CredentialProvider
-	GatewayDefs             = fluxengine.Gateway
-	CatalogSnapshot         = fluxengine.CatalogSnapshot
-	Model                   = fluxengine.Model
-	StatePaths              = fluxengine.StatePaths
-	SelectionOptions        = fluxengine.SelectionOptions
-	Selection               = fluxengine.Selection
-	NativeCompactionRequest = fluxengine.NativeCompactionRequest
+	PreflightReport         = muxengine.PreflightReport
+	PreflightOptions        = muxengine.PreflightOptions
+	ProviderStateSecurity   = muxengine.ProviderStateSecurity
+	DeploymentSummary       = muxengine.DeploymentSummary
+	CredentialStorageReport = muxengine.CredentialStorageReport
+	CredentialStatus        = muxengine.CredentialStatus
+	CredentialResolution    = muxengine.CredentialResolution
+	CredentialProvider      = muxengine.CredentialProvider
+	GatewayDefs             = muxengine.Gateway
+	CatalogSnapshot         = muxengine.CatalogSnapshot
+	Model                   = muxengine.Model
+	StatePaths              = muxengine.StatePaths
+	SelectionOptions        = muxengine.SelectionOptions
+	Selection               = muxengine.Selection
+	NativeCompactionRequest = muxengine.NativeCompactionRequest
 )
 
-// Package-level Flux helpers that config delegates to (gateway stays the only importer).
+// Package-level Mux helpers that config delegates to (gateway stays the only importer).
 
 func PreflightReportWithOptions(ctx context.Context, opts PreflightOptions) PreflightReport {
 	return PreflightWithProviders(ctx, nil, opts)
@@ -379,72 +379,72 @@ func PreflightWithProviders(ctx context.Context, providers []CustomProviderConfi
 }
 
 func FormatPreflight(report PreflightReport) string {
-	return fluxengine.FormatPreflight(report)
+	return muxengine.FormatPreflight(report)
 }
 
 func IsCatalogCacheRequired(err error) bool {
-	return fluxengine.IsCatalogCacheRequired(err)
+	return muxengine.IsCatalogCacheRequired(err)
 }
 
-// RegisteredProviderCount exposes Flux's first-class provider count through
-// Rho's single provider-runtime boundary. The count derives from Flux's
-// provider registry, so adding a provider in Flux never requires a Rho edit.
+// RegisteredProviderCount exposes Mux's first-class provider count through
+// Decoder's single provider-runtime boundary. The count derives from Mux's
+// provider registry, so adding a provider in Mux never requires a Decoder edit.
 func RegisteredProviderCount() int {
-	return fluxengine.RegisteredGatewayCount()
+	return muxengine.RegisteredGatewayCount()
 }
 
-func SecretStoreName() string { return fluxengine.SecretStoreName() }
+func SecretStoreName() string { return muxengine.SecretStoreName() }
 
 func CredentialStorage(ctx context.Context) CredentialStorageReport {
-	return fluxengine.CredentialStorage(ctx)
+	return muxengine.CredentialStorage(ctx)
 }
 
 func CredentialGuidance(providerID, secret string) string {
-	return fluxengine.CredentialGuidance(providerID, secret)
+	return muxengine.CredentialGuidance(providerID, secret)
 }
 
 func FormatSetupError(providerID string, err error) string {
-	return fluxengine.FormatSetupError(providerID, err)
+	return muxengine.FormatSetupError(providerID, err)
 }
 
 // ParseInlineToolCalls extracts inline tool-call markup from model output.
-func ParseInlineToolCalls(content string) (string, []fluxengine.ToolCall) {
-	return fluxengine.ParseInlineToolCalls(content)
+func ParseInlineToolCalls(content string) (string, []muxengine.ToolCall) {
+	return muxengine.ParseInlineToolCalls(content)
 }
 
 func DefaultThinkingDisabled(providerID string) bool {
-	return fluxengine.DefaultThinkingDisabled(providerID)
+	return muxengine.DefaultThinkingDisabled(providerID)
 }
 
 func ThinkingToggleSupported(providerID string) bool {
-	return fluxengine.ThinkingToggleSupported(providerID)
+	return muxengine.ThinkingToggleSupported(providerID)
 }
 
 func (g *Gateway) DefaultThinkingDisabled(providerID string) bool {
-	return fluxengine.DefaultThinkingDisabled(providerID)
+	return muxengine.DefaultThinkingDisabled(providerID)
 }
 
 func (g *Gateway) ThinkingToggleSupported(providerID string) bool {
-	return fluxengine.ThinkingToggleSupported(providerID)
+	return muxengine.ThinkingToggleSupported(providerID)
 }
 
 // --- Test fixtures -----------------------------------------------------
-// Re-exported from engine so rho tests inject credential fixtures through the
+// Re-exported from engine so decoder tests inject credential fixtures through the
 // single gateway+engine boundary. These are thin aliases only.
 
 // SetDefaultStore replaces the process-wide credential store (for tests).
-var SetDefaultStore = fluxengine.SetDefaultStore
+var SetDefaultStore = muxengine.SetDefaultStore
 
 // DefaultStore returns the process-wide credential store (for tests).
-var DefaultStore = fluxengine.DefaultStore
+var DefaultStore = muxengine.DefaultStore
 
 // MapStore is the in-memory credential store for tests (alias).
-type MapStore = fluxengine.MapStore
+type MapStore = muxengine.MapStore
 
 // AccountForEnv returns the keychain account name for an env var.
-func AccountForEnv(envVar string) string { return fluxengine.AccountForEnv(envVar) }
+func AccountForEnv(envVar string) string { return muxengine.AccountForEnv(envVar) }
 
 // HasSecret reports whether a secret exists for an env var (for tests).
 func HasSecret(ctx context.Context, envKey string) bool {
-	return fluxengine.HasSecret(ctx, envKey)
+	return muxengine.HasSecret(ctx, envKey)
 }

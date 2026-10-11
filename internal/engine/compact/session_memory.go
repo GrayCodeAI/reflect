@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 type SessionMemoryConfig struct {
@@ -25,7 +25,7 @@ func DefaultSessionMemoryConfig() SessionMemoryConfig {
 	}
 }
 
-func CalculateMessagesToKeepIndex(msgs []types.FluxMessage, cfg SessionMemoryConfig) int {
+func CalculateMessagesToKeepIndex(msgs []types.MuxMessage, cfg SessionMemoryConfig) int {
 	if len(msgs) == 0 {
 		return 0
 	}
@@ -55,8 +55,8 @@ func CalculateMessagesToKeepIndex(msgs []types.FluxMessage, cfg SessionMemoryCon
 	return idx
 }
 
-func FilterCompactBoundaries(msgs []types.FluxMessage) []types.FluxMessage {
-	result := make([]types.FluxMessage, 0, len(msgs))
+func FilterCompactBoundaries(msgs []types.MuxMessage) []types.MuxMessage {
+	result := make([]types.MuxMessage, 0, len(msgs))
 	for _, m := range msgs {
 		if IsCompactBoundary(m) {
 			continue
@@ -66,7 +66,7 @@ func FilterCompactBoundaries(msgs []types.FluxMessage) []types.FluxMessage {
 	return result
 }
 
-func IsCompactBoundary(m types.FluxMessage) bool {
+func IsCompactBoundary(m types.MuxMessage) bool {
 	if m.Role != "user" {
 		return false
 	}

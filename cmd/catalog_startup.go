@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 )
 
 var (
@@ -13,15 +13,15 @@ var (
 )
 
 func ensureCatalogBeforeAgent(ctx context.Context, strict bool) error {
-	opts := rhoconfig.CatalogStartupOptions{
+	opts := decoderconfig.CatalogStartupOptions{
 		ForceRefresh:    refreshCatalogFlag,
 		SkipAutoRefresh: skipCatalogRefreshFlag,
 		VerboseOutput:   refreshCatalogFlag,
 	}
 	if strict {
-		return rhoconfig.PrepareCatalogForSession(ctx, os.Stderr, opts)
+		return decoderconfig.PrepareCatalogForSession(ctx, os.Stderr, opts)
 	}
-	rhoconfig.StartupCatalogPrefetch(ctx)
+	decoderconfig.StartupCatalogPrefetch(ctx)
 	return nil
 }
 
@@ -29,5 +29,5 @@ func startBackgroundCatalogRefresh(ctx context.Context) {
 	if skipCatalogRefreshFlag {
 		return
 	}
-	rhoconfig.ScheduleBackgroundCatalogRefresh(ctx)
+	decoderconfig.ScheduleBackgroundCatalogRefresh(ctx)
 }

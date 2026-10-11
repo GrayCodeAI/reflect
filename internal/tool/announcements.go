@@ -1,4 +1,4 @@
-// announcements.go — System announcements for Rho.
+// announcements.go — System announcements for Decoder.
 //
 // Provides notification banners for releases, important updates, and system notices.
 // Announcements can be shown/dismissed and support expiry dates.
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/storage"
 )
 
 // Announcement represents a system announcement.
@@ -164,9 +164,9 @@ func PruneHiddenIDs(state *AnnouncementsState, active []*Announcement) bool {
 }
 
 // ResolveStartupAnnouncements resolves announcements with env override support.
-// RHO_ANNOUNCEMENTS_OVERRIDE can be set to a JSON array of announcements.
+// DECODER_ANNOUNCEMENTS_OVERRIDE can be set to a JSON array of announcements.
 func ResolveStartupAnnouncements(remote []*Announcement) []*Announcement {
-	override := os.Getenv("RHO_ANNOUNCEMENTS_OVERRIDE")
+	override := os.Getenv("DECODER_ANNOUNCEMENTS_OVERRIDE")
 	if override != "" {
 		var overrideAnnouncements []*Announcement
 		if err := json.Unmarshal([]byte(override), &overrideAnnouncements); err == nil {

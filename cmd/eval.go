@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/features/eval"
-	"github.com/GrayCodeAI/rho/internal/features/evalloop"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
+	"github.com/GrayCodeAI/decoder/internal/features/eval"
+	"github.com/GrayCodeAI/decoder/internal/features/evalloop"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 	"github.com/spf13/cobra"
 )
 
@@ -98,22 +98,22 @@ func runEvalLoop(cmd *cobra.Command, _ []string) error {
 	if strings.TrimSpace(evalLoopPrompt) == "" {
 		return fmt.Errorf("--prompt is required")
 	}
-	settings := rhoconfig.LoadGlobalSettings()
+	settings := decoderconfig.LoadGlobalSettings()
 	ctx := context.Background()
 
-	gw, err := rhoconfig.NewFluxEngineForSettings(settings)
+	gw, err := decoderconfig.NewMuxEngineForSettings(settings)
 	if err != nil {
 		return fmt.Errorf("eval loop: build engine client: %w", err)
 	}
 	model := strings.TrimSpace(evalLoopModel)
 	if model == "" {
-		model = strings.TrimSpace(rhoconfig.ActiveModel(ctx))
+		model = strings.TrimSpace(decoderconfig.ActiveModel(ctx))
 	}
 	if model == "" {
 		model = strings.TrimSpace(settings.Model)
 	}
 
-	workDir, err := os.MkdirTemp("", "rho-eval-loop-*")
+	workDir, err := os.MkdirTemp("", "decoder-eval-loop-*")
 	if err != nil {
 		return fmt.Errorf("eval loop: create temp dir: %w", err)
 	}
@@ -225,7 +225,7 @@ func runEval(_ *cobra.Command, _ []string) error {
 
 	fmt.Printf("%s\n", auditTint(fmt.Sprintf("Running %d tasks with model %s...", len(tasks), modelName), textPrimary))
 
-	suite := &eval.BenchmarkSuite{Name: "rho-eval", Tasks: tasks}
+	suite := &eval.BenchmarkSuite{Name: "decoder-eval", Tasks: tasks}
 	runner := eval.NewRunner(modelName, "")
 	runner.NoCache = evalNoCache
 	if !evalNoCache {

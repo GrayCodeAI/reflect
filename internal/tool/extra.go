@@ -95,13 +95,13 @@ func (NotebookEditTool) Execute(ctx context.Context, input json.RawMessage) (str
 	return fmt.Sprintf("Edited cell %d in %s", p.CellNumber, p.Path), nil
 }
 
-// ConfigTool reads/writes rho settings.
+// ConfigTool reads/writes decoder settings.
 type ConfigTool struct{}
 
 func (ConfigTool) Name() string      { return "Config" }
 func (ConfigTool) Aliases() []string { return []string{"config"} }
 func (ConfigTool) Description() string {
-	return "Read or modify rho configuration settings."
+	return "Read or modify decoder configuration settings."
 }
 
 // ConfigInput is the typed input for ConfigTool.

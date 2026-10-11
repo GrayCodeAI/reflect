@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	enginediff "github.com/GrayCodeAI/rho/internal/engine/diff"
+	enginediff "github.com/GrayCodeAI/decoder/internal/engine/diff"
 	"github.com/spf13/cobra"
 )
 
@@ -31,10 +31,10 @@ Subcommands:
   describe  Generate or update a PR description
 
 Examples:
-  rho pr review
-  rho pr review 42 --post-comments
-  rho pr create --base develop --draft
-  rho pr describe 42 --update`,
+  decoder pr review
+  decoder pr review 42 --post-comments
+  decoder pr create --base develop --draft
+  decoder pr describe 42 --update`,
 }
 
 var prReviewCmd = &cobra.Command{

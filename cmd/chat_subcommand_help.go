@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
+	commandfeature "github.com/GrayCodeAI/decoder/internal/features/commands"
 )
 
 // helpCategory returns the display category for a slash command name,

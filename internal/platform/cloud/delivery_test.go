@@ -13,7 +13,7 @@ import (
 
 func validDeliveryContext() DeliveryContext {
 	event := DeliveryContext{ProjectID: "project_0123456789", Branch: "main", CommitSHA: "abc123"}
-	event.Repository.Provider, event.Repository.ExternalID, event.Repository.Name = "github", "GrayCodeAI/rho", "GrayCodeAI/rho"
+	event.Repository.Provider, event.Repository.ExternalID, event.Repository.Name = "github", "GrayCodeAI/decoder", "GrayCodeAI/decoder"
 	return event
 }
 
@@ -29,7 +29,7 @@ func TestSendDeliveryContextReportsRejection(t *testing.T) {
 	revoked := httptest.NewServer(respondWith(http.StatusUnauthorized, `{"error":"Unauthorized"}`))
 	defer revoked.Close()
 	err = New(Config{Endpoint: revoked.URL, DeviceToken: "hwc_revoked"}).SendDeliveryContext(context.Background(), validDeliveryContext())
-	if err == nil || !strings.Contains(err.Error(), "rho cloud login") {
+	if err == nil || !strings.Contains(err.Error(), "decoder cloud login") {
 		t.Fatalf("revoked-token error = %v, want a reconnect hint", err)
 	}
 }

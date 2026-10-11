@@ -3,7 +3,7 @@ package engine
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/smartrouting"
+	"github.com/GrayCodeAI/decoder/internal/smartrouting"
 )
 
 func TestLifecycleServiceSmartRouting(t *testing.T) {

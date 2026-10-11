@@ -34,7 +34,7 @@ func TestVersionFileIsSemVer(t *testing.T) {
 	// v0.1.0–v0.2.0 are hawk-era tags already on the Go module proxy; a lower
 	// VERSION would never become @latest.
 	if semver.Compare("v"+v, "v0.3.0") < 0 {
-		t.Fatalf("VERSION = %q is below 0.3.0, the first rho-named release", v)
+		t.Fatalf("VERSION = %q is below 0.3.0, the first decoder-named release", v)
 	}
 }
 

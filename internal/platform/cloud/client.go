@@ -1,4 +1,4 @@
-// Package cloud contains Rho's optional HTTP integration with GrayCode Cloud,
+// Package cloud contains Decoder's optional HTTP integration with GrayCode Cloud,
 // the opt-in hosted control plane at https://cloud.graycodeai.com. Automatic
 // usage upload is fail-open; explicit commands report every failure.
 package cloud
@@ -44,7 +44,7 @@ type UsageEvent struct {
 	OccurredAt          string `json:"occurredAt"`
 }
 
-// DeliveryContext is bounded repository and delivery metadata Rho can sync
+// DeliveryContext is bounded repository and delivery metadata Decoder can sync
 // with its project-scoped device token.
 type DeliveryContext struct {
 	ProjectID  string `json:"projectId"`
@@ -111,10 +111,10 @@ const (
 var (
 	// ErrDeviceLoginExpired is the terminal "expired" poll state: the code was
 	// not approved in time (or is unknown to the server).
-	ErrDeviceLoginExpired = errors.New("the GrayCode Cloud device login expired before it was approved; run `rho cloud login` again")
+	ErrDeviceLoginExpired = errors.New("the GrayCode Cloud device login expired before it was approved; run `decoder cloud login` again")
 	// ErrDeviceLoginConsumed is the terminal "consumed" poll state (HTTP 409):
 	// the token for this login was already issued to an earlier poll.
-	ErrDeviceLoginConsumed = errors.New("this GrayCode Cloud device login was already completed and its token was issued to an earlier request; run `rho cloud login` again")
+	ErrDeviceLoginConsumed = errors.New("this GrayCode Cloud device login was already completed and its token was issued to an earlier request; run `decoder cloud login` again")
 )
 
 type DeviceLoginPoll struct {
@@ -128,7 +128,7 @@ type DeviceLoginPoll struct {
 // ApprovalURL returns the browser URL for approving this login: the
 // verification URI with the user code as the "code" query parameter. The
 // URI must satisfy the same TLS policy as the API endpoint, so a server
-// response can never make rho open a non-web or plaintext remote URL.
+// response can never make decoder open a non-web or plaintext remote URL.
 func (s DeviceLoginStart) ApprovalURL() (string, error) {
 	u, err := url.Parse(s.VerificationURI)
 	if err != nil || u.Opaque != "" || u.Hostname() == "" || u.User != nil {
@@ -255,7 +255,7 @@ func (c *Client) newJSONRequest(ctx context.Context, path string, body []byte, a
 func (c *Client) startDeviceLogin(ctx context.Context, label, platform, version string) (DeviceLoginStart, error) {
 	var result DeviceLoginStart
 	body, err := json.Marshal(deviceStartRequest{
-		Label:           boundedField(label, maxDeviceLabel, "rho"),
+		Label:           boundedField(label, maxDeviceLabel, "decoder"),
 		Platform:        boundedField(platform, maxDevicePlatform, "unknown"),
 		GraycodeVersion: boundedField(version, maxGraycodeVersion, "dev"),
 	})
@@ -323,7 +323,7 @@ func (c *Client) pollDeviceLogin(ctx context.Context, deviceCode string) (Device
 	}
 }
 
-// StartDeviceLogin begins a browser device login. version is rho's own version
+// StartDeviceLogin begins a browser device login. version is decoder's own version
 // string, sent as the contract's graycodeVersion field; label, platform and
 // version are cut to the contract's bounds.
 func (c *Client) StartDeviceLogin(ctx context.Context, label, platform, version string) (DeviceLoginStart, error) {

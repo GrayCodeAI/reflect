@@ -3,10 +3,10 @@ package engine
 import (
 	"testing"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	agentcontracts "github.com/GrayCodeAI/decoder/internal/contracts/agent"
+	"github.com/GrayCodeAI/decoder/internal/session"
+	"github.com/GrayCodeAI/decoder/internal/storage"
+	"github.com/GrayCodeAI/decoder/internal/tool"
 )
 
 func TestSubAgentResume_ReplaysTranscriptMessages(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 // mockLLMClient implements LLMClient for testing.
@@ -16,12 +16,12 @@ type mockLLMClient struct {
 	calls    int
 }
 
-func (m *mockLLMClient) Chat(_ context.Context, msgs []types.FluxMessage, _ types.ChatOptions) (*types.FluxResponse, error) {
+func (m *mockLLMClient) Chat(_ context.Context, msgs []types.MuxMessage, _ types.ChatOptions) (*types.MuxResponse, error) {
 	m.calls++
 	if m.err != nil {
 		return nil, m.err
 	}
-	return &types.FluxResponse{Content: m.response}, nil
+	return &types.MuxResponse{Content: m.response}, nil
 }
 
 func TestNewReflector(t *testing.T) {
@@ -43,7 +43,7 @@ WHAT_TO_DO: Use the project root from the session context instead of hardcoding 
 	}
 
 	r := NewReflector(mock, "test-model")
-	ref, err := r.Reflect(context.Background(), "fix the config parser", []types.FluxMessage{
+	ref, err := r.Reflect(context.Background(), "fix the config parser", []types.MuxMessage{
 		{Role: "user", Content: "Fix the config parser to handle nested keys."},
 		{Role: "assistant", Content: "I will edit config.go."},
 	}, "permission denied: /tmp/config.go")
@@ -252,7 +252,7 @@ what_to_do: lowercase fix`
 }
 
 func TestBuildReflectionPrompt_ContainsKeyElements(t *testing.T) {
-	messages := []types.FluxMessage{
+	messages := []types.MuxMessage{
 		{Role: "user", Content: "Fix the parser."},
 		{
 			Role:    "assistant",

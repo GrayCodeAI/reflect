@@ -3,7 +3,7 @@ package engine
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/types"
 )
 
 func TestIsSmallTalkPrompt(t *testing.T) {
@@ -31,8 +31,8 @@ func TestIsSmallTalkPrompt(t *testing.T) {
 }
 
 func TestSessionHasToolUse(t *testing.T) {
-	plain := []types.FluxMessage{{Role: "user", Content: "hi"}}
-	used := []types.FluxMessage{
+	plain := []types.MuxMessage{{Role: "user", Content: "hi"}}
+	used := []types.MuxMessage{
 		{Role: "user", Content: "read stream.go"},
 		{Role: "assistant", ToolUse: []types.ToolCall{{Name: "Read"}}},
 		{Role: "user", Content: "thanks", ToolResults: []types.ToolResult{{}}},

@@ -8,8 +8,8 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
-	commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
-	"github.com/GrayCodeAI/rho/internal/plugin"
+	commandfeature "github.com/GrayCodeAI/decoder/internal/features/commands"
+	"github.com/GrayCodeAI/decoder/internal/plugin"
 )
 
 // CommandPaletteEntry represents a single command in the palette.
@@ -45,7 +45,7 @@ func (cp *CommandPalette) ensureInput() {
 // Palette styles are functions rather than package-level values so live theme
 // changes apply to every picker, not only to newly created widgets.
 func paletteTitleStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Bold(true).Foreground(rhoColor)
+	return lipgloss.NewStyle().Bold(true).Foreground(decoderColor)
 }
 
 func paletteInputStyle() lipgloss.Style {
@@ -65,7 +65,7 @@ func paletteDescStyle() lipgloss.Style {
 }
 
 func paletteCategoryStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	return lipgloss.NewStyle().Foreground(decoderColor).Bold(true)
 }
 
 func paletteDimStyle() lipgloss.Style {

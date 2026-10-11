@@ -6,23 +6,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/decoder/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/types"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
-	"github.com/GrayCodeAI/rho/internal/usage"
+	"github.com/GrayCodeAI/decoder/internal/types"
+	"github.com/GrayCodeAI/decoder/internal/ui/icons"
+	"github.com/GrayCodeAI/decoder/internal/usage"
 
-	analytics "github.com/GrayCodeAI/rho/internal/observability"
+	analytics "github.com/GrayCodeAI/decoder/internal/observability"
 )
 
 // streamUsageLedger prevents providers that repeat their final usage on the
 // done event from being billed twice. Distinct usage events are preserved so
 // multi-request continuation streams still account for every provider call.
 type streamUsageLedger struct {
-	lastUsageEvent *types.FluxUsage
+	lastUsageEvent *types.MuxUsage
 }
 
-func (l *streamUsageLedger) shouldRecord(usage *types.FluxUsage, terminal bool) bool {
+func (l *streamUsageLedger) shouldRecord(usage *types.MuxUsage, terminal bool) bool {
 	if usage == nil {
 		return false
 	}
@@ -39,14 +39,14 @@ func (l *streamUsageLedger) reset() {
 	l.lastUsageEvent = nil
 }
 
-func equalStreamUsage(a, b *types.FluxUsage) bool {
+func equalStreamUsage(a, b *types.MuxUsage) bool {
 	if a == nil || b == nil {
 		return false
 	}
 	return *a == *b
 }
 
-func cloneStreamUsage(usage *types.FluxUsage) *types.FluxUsage {
+func cloneStreamUsage(usage *types.MuxUsage) *types.MuxUsage {
 	if usage == nil {
 		return nil
 	}
@@ -71,7 +71,7 @@ func updateResolvedRoute(provider, model string, route *types.ResolvedRoute) (st
 }
 
 // recordStreamUsage updates session billing/context counters and notifies the TUI.
-// Provider and model are the concrete route selected by Flux, not merely the
+// Provider and model are the concrete route selected by Mux, not merely the
 // user's preference, so fallback usage is attributed to the transport that ran.
 func (s *Session) recordStreamUsage(ch chan<- StreamEvent, prompt, completion int, provider, model, taskType string, apiStart time.Time) {
 	if prompt <= 0 && completion <= 0 {

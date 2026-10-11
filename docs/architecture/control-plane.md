@@ -1,10 +1,10 @@
-# Rho Control Plane (proposed → implemented core)
+# Decoder Control Plane (proposed → implemented core)
 
 Status: **core wired** (spawn · lazy tools · plan/act/review).
 
 ## Goal
 
-World-class CLI experience: **one face (Rho)**, deep engines, progressive power.
+World-class CLI experience: **one face (Decoder)**, deep engines, progressive power.
 
 ```text
 Faces (TUI / headless / ACP / daemon)
@@ -19,7 +19,7 @@ Faces (TUI / headless / ACP / daemon)
               Session kernel
            (agentLoop · tools)
                     │
-     flux · embedded token engine
+     mux · embedded token engine
 ```
 
 ## Pieces
@@ -36,7 +36,7 @@ Single entry for subagents + background tasks:
 ### 2. Lazy model surface (`tool.Registry`)
 
 - Essential tools registered and **model-visible**
-- Optional tools registered for **execution + ToolSearch**, hidden from `FluxTools`
+- Optional tools registered for **execution + ToolSearch**, hidden from `MuxTools`
 - `ToolSearch` `select:Name` **promotes** tool onto the model surface
 - APIs: `EnableLazyModelSurface`, `SetModelVisibility`, `PromoteModelTool`
 
@@ -97,12 +97,12 @@ Single entry for subagents + background tasks:
 ## Iteration 4
 
 ### Onboarding / CI
-- CLI `Welcome` surfaces control-plane commands + `rho exec`
-- Example workflow: `examples/github/rho-ci-exec.yml`
+- CLI `Welcome` surfaces control-plane commands + `decoder exec`
+- Example workflow: `examples/github/decoder-ci-exec.yml`
 
 ### ACP
-- `initialize` advertises `rhoCapabilities` (work modes, lazy tools, …)
-- `session/new` returns `rho` snapshot (`workMode`, `autoCommit`) and defaults act mode
+- `initialize` advertises `decoderCapabilities` (work modes, lazy tools, …)
+- `session/new` returns `decoder` snapshot (`workMode`, `autoCommit`) and defaults act mode
 - `session/setMode` — switch work mode (plan|act|review)
 - `session/status` — control-plane snapshot (mode, autoCommit, message count)
 
