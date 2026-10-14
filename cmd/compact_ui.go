@@ -217,6 +217,11 @@ func (m *chatModel) finishManualCompact(msg compactDoneMsg) (chatModel, tea.Cmd)
 	if m.sessionID != "" {
 		line += "\nTranscript: " + sessionExportPath(m.sessionID) + " (/export)"
 	}
+	if m.session != nil {
+		if lb, err := m.session.LoadLifeboat(); err == nil && strings.TrimSpace(lb.ActiveTask) != "" {
+			line += "\nLifeboat: " + lb.ActiveTask
+		}
+	}
 	m.messages = append(m.messages, displayMsg{role: "system", content: line})
 	m.invalidateConnStatus()
 	m.viewDirty = true

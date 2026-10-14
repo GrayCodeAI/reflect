@@ -50,7 +50,7 @@ func TestRenderPermissionStatus_ShowsActiveTierAndTrust(t *testing.T) {
 	sess := engine.NewSession("", "test-model", "system", nil)
 	sess.PermSvc().SetAutonomy(safety.AutonomyFull)
 	got := renderPermissionStatus(&chatModel{session: sess})
-	if !strings.Contains(got, "Permission") || !strings.Contains(got, "Operator") {
+	if strings.Contains(got, "Permission") || !strings.Contains(got, "Operator") {
 		t.Fatalf("permission status = %q, want active tier", got)
 	}
 }
@@ -90,8 +90,8 @@ func TestRenderStatusBarRight_IncludesTokensLabel(t *testing.T) {
 	if !strings.Contains(got, "tokens") {
 		t.Fatalf("expected tokens label in footer right, got %q", got)
 	}
-	if !strings.Contains(got, "[db]") {
-		t.Fatalf("expected bullet prefix, got %q", got)
+	if strings.Contains(got, "[db]") || strings.Contains(got, "$ $") {
+		t.Fatalf("footer should use plain, nonduplicated metrics: %q", got)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestRenderStatusBarRight_OmitsDuplicatedContext(t *testing.T) {
 func TestRenderStatusBarPrimaryLeft_UsesCachedState(t *testing.T) {
 	m := &chatModel{statusLeftVal: "~/repo", statusLeftBranch: "main"}
 	got := renderStatusBarPrimaryLeft(m)
-	if !strings.Contains(got, "~/repo") {
+	if !strings.Contains(got, "repo") || strings.Contains(got, "~/") {
 		t.Fatalf("status left = %q, want cached cwd", got)
 	}
 	if !strings.Contains(got, "main") {

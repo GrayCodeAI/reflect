@@ -93,6 +93,7 @@ Reference:
   feedback    Submit feedback about decoder
   graph       Export a portable execution graph
   history     Search and browse command history
+  lifeboat    Inspect or remove saved lifeboats captured before compaction
   manpage     Generate man page in roff format
   research    Autonomous research loop (Karpathy autoresearch pattern)
   update      Check for decoder updates

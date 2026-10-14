@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GrayCodeAI/decoder/internal/storage"
 	"github.com/google/uuid"
 )
 
@@ -50,6 +51,13 @@ type Config struct {
 	SkipValidation    bool          `json:"skip_validation"`
 	PerWorkerTimeout  time.Duration `json:"per_worker_timeout,omitempty"`
 	MaxRetriesPerFeat int           `json:"max_retries_per_feat,omitempty"`
+	// RetryBaseBackoff controls the exponential retry delay between failed worker
+	// attempts. Defaults to 1s when unset (2^attempt * base).
+	RetryBaseBackoff time.Duration `json:"retry_base_backoff,omitempty"`
+	// OutputValidator, when set, validates a successful worker handoff. A failed
+	// validation is treated as a retryable worker failure and feeds the
+	// RetryCount/backoff machinery.
+	OutputValidator func(*Handoff) error `json:"-"`
 
 	// ApprovalGate, when non-nil, intercepts risky tool calls (network,
 	// destructive file ops) in workers: the worker blocks until the operator
@@ -98,6 +106,8 @@ type Feature struct {
 	PRD                string        `json:"prd,omitempty"`                 // generated product requirements
 	VerificationResult string        `json:"verification_result,omitempty"` // verify-phase outcome
 	FixAttempts        int           `json:"fix_attempts,omitempty"`        // number of fix passes applied
+	RetryCount         int           `json:"retry_count,omitempty"`         // worker retries before success/failure
+	OutputSchema       string        `json:"output_schema,omitempty"`       // optional structured-output contract for worker artifacts
 }
 
 // FeatureStatus tracks individual feature progress.
@@ -117,6 +127,7 @@ type Handoff struct {
 	Summary      string   `json:"summary"`
 	FilesChanged []string `json:"files_changed,omitempty"`
 	TestsPassed  bool     `json:"tests_passed"`
+	Attempts     int      `json:"attempts,omitempty"` // worker attempts consumed
 }
 
 // WaveJoin is the deterministic join record for one scheduling wave.
@@ -273,11 +284,27 @@ func (m *Mission) runFeatureSet(ctx context.Context, workerFn WorkerFunc, missio
 				}
 				handoff, err = workerFn(workerCtx, feat, missionDir, m.Config)
 				cancel()
+				m.mu.Lock()
+				feat.RetryCount = attempt
+				m.mu.Unlock()
+				if handoff != nil {
+					handoff.Attempts = attempt + 1
+				}
+				if err == nil && m.Config.OutputValidator != nil && handoff != nil {
+					if vErr := m.Config.OutputValidator(handoff); vErr != nil {
+						err = fmt.Errorf("output validation: %w", vErr)
+						handoff = nil
+					}
+				}
 				if err == nil {
 					break
 				}
 				if attempt < maxRetries {
-					delay := time.Duration(1<<attempt) * time.Second
+					base := m.Config.RetryBaseBackoff
+					if base <= 0 {
+						base = time.Second
+					}
+					delay := time.Duration(1<<attempt) * base
 					select {
 					case <-time.After(delay):
 					case <-ctx.Done():
@@ -585,6 +612,20 @@ func (m *Mission) createDir() (string, error) {
 func (m *Mission) Cleanup() error {
 	if m.Dir == "" {
 		return nil
+	}
+	// Best-effort durable snapshot: copy mission state and its portable graph
+	// out of the (deleted) temp directory so `decoder mission lineage` can
+	// explain the run after cleanup. Failures never block cleanup.
+	if durableDir := filepath.Join(storage.StateDir(), "missions", m.ID); durableDir != "" {
+		_ = os.MkdirAll(durableDir, 0o700)
+		for _, name := range []string{"mission.json", portableGraphFilename, "mission.gasp.json"} {
+			src := filepath.Join(m.Dir, name)
+			data, err := os.ReadFile(src)
+			if err != nil {
+				continue
+			}
+			_ = os.WriteFile(filepath.Join(durableDir, name), data, 0o600)
+		}
 	}
 	err := os.RemoveAll(m.Dir)
 	if err == nil {

@@ -9,7 +9,8 @@ import (
 )
 
 func decoderMascotEnabled() bool {
-	return welcome.Enabled()
+	// Text art is the default; raster graphics are explicitly opt-in.
+	return os.Getenv("DECODER_GRAPHICS") == "1" && welcome.Enabled()
 }
 
 func emitDecoderMascotCmd() tea.Cmd {

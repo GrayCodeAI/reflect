@@ -4,16 +4,14 @@ import (
 	"context"
 	"fmt"
 	"image/color"
+	"os"
 	"sort"
 	"strings"
-
-	"github.com/mattn/go-runewidth"
 
 	decoderconfig "github.com/GrayCodeAI/decoder/internal/config"
 	"github.com/GrayCodeAI/decoder/internal/engine"
 	"github.com/GrayCodeAI/decoder/internal/session"
 	"github.com/GrayCodeAI/decoder/internal/tool"
-	"github.com/GrayCodeAI/decoder/internal/ui/icons"
 )
 
 type welcomeStatusSnapshot struct {
@@ -85,193 +83,65 @@ func buildWelcomeMessageWithSnapshot(sess *engine.Session, sessionID string, reg
 }
 
 func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings decoderconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string, useMascot bool) string {
-	// Talon Gold is used for the DECODER wordmark. All escapes come from the
-	// theme palette (theme.go) so a rebrand stays a one-file change.
-	logoC := ansiOrange
-	dimC := ansiDim
-	// Indicator colors — same as the rest of the TUI palette (success
-	// teal, error coral) so the ✓/× marks match the colors used
-	// elsewhere for success/error states.
-	greenC := ansiTeal
-	sepC := ansiGrayDim
-	rst := ansiReset
-
-	// Status marks — green ✓ = present, dim ○ = none (not an error),
-	// red × = actual problem. Using a
-	// neutral mark for "none" avoids the alarming all-red look on a fresh repo.
-	markPresent := greenC + ansiBold + icons.CheckBold() + rst
-	markNone := sepC + "○" + rst
-
-	totalW := width
-	if totalW < 40 {
-		totalW = 80
+	if width <= 0 {
+		width = 80
 	}
-	totalH := height
-	if totalH <= 0 {
-		totalH = 24
+	// A small, left-aligned block keeps the empty state readable at every size.
+	indent := 2
+	if width < 40 {
+		indent = 0
 	}
-	tight := totalH < 30 || totalW < 72
-
-	center := func(visW int, styled string) string {
-		if visW <= 0 {
-			visW = runewidth.StringWidth(styled)
-		}
-		pad := (totalW - visW) / 2
-		if pad < 0 {
-			pad = 0
-		}
-		return strings.Repeat(" ", pad) + styled
+	line := func(text string) string {
+		return strings.Repeat(" ", indent) + clipFooterLine(text, width-indent) + "\n"
 	}
-
-	art := decoderLogoArtLines
-	useMascot = useMascot && !tight
-	// Keep the text wordmark even when a graphical mascot is requested. The
-	// mascot is a best-effort terminal escape sequence; hiding the canonical
-	// fallback makes the entire welcome screen disappear in terminals that
-	// advertise image support but do not render the sequence.
-	var eyeGlyph string
-	switch eyeFrame {
-	case 1, 3:
-		eyeGlyph = "|o\\/o|"
-	case 2:
-		eyeGlyph = "|-\\/-|"
+	version := DisplayVersion()
+	if version != "" && !strings.HasPrefix(strings.ToLower(version), "v") {
+		version = "v" + version
 	}
-	if eyeGlyph != "" && !useMascot {
-		art = append([]string(nil), decoderLogoArtLines...)
-		for i, line := range art {
-			art[i] = strings.Replace(line, "|0\\/0|", eyeGlyph, 1)
-		}
-	}
-
-	// Inject the version into the decoder's body — centered in the lower gap.
-	verStr := DisplayVersion()
-	if verStr != "" && !strings.HasPrefix(verStr, "v") && !strings.HasPrefix(verStr, "V") {
-		verStr = "v" + verStr
-	}
-	const verGap = 14
-	if len(verStr) > verGap {
-		verStr = verStr[:verGap]
-	}
-	verLeft := (verGap - len(verStr)) / 2
-	verRight := verGap - len(verStr) - verLeft
-	verWing := strings.Repeat(" ", verLeft) + verStr + strings.Repeat(" ", verRight)
-	for i, line := range art {
-		art[i] = strings.Replace(line, "(\\              /)", "(\\"+verWing+"/)", 1)
-	}
-
 	var b strings.Builder
-
-	// Top breathing room so the wordmark isn't flush against the terminal edge.
 	b.WriteString("\n")
-
-	if tight {
-		// Compact single-line wordmark for small terminals — version sits
-		// inline so it's always visible even when the full decoder is hidden.
-		verDisplay := DisplayVersion()
-		if verDisplay != "" && !strings.HasPrefix(verDisplay, "v") && !strings.HasPrefix(verDisplay, "V") {
-			verDisplay = "v" + verDisplay
+	heading := ansiBold + "Decoder" + ansiReset + ansiDim + "  " + version + ansiReset
+	selection := "Choose a model with /config"
+	if sess != nil && strings.TrimSpace(sess.Model()) != "" {
+		selection = shortModelID(sess.Model())
+		if provider := strings.TrimSpace(sess.Provider()); provider != "" {
+			selection = provider + " · " + selection
 		}
-		compactArt := logoC + "DECODER" + rst + "  " + verDisplay
-		b.WriteString(center(runewidth.StringWidth("DECODER   "+verDisplay), compactArt) + "\n")
+	}
+	workspace, err := os.Getwd()
+	if err != nil {
+		workspace = "."
+	}
+	details := []string{heading, ansiDim + selection + ansiReset, ansiDim + shortenHomePath(workspace) + ansiReset, ""}
+	mascot := decoderRobotArtLines()
+	if width-indent >= 50 {
+		for i, art := range mascot {
+			b.WriteString(line(ansiOrange + art + ansiReset + "  " + details[i]))
+		}
 	} else {
-		artW := blockLinesWidth(art)
-		for _, line := range art {
-			b.WriteString(center(artW, logoC+line+rst) + "\n")
+		for _, art := range mascot {
+			b.WriteString(line(ansiOrange + art + ansiReset))
 		}
-	}
-
-	modeBadge := ""
-	cpLine := ""
-	if sess != nil {
-		cpLine = welcomeControlPlaneLine(sess, dimC, rst)
-	}
-	modeLine := modeBadge
-	if cpLine != "" {
-		if modeBadge != "" {
-			modeLine += "  ·  " + cpLine
-		} else {
-			modeLine = cpLine
+		for _, detail := range details[:3] {
+			b.WriteString(line(detail))
 		}
 	}
 	b.WriteString("\n")
-	b.WriteString(center(visibleWidth(modeLine), modeLine) + "\n")
-
-	indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, greenC, sepC, rst, markPresent, markNone)
-	b.WriteByte('\n')
-	b.WriteString(center(visibleWidth(indicators), indicators) + "\n")
-
-	// Give a new session a useful starting point. This is deliberately two
-	// short lines rather than a panel: the input remains the primary action,
-	// while the empty state explains what to type without consuming the chat.
-	b.WriteString("\n")
-	guidance := dimC + "Inspect, change, or test this codebase with decoder." + rst
-	examples := dimC + `Try: "explain this repo"  ·  "run the tests"  ·  "/help"` + rst
-	b.WriteString(center(visibleWidth(guidance), guidance) + "\n")
-	b.WriteString(center(visibleWidth(examples), examples) + "\n")
-
+	if indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, ansiDim, ansiGrayDim, ansiReset, "", ""); indicators != "" {
+		b.WriteString(line(indicators))
+		b.WriteString("\n")
+	}
+	if snapshot.setup.NeedsSetup {
+		b.WriteString(line("Choose a provider and model with /config."))
+	} else {
+		b.WriteString(line(`Try "explain this repo" or describe a task.`))
+	}
+	b.WriteString(line(ansiDim + "/help for commands" + ansiReset))
 	if resume := actLine(saved, sessionID); resume != "" {
 		b.WriteString("\n")
-		b.WriteString(center(runewidth.StringWidth(resume), dimC+resume+rst) + "\n")
+		b.WriteString(line(ansiDim + resume + ansiReset))
 	}
-
 	return b.String()
-}
-
-// welcomeControlPlaneLine renders the work-mode · folder-trust indicator on
-// the welcome screen (moved out of the footer bar).
-func welcomeControlPlaneLine(sess *engine.Session, dimC, rst string) string {
-	boldIcon := func(color, glyph string) string {
-		return color + ansiBold + glyph + ansiReset + color
-	}
-	work := sess.WorkMode()
-	// Use the denser terminal glyphs here. The UI already has the semantic
-	// text; these icons should add contrast, not vanish into the line height.
-	modeIcon := icons.Terminal()
-	modeLabel := "Action Mode"
-	modeColor := ansiCyan
-	switch work {
-	case engine.WorkModePlan:
-		modeIcon = icons.Brain()
-		modeLabel = "Planning Mode"
-		modeColor = ansiMagenta
-	case engine.WorkModeReview:
-		modeIcon = icons.Magnify()
-		modeLabel = "Review Mode"
-		modeColor = ansiAmber
-	}
-
-	tr := engine.ProjectTrust("")
-	var trustIcon string
-	trustColor := dimC
-	if !tr.Enforced {
-		trustIcon = icons.CircleOutline()
-		trustColor = dimC
-	} else if tr.Trusted {
-		trustIcon = icons.CheckDecagram()
-		trustColor = ansiVividGreen
-	} else if tr.Blocked {
-		trustIcon = icons.CloseCircle()
-		trustColor = ansiCoral
-	} else {
-		trustIcon = icons.CloseThick()
-		trustColor = ansiAmber
-	}
-	trustLabel := tr.String()
-	switch trustLabel {
-	case "trusted":
-		trustLabel = "Trusted"
-	case "blocked":
-		trustLabel = "Blocked"
-	case "":
-		trustLabel = "Untrusted"
-	default:
-		if len(trustLabel) > 0 {
-			trustLabel = strings.ToUpper(trustLabel[:1]) + trustLabel[1:]
-		}
-	}
-
-	return boldIcon(modeColor, modeIcon) + " " + modeLabel + rst +
-		"  ·  " + boldIcon(trustColor, trustIcon) + " " + trustLabel + rst
 }
 
 type mcpServerNamed interface {
@@ -294,31 +164,28 @@ func connectedMCPCount(registry *tool.Registry) int {
 }
 
 func welcomeIndicatorRow(skillsCount int, agentsOK bool, mcpCount int, activeC, idleC, rst, markPresent, markNone string) string {
-	boldIcon := func(color, glyph string) string {
-		// Keep the label's color after making only the glyph bold. This gives
-		// narrow Nerd Font icons more visual weight without bolding the copy.
-		return color + ansiBold + glyph + ansiReset + color
-	}
-	skillsColor, skillsMark := idleC, markNone
-	if skillsCount > 0 {
-		skillsColor, skillsMark = ansiLightPink, markPresent
-	}
-
-	agentsColor, agentsMark := idleC, markNone
+	var parts []string
 	if agentsOK {
-		agentsColor, agentsMark = ansiMagenta, markPresent
+		parts = append(parts, "Project instructions loaded")
 	}
-
-	mcpColor, mcpMark := idleC, markNone
+	if skillsCount > 0 {
+		label := "skill"
+		if skillsCount != 1 {
+			label = "skills"
+		}
+		parts = append(parts, fmt.Sprintf("%d %s", skillsCount, label))
+	}
 	if mcpCount > 0 {
-		mcpColor, mcpMark = ansiCyan, markPresent
+		label := "MCP server"
+		if mcpCount != 1 {
+			label = "MCP servers"
+		}
+		parts = append(parts, fmt.Sprintf("%d %s", mcpCount, label))
 	}
-	return fmt.Sprintf(
-		"%s Skills (%d)%s %s  ·  %s AGENTS.md%s %s  ·  %s MCPs (%d)%s %s",
-		boldIcon(skillsColor, icons.Bolt()), skillsCount, rst, skillsMark,
-		boldIcon(agentsColor, icons.Robot()), rst, agentsMark,
-		boldIcon(mcpColor, icons.Network()), mcpCount, rst, mcpMark,
-	)
+	if len(parts) == 0 {
+		return ""
+	}
+	return activeC + strings.Join(parts, " · ") + rst
 }
 
 // welcomeModeBadge is intentionally absent; decoder uses host permission tiers.

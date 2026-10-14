@@ -532,11 +532,11 @@ func (m *chatModel) refreshInputPlaceholder() {
 	}
 	switch work {
 	case engine.WorkModePlan:
-		m.input.Placeholder = "Design architecture or draft plan...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "Describe what you want to plan…"
 	case engine.WorkModeReview:
-		m.input.Placeholder = "Audit diffs, security, or PRs...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "What would you like reviewed?"
 	default:
-		m.input.Placeholder = "Build, refactor, or run commands...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "What would you like to build?"
 	}
 }
 

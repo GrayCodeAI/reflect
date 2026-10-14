@@ -20,15 +20,6 @@ var decoderBlockGlyphs = map[rune][5]string{
 	'T': {"████████", "   ██   ", "   ██   ", "   ██   ", "   ██   "},
 }
 
-// decoderLogoArtLines is the canonical portable ASCII DECODER wordmark.
-var decoderLogoArtLines = []string{
-	" ____  _____ ____ ___  ____  _____ ____  ",
-	"|  _ \\| ____/ ___/ _ \\|  _ \\| ____|  _ \\ ",
-	"| | | |  _|| |  | | | | | | |  _| | |_) |",
-	"| |_| | |__| |__| |_| | |_| | |___|  _ < ",
-	"|____/|_____\\____\\___/|____/|_____|_| \\_\\",
-}
-
 const (
 	decoderBlockCellW     = 8
 	decoderBlockLetterGap = 1
@@ -93,4 +84,39 @@ func padBlockCell(s string, w int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", w-runewidth.StringWidth(s))
+}
+
+// decoderRobotArtLines renders a friendly gold robot with a centered antenna and teal eyes.
+// Half blocks preserve square pixels across four terminal rows.
+func decoderRobotArtLines() []string {
+	pixels := [...]string{
+		"00011000",
+		"00111100",
+		"01200210",
+		"01200210",
+		"01111110",
+		"10111101",
+		"10011001",
+		"00100100",
+	}
+	rows := make([]string, 0, len(pixels)/2)
+	for y := 0; y < len(pixels); y += 2 {
+		var row strings.Builder
+		for x := range pixels[y] {
+			switch {
+			case pixels[y][x] == '2' && pixels[y+1][x] == '2':
+				row.WriteString(ansiTeal + "██" + ansiOrange)
+			case pixels[y][x] == '1' && pixels[y+1][x] == '1':
+				row.WriteString("██")
+			case pixels[y][x] == '1':
+				row.WriteString("▀▀")
+			case pixels[y+1][x] == '1':
+				row.WriteString("▄▄")
+			default:
+				row.WriteString("  ")
+			}
+		}
+		rows = append(rows, row.String())
+	}
+	return rows
 }

@@ -58,48 +58,15 @@ func TestBuildWelcomeMessage_InlineShowsSetupGuidance(t *testing.T) {
 }
 
 func TestBuildWelcomeMessage_InlineShowsGuidance(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 100, 24)
-	for _, want := range []string{"Skills (0)", "AGENTS.md", "MCPs (0)"} {
+	out := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, decoderconfig.Settings{}, 1, 0, 0, 100, 24, welcomeStatusSnapshot{agentsOK: true}, "")
+	for _, want := range []string{"Decoder", "Project instructions loaded", "1 skill", `Try "explain this repo"`, "/help"} {
 		if !strings.Contains(out, want) {
-			t.Fatalf("minimal welcome missing %q in:\n%s", want, out)
+			t.Errorf("welcome missing %q: %s", want, out)
 		}
 	}
-	for _, wantIcon := range []string{icons.Robot(), icons.Network()} {
-		if !strings.Contains(out, wantIcon) {
-			t.Fatalf("minimal welcome missing semantic icon %q in:\n%s", wantIcon, out)
-		}
-	}
-	for mode, rowIcons := range map[string][]string{
-		"active": {icons.Bolt(), icons.Robot(), icons.Network()},
-		"nerd":   {icons.Nerd("bolt"), icons.Nerd("robot"), icons.Nerd("network")},
-		"ascii":  {icons.ASCII("bolt"), icons.ASCII("robot"), icons.ASCII("network")},
-	} {
-		seenIcons := make(map[string]struct{}, len(rowIcons))
-		for _, icon := range rowIcons {
-			if _, exists := seenIcons[icon]; exists {
-				t.Fatalf("%s welcome-row icon %q is reused; Skills, AGENTS.md, and MCPs must be unique", mode, icon)
-			}
-			seenIcons[icon] = struct{}{}
-		}
-	}
-	for concept, footerIcon := range map[string]string{
-		"tokens":   icons.Database(),
-		"cost":     icons.Ruby(),
-		"duration": icons.ClockOutline(),
-		"branch":   icons.Branch(),
-	} {
-		if icons.Network() == footerIcon {
-			t.Fatalf("MCP and footer %s must use distinct icons", concept)
-		}
-	}
-	for _, noise := range []string{"TIP:", "ctrl+N", "/config", "Esc to dismiss"} {
-		if strings.Contains(out, noise) {
-			t.Fatalf("minimal welcome should omit %q, got:\n%s", noise, out)
-		}
-	}
-	for _, guidance := range []string{"Inspect, change, or test this codebase with decoder.", `Try: "explain this repo"`} {
-		if !strings.Contains(out, guidance) {
-			t.Fatalf("minimal welcome missing first-run guidance %q in:\n%s", guidance, out)
+	for _, hidden := range []string{"MCPs (0)", "Action Mode", "Trusted", "Skills (", "AGENTS.md", "____"} {
+		if strings.Contains(out, hidden) {
+			t.Errorf("welcome repeats clutter %q: %s", hidden, out)
 		}
 	}
 }
@@ -115,29 +82,31 @@ func TestBuildWelcomeMessage_ShortTerminalUsesCompactCopy(t *testing.T) {
 }
 
 func TestBuildWelcomeMessage_WideTerminalUsesDecoderWordmark(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, false, 120, 40)
-	for _, want := range []string{
-		" ____  _____ ____ ___  ____  _____ ____  ",
-		"|  _ \\| ____/ ___/ _ \\|  _ \\| ____|  _ \\ ",
-		"|____/|_____\\____\\___/|____/|_____|_| \\_\\",
-	} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("wide welcome missing decoder wordmark line %q in:\n%s", want, out)
+	for _, width := range []int{24, 40, 80, 120, 200} {
+		out := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, decoderconfig.Settings{}, 2, 1, 0, width, 40, welcomeStatusSnapshot{agentsOK: true}, "")
+		if !strings.Contains(out, "Decoder") || !strings.Contains(out, "v"+DisplayVersion()) || !strings.Contains(out, "▀▀") || !strings.Contains(out, "▄▄") {
+			t.Fatalf("width %d lost name/version: %s", width, out)
+		}
+		for _, line := range strings.Split(out, "\n") {
+			if visibleWidth(line) > width {
+				t.Fatalf("width %d overflow: %q", width, line)
+			}
 		}
 	}
 }
 
 func TestBuildWelcomeMessage_DecoderWordmarkIsStatic(t *testing.T) {
-	out := buildWelcomeMessage(nil, "", nil, nil, decoderconfig.Settings{}, 0, true, 120, 40)
-	if !strings.Contains(out, " ____  _____ ____ ___  ____  _____ ____  ") {
-		t.Fatalf("blinking welcome should retain the DECODER wordmark, got:\n%s", out)
+	first := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, decoderconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{}, "")
+	blink := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, decoderconfig.Settings{}, 0, 0, 2, 120, 40, welcomeStatusSnapshot{}, "")
+	if first != blink {
+		t.Fatal("welcome heading should not animate")
 	}
 }
 
 func TestBuildWelcomeMessage_GraphicalMascotKeepsTextFallback(t *testing.T) {
-	out := buildWelcomeMessageWithSnapshotAndMascot(nil, "", nil, nil, decoderconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{}, "", true)
-	if !strings.Contains(out, " ____  _____ ____ ___  ____  _____ ____  ") {
-		t.Fatalf("graphical mascot mode must retain the text wordmark fallback, got:\n%s", out)
+	out := buildWelcomeMessageWithSnapshotAndMascot(nil, "", nil, nil, decoderconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{setup: decoderconfig.SetupState{NeedsSetup: true}}, "", true)
+	if !strings.Contains(out, "Decoder") || !strings.Contains(out, "/config") || !strings.Contains(out, "▀▀") {
+		t.Fatalf("welcome must retain heading and actionable setup guidance: %s", out)
 	}
 }
 
@@ -173,46 +142,20 @@ func TestEyeBlinkTick_CyclesEyeFrameStates(t *testing.T) {
 }
 
 func TestWelcomeIndicatorRow_UsesSemanticStatesAndCounts(t *testing.T) {
-	tests := []struct {
-		name        string
-		skillsCount int
-		agentsOK    bool
-		mcpCount    int
-		want        []string
+	for _, tc := range []struct {
+		skills int
+		agents bool
+		mcp    int
+		want   string
 	}{
-		{
-			name: "nothing configured",
-			want: []string{"Skills (0)</active> <none>", "AGENTS.md</active> <none>", "MCPs (0)</active> <none>"},
-		},
-		{
-			name:        "active counts",
-			skillsCount: 4,
-			agentsOK:    true,
-			mcpCount:    1,
-			want:        []string{"Skills (4)</active> <ready>", "AGENTS.md</active> <ready>", "MCPs (1)</active> <ready>"},
-		},
-		{
-			name:        "mixed state",
-			skillsCount: 2,
-			mcpCount:    3,
-			want:        []string{"Skills (2)</active> <ready>", "AGENTS.md</active> <none>", "MCPs (3)</active> <ready>"},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := welcomeIndicatorRow(tc.skillsCount, tc.agentsOK, tc.mcpCount, "<active>", "<idle>", "</active>", "<ready>", "<none>")
-			for _, want := range tc.want {
-				if !strings.Contains(got, want) {
-					t.Fatalf("welcomeIndicatorRow() missing %q in %q", want, got)
-				}
-			}
-		})
-	}
-
-	active := welcomeIndicatorRow(1, true, 1, "<active>", "<idle>", "</active>", "<ready>", "<none>")
-	if strings.Count(active, ansiBold) != 3 {
-		t.Fatalf("welcomeIndicatorRow() should bold all three semantic icons, got %q", active)
+		{0, false, 0, ""},
+		{1, true, 1, "Project instructions loaded · 1 skill · 1 MCP server"},
+		{2, false, 3, "2 skills · 3 MCP servers"},
+	} {
+		got := welcomeIndicatorRow(tc.skills, tc.agents, tc.mcp, "", "", "", "", "")
+		if got != tc.want {
+			t.Errorf("status = %q, want %q", got, tc.want)
+		}
 	}
 }
 
