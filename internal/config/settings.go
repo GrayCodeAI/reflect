@@ -72,6 +72,7 @@ type Settings struct {
 	InvertScroll            bool                   `json:"invert_scroll,omitempty"`            // natural scrolling invert
 	CompactMode             bool                   `json:"compact_mode,omitempty"`             // reduce outer padding
 	PaginatorLines          int                    `json:"paginator_lines,omitempty"`          // scrollback buffer lines (0 = unlimited)
+	Sandbox                 string                 `json:"sandbox,omitempty"`                  // off | docker — isolated tool execution (Mirror-style)
 	PaginatorShowLineNums   *bool                  `json:"paginator_show_line_nums,omitempty"` // show line numbers in scrollback
 }
 

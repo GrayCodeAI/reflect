@@ -319,6 +319,12 @@ func defaultRegistry(settings reflectconfig.Settings) (*tool.Registry, error) {
 		_ = registry.Register(t)
 	}
 
+	// Host tools: external (e.g. Python) tools registered via manifests in
+	// ~/.reflect/host_tools/*.json (Mirror-style host tool contributions).
+	for _, t := range tool.LoadHostTools() {
+		_ = registry.Register(t)
+	}
+
 	// Load MCP tools in the background so a hung/absent stdio server delays
 	// tool availability — not first paint. loadStartupMCPToolSets can block up
 	// to 1.5s per configured server. The CLI tool filters still apply.

@@ -5,14 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/GrayCodeAI/reflect/internal/config"
 	"github.com/GrayCodeAI/reflect/internal/env"
 	homepkg "github.com/GrayCodeAI/reflect/internal/home"
+	"github.com/GrayCodeAI/reflect/internal/sandbox"
 )
 
 // dangerousCommands are commands that should ALWAYS be blocked.
@@ -368,6 +371,35 @@ func (BashTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	// Sandbox: when enabled, run the command inside a container with the
+	// working directory bind-mounted, mirroring Mirror's isolated execution.
+	sbCfg := sandbox.Config{Mode: sandbox.NormalizeMode(os.Getenv("REFLECT_SANDBOX")), Image: os.Getenv("REFLECT_SANDBOX_IMAGE")}
+	if s := config.LoadSettings(); s.Sandbox != "" {
+		sbCfg.Mode = sandbox.NormalizeMode(s.Sandbox)
+	}
+	if sbCfg.Image == "" {
+		sbCfg.Image = sandbox.DefaultImage
+	}
+	if sandbox.Enabled(sbCfg) && !p.RunInBackground {
+		workdir := ""
+		if tc := GetToolContext(ctx); tc != nil {
+			workdir = tc.WorkingDir
+		}
+		if workdir == "" {
+			workdir, _ = os.Getwd()
+		}
+		out, err := sandbox.Run(ctx, sbCfg, workdir, p.Command)
+		result := strings.TrimSpace(out)
+		result = TruncateOutput(result)
+		if err != nil {
+			if ctx.Err() == context.DeadlineExceeded {
+				return result + "\n\n(command timed out)", nil
+			}
+			return fmt.Sprintf("%s\n\nexit code: %s", result, err.Error()), nil
+		}
+		return result, nil
+	}
 
 	if p.RunInBackground {
 		id, err := startBackgroundBash(ctx, p.Command, "bash", []string{"-c", p.Command})
