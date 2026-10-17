@@ -20,8 +20,9 @@ import (
 type Mode string
 
 const (
-	ModeOff    Mode = "off"
-	ModeDocker Mode = "docker"
+	ModeOff          Mode = "off"
+	ModeDocker       Mode = "docker"
+	ModeMicrosandbox Mode = "microsandbox"
 )
 
 // Config holds sandbox settings.
@@ -36,12 +37,13 @@ const DefaultImage = "alpine:latest"
 // Available reports whether the configured backend is usable on this machine.
 func Available(cfg Config) bool {
 	switch cfg.Mode {
-	case ModeDocker, "":
-		// empty mode treated as "try docker if present"? No — explicit off.
-		if cfg.Mode == ModeOff {
-			return true // host is always "available"
-		}
+	case ModeOff, "":
+		return true // host is always "available"
+	case ModeDocker:
 		_, err := exec.LookPath("docker")
+		return err == nil
+	case ModeMicrosandbox:
+		_, err := exec.LookPath("msb")
 		return err == nil
 	}
 	return false
@@ -56,7 +58,13 @@ func DockerAvailable() bool {
 	return exec.CommandContext(context.Background(), "docker", "info").Run() == nil
 }
 
-// Run executes command inside a container with workdir bind-mounted at /work.
+// MicrosandboxAvailable reports whether the msb CLI is on PATH.
+func MicrosandboxAvailable() bool {
+	_, err := exec.LookPath("msb")
+	return err == nil
+}
+
+// Run executes command inside a sandbox with workdir bind-mounted.
 // Returns combined stdout+stderr and an error. Falls back to host execution
 // when mode is off.
 func Run(ctx context.Context, cfg Config, workdir, command string) (string, error) {
@@ -65,27 +73,39 @@ func Run(ctx context.Context, cfg Config, workdir, command string) (string, erro
 		// marker. Return empty to signal "not sandboxed".
 		return "", fmt.Errorf("sandbox: mode off")
 	}
-	if !DockerAvailable() {
-		return "", fmt.Errorf("sandbox: docker not found on PATH")
-	}
 	image := cfg.Image
 	if image == "" {
 		image = DefaultImage
 	}
-	args := []string{
-		"run", "--rm",
-		"-v", workdir + ":/work",
-		"-w", "/work",
-		image,
-		"sh", "-c", command,
+	switch cfg.Mode {
+	case ModeDocker:
+		if !DockerAvailable() {
+			return "", fmt.Errorf("sandbox: docker not found on PATH")
+		}
+		args := []string{
+			"run", "--rm",
+			"-v", workdir + ":/work",
+			"-w", "/work",
+			image,
+			"sh", "-c", command,
+		}
+		out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput() // #nosec G204 -- args are controlled (image + bind mount + sh -c)
+		return string(out), err
+	case ModeMicrosandbox:
+		if !MicrosandboxAvailable() {
+			return "", fmt.Errorf("sandbox: msb (microsandbox) not found on PATH")
+		}
+		// microsandbox CLI: msb run <image> -- <command>
+		args := []string{"run", image, "--", "sh", "-c", command}
+		out, err := exec.CommandContext(ctx, "msb", args...).CombinedOutput() // #nosec G204 -- args are controlled
+		return string(out), err
 	}
-	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput() // #nosec G204 -- args are controlled (image + bind mount + sh -c)
-	return string(out), err
+	return "", fmt.Errorf("sandbox: unknown mode %q", cfg.Mode)
 }
 
 // Enabled reports whether sandboxing is active.
 func Enabled(cfg Config) bool {
-	return cfg.Mode == ModeDocker
+	return cfg.Mode == ModeDocker || cfg.Mode == ModeMicrosandbox
 }
 
 // NormalizeMode coerces a raw string into a Mode.
@@ -93,6 +113,8 @@ func NormalizeMode(raw string) Mode {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "docker", "container":
 		return ModeDocker
+	case "microsandbox", "msb", "micro-vm", "microvm":
+		return ModeMicrosandbox
 	case "off", "":
 		return ModeOff
 	}

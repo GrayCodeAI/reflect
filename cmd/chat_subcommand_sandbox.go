@@ -29,15 +29,19 @@ func (c *sandboxSubcommand) Handle(m *chatModel, args []string, text string) (te
 	cfg := sandbox.Config{Mode: sandbox.NormalizeMode(mode), Image: os.Getenv("REFLECT_SANDBOX_IMAGE")}
 	status := "off (host execution)"
 	if sandbox.Enabled(cfg) {
-		status = "on (docker)"
+		status = "on (" + string(cfg.Mode) + ")"
 	}
 	docker := "not found"
 	if sandbox.DockerAvailable() {
 		docker = "available"
 	}
+	msb := "not found"
+	if sandbox.MicrosandboxAvailable() {
+		msb = "available"
+	}
 	m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf(
-		"Sandbox: %s\nDocker: %s\n\nTo enable, set \"sandbox\": \"docker\" in ~/.reflect/settings.json\nor export REFLECT_SANDBOX=docker (and optionally REFLECT_SANDBOX_IMAGE).",
-		status, docker,
+		"Sandbox: %s\nDocker: %s\nMicrosandbox (msb): %s\n\nTo enable, set \"sandbox\": \"docker\" or \"microsandbox\" in ~/.reflect/settings.json\nor export REFLECT_SANDBOX=docker|microsandbox (and optionally REFLECT_SANDBOX_IMAGE).",
+		status, docker, msb,
 	)})
 	return m, nil
 }

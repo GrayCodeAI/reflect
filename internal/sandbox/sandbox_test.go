@@ -54,6 +54,19 @@ func TestRunDockerIfAvailable(t *testing.T) {
 	}
 }
 
+func TestMicrosandboxIfAvailable(t *testing.T) {
+	if !MicrosandboxAvailable() {
+		t.Skip("msb not available")
+	}
+	out, err := Run(context.Background(), Config{Mode: ModeMicrosandbox, Image: "python"}, os.TempDir(), "echo msb-ok")
+	if err != nil {
+		t.Fatalf("msb run failed: %v\n%s", err, out)
+	}
+	if !contains(out, "msb-ok") {
+		t.Fatalf("expected msb-ok in output, got: %s", out)
+	}
+}
+
 func contains(s, sub string) bool {
 	return len(s) >= len(sub) && func() bool {
 		for i := 0; i+len(sub) <= len(s); i++ {
