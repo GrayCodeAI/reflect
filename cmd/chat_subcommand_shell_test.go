@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 )
 
 func TestRunSubcommand_UsesBashToolForSafeCommand(t *testing.T) {

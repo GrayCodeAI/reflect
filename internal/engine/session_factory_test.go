@@ -4,19 +4,19 @@ import (
 	"context"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
-func TestNewRhoSession_UsesResolvedSelectionModel(t *testing.T) {
+func TestNewReflectSession_UsesResolvedSelectionModel(t *testing.T) {
 	selection := gateway.Selection{
 		Provider:          "openrouter",
 		Model:             "openrouter/auto",
 		DeploymentRouting: false,
 	}
 
-	sess := NewRhoSession(context.Background(), selection, "openrouter", "", "system", nil)
+	sess := NewReflectSession(context.Background(), selection, "openrouter", "", "system", nil)
 	if got := sess.Provider(); got != "openrouter" {
 		t.Fatalf("provider = %q, want openrouter", got)
 	}
@@ -26,7 +26,7 @@ func TestNewRhoSession_UsesResolvedSelectionModel(t *testing.T) {
 }
 
 func TestBuildChatClientForSettingsComposesCustomGateway(t *testing.T) {
-	settings := rhoconfig.Settings{CustomProviders: []rhoconfig.CustomProviderConfig{{
+	settings := reflectconfig.Settings{CustomProviders: []reflectconfig.CustomProviderConfig{{
 		Name: "private-gateway", BaseURL: "https://private.example.test/v1",
 		APIKeyEnv: "PRIVATE_GATEWAY_API_KEY", Model: "private/model-v1",
 	}}}
@@ -40,13 +40,13 @@ func TestBuildChatClientForSettingsComposesCustomGateway(t *testing.T) {
 	}
 }
 
-func TestNewRhoSession_FallsBackToCallerModelWhenSelectionEmpty(t *testing.T) {
+func TestNewReflectSession_FallsBackToCallerModelWhenSelectionEmpty(t *testing.T) {
 	selection := gateway.Selection{
 		Provider:          "openrouter",
 		DeploymentRouting: false,
 	}
 
-	sess := NewRhoSession(context.Background(), selection, "openrouter", "openrouter/fallback", "system", nil)
+	sess := NewReflectSession(context.Background(), selection, "openrouter", "openrouter/fallback", "system", nil)
 	if got := sess.Model(); got != "openrouter/fallback" {
 		t.Fatalf("model = %q, want openrouter/fallback", got)
 	}

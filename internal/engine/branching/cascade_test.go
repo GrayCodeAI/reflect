@@ -3,12 +3,12 @@ package branching
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/routing"
+	"github.com/GrayCodeAI/reflect/internal/provider/routing"
 )
 
 const testProvider = "anthropic"
 
-// testTierModels loads haiku/sonnet/opus model IDs from flux's catalog (not hardcoded).
+// testTierModels loads haiku/sonnet/opus model IDs from relay's catalog (not hardcoded).
 func testTierModels(t *testing.T, provider string) (haiku, sonnet, opus string) {
 	t.Helper()
 	haiku = routing.PreferredModelForTier(provider, routing.TierHaiku, "")

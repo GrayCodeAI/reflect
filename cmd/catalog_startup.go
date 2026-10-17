@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
 var (
@@ -13,15 +13,15 @@ var (
 )
 
 func ensureCatalogBeforeAgent(ctx context.Context, strict bool) error {
-	opts := rhoconfig.CatalogStartupOptions{
+	opts := reflectconfig.CatalogStartupOptions{
 		ForceRefresh:    refreshCatalogFlag,
 		SkipAutoRefresh: skipCatalogRefreshFlag,
 		VerboseOutput:   refreshCatalogFlag,
 	}
 	if strict {
-		return rhoconfig.PrepareCatalogForSession(ctx, os.Stderr, opts)
+		return reflectconfig.PrepareCatalogForSession(ctx, os.Stderr, opts)
 	}
-	rhoconfig.StartupCatalogPrefetch(ctx)
+	reflectconfig.StartupCatalogPrefetch(ctx)
 	return nil
 }
 
@@ -29,5 +29,5 @@ func startBackgroundCatalogRefresh(ctx context.Context) {
 	if skipCatalogRefreshFlag {
 		return
 	}
-	rhoconfig.ScheduleBackgroundCatalogRefresh(ctx)
+	reflectconfig.ScheduleBackgroundCatalogRefresh(ctx)
 }

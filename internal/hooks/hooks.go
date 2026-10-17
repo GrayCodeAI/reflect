@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/trust"
+	"github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/trust"
 	"gopkg.in/yaml.v3"
 )
 
@@ -250,7 +250,7 @@ type CommandHook struct {
 
 // LoadHooksDir loads hooks from a directory. Each .md file may contain
 // YAML frontmatter defining a command hook.
-// Project-scoped directories require folder trust when RHO_Y0_FOLDER_TRUST is on.
+// Project-scoped directories require folder trust when REFLECT_Y0_FOLDER_TRUST is on.
 func LoadHooksDir(dir string) error {
 	if err := allowProjectHookDir(dir); err != nil {
 		return err
@@ -376,7 +376,7 @@ func matchPattern(pattern, path string) bool {
 // LoadConventionPolicies discovers and loads convention policy files.
 // Convention: auto-discovered *policy*.{md,go} files from:
 //   - {cwd}/.agents/policies/ (project scope)
-//   - Rho user state policies directory
+//   - Reflect user state policies directory
 //
 // Returns the number of policies loaded.
 func LoadConventionPolicies(cwd string) int {
@@ -463,7 +463,7 @@ func yamlUnmarshal(data []byte, v interface{}) error {
 }
 
 func runCommand(ctx context.Context, name string, args []string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) // #nosec G204 -- hook commands are explicitly configured by the host and executed as argv
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

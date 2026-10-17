@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	analytics "github.com/GrayCodeAI/rho/internal/observability"
+	analytics "github.com/GrayCodeAI/reflect/internal/observability"
 )
 
 // handleStats handles GET /v1/stats — get aggregated usage statistics.

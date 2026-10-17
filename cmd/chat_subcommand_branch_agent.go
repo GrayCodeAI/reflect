@@ -5,17 +5,17 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
-// branchAgentSubcommand creates a rho/agent-* branch from main/master.
+// branchAgentSubcommand creates a reflect/agent-* branch from main/master.
 type branchAgentSubcommand struct{}
 
 func (c *branchAgentSubcommand) Name() string      { return "branch-agent" }
 func (c *branchAgentSubcommand) Aliases() []string { return []string{"agent-branch"} }
 func (c *branchAgentSubcommand) Description() string {
-	return "create rho/agent-* branch if on main/master"
+	return "create reflect/agent-* branch if on main/master"
 }
 func (c *branchAgentSubcommand) Usage() string { return "/branch-agent" }
 

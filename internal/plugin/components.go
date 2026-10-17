@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
 )
 
 // DiscoveredComponents is the result of scanning a multi-component plugin package.

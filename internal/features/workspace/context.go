@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
 // AdditionalDirContext validates a directory and formats its AGENTS.md
@@ -30,7 +30,7 @@ func AdditionalDirContext(dir string) (absolutePath, contextBlock string, err er
 
 	var b strings.Builder
 	b.WriteString("Additional directory: " + absolutePath)
-	if md := rhoconfig.LoadAgentsMDFrom(absolutePath); md != "" {
+	if md := reflectconfig.LoadAgentsMDFrom(absolutePath); md != "" {
 		b.WriteString("\nAdditional directory instructions (" + absolutePath + "):\n" + md)
 	}
 	return absolutePath, b.String(), nil

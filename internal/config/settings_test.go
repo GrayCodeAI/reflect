@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/routing"
+	"github.com/GrayCodeAI/reflect/internal/provider/routing"
 )
 
 func TestMergeSettings_ModelOverride(t *testing.T) {

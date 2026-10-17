@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func TestNewCommitLinter_DefaultRules(t *testing.T) {

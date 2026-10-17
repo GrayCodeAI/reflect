@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
-	contracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	"github.com/GrayCodeAI/rho/internal/governance"
-	"github.com/GrayCodeAI/rho/internal/hooks"
-	"github.com/GrayCodeAI/rho/internal/observability/metrics"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	contracts "github.com/GrayCodeAI/reflect/internal/contracts/policy"
+	"github.com/GrayCodeAI/reflect/internal/governance"
+	"github.com/GrayCodeAI/reflect/internal/hooks"
+	"github.com/GrayCodeAI/reflect/internal/observability/metrics"
+	"github.com/GrayCodeAI/reflect/internal/permissions"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 var reNeedsClarify = regexp.MustCompile(`\[NEEDS CLARIFICATION.*?\]`)
@@ -58,7 +58,7 @@ type PermissionEngine struct {
 	// behavior (mainly for CI/headless "preview only, never execute" runs)
 	// had no equivalent once Mode was removed.
 	DryRun bool
-	// SpecSlug is the directory name (under .rho/specs/) for the active
+	// SpecSlug is the directory name (under .reflect/specs/) for the active
 	// spec workflow, set by the Specify tool. Lives here (session-scoped,
 	// via PermissionEngine) rather than as a package-level variable in
 	// internal/tool, so concurrent sessions/sub-agents in the same process
@@ -680,7 +680,7 @@ func (pe *PermissionEngine) constitutionExists() bool {
 	if err != nil {
 		return false
 	}
-	path := filepath.Join(cwd, ".rho", "specs", pe.SpecSlug, "constitution.md")
+	path := filepath.Join(cwd, ".reflect", "specs", pe.SpecSlug, "constitution.md")
 	_, err = os.Stat(path)
 	return err == nil
 }
@@ -693,7 +693,7 @@ func (pe *PermissionEngine) phaseGatesPass() bool {
 	if err != nil {
 		return false
 	}
-	planPath := filepath.Join(cwd, ".rho", "specs", pe.SpecSlug, "plan.md")
+	planPath := filepath.Join(cwd, ".reflect", "specs", pe.SpecSlug, "plan.md")
 	data, err := os.ReadFile(planPath)
 	if err != nil {
 		return false
@@ -714,7 +714,7 @@ func (pe *PermissionEngine) unresolvedClarifications() int {
 	if err != nil {
 		return 0
 	}
-	specPath := filepath.Join(cwd, ".rho", "specs", pe.SpecSlug, "spec.md")
+	specPath := filepath.Join(cwd, ".reflect", "specs", pe.SpecSlug, "spec.md")
 	data, err := os.ReadFile(specPath)
 	if err != nil {
 		return 0
@@ -817,7 +817,7 @@ func detectPhases(slug string) int {
 	if err != nil {
 		return 0
 	}
-	tasksPath := filepath.Join(cwd, ".rho", "specs", slug, "tasks.md")
+	tasksPath := filepath.Join(cwd, ".reflect", "specs", slug, "tasks.md")
 	data, err := os.ReadFile(tasksPath) // #nosec G304 -- path provided by caller via tool/task parameters, inherent to this dev CLI's file operations
 	if err != nil {
 		return 0
@@ -841,7 +841,7 @@ func specApprovalSummary(slug string) string {
 	if err != nil {
 		return "ApproveImplementation"
 	}
-	dir := filepath.Join(cwd, ".rho", "specs", slug)
+	dir := filepath.Join(cwd, ".reflect", "specs", slug)
 
 	var b strings.Builder
 	for _, f := range []string{"proposal.md", "spec.md", "design.md", "plan.md", "tasks.md"} {

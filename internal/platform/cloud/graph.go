@@ -72,9 +72,9 @@ func PrepareGraph(graph any) (PreparedGraph, error) {
 		return PreparedGraph{}, fmt.Errorf("marshal graph: %w", err)
 	}
 	var document map[string]any
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err = decoder.Decode(&document); err != nil {
+	reflect := json.NewDecoder(bytes.NewReader(raw))
+	reflect.UseNumber()
+	if err = reflect.Decode(&document); err != nil {
 		return PreparedGraph{}, fmt.Errorf("decode graph: %w", err)
 	}
 

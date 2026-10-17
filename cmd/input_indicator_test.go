@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
+	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
 )
 
 func TestInputIndicator_Classify(t *testing.T) {

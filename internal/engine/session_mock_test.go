@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestSession_PersistenceLazyInitIsSynchronized(t *testing.T) {
@@ -118,7 +118,7 @@ func TestSession_LoadMessages(t *testing.T) {
 	mc := newMockClient()
 	s := newMockSession(mc)
 
-	msgs := []types.FluxMessage{
+	msgs := []types.RelayMessage{
 		{Role: "user", Content: "msg1"},
 		{Role: "assistant", Content: "msg2"},
 		{Role: "user", Content: "msg3"},

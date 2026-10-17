@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
-	"github.com/GrayCodeAI/rho/internal/intelligence/repomap"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/repomap"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 // ExportContext generates a comprehensive context document about the current project.
@@ -62,7 +62,7 @@ func ExportContext(dir string, focus string) (string, error) {
 	}
 
 	// AGENTS.md / project instructions
-	for _, instrFile := range []string{"AGENTS.md", ".rho.md"} {
+	for _, instrFile := range []string{"AGENTS.md", ".reflect.md"} {
 		data, err := os.ReadFile(filepath.Join(dir, instrFile)) // #nosec G304 -- instrFile is one of a fixed set of well-known project instruction filenames
 		if err == nil && len(data) > 0 {
 			b.WriteString(fmt.Sprintf("## Project Instructions (%s)\n\n%s\n\n", instrFile, strings.TrimSpace(string(data))))

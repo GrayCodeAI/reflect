@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	rhoModule  = "github.com/GrayCodeAI/rho"
-	fluxModule = "github.com/GrayCodeAI/flux"
+	reflectModule = "github.com/GrayCodeAI/reflect"
+	relayModule   = "github.com/GrayCodeAI/relay"
 )
 
 // supportEngines lists the sibling repos checked for boundary violations.
-// Rho now depends only on flux.
-var supportEngines = []string{"flux"}
+// Reflect now depends only on relay.
+var supportEngines = []string{"relay"}
 
 type packageImport struct {
 	file string
@@ -34,37 +34,37 @@ type packageImport struct {
 func TestPackageDependencyGraph(t *testing.T) {
 	root := repoRoot(t)
 
-	checkRhoFluxFacade(t, root)
-	checkRhoInternalLayers(t, root)
+	checkReflectRelayFacade(t, root)
+	checkReflectInternalLayers(t, root)
 	checkSupportRepositoryBoundaries(t, root)
 }
 
-func checkRhoFluxFacade(t *testing.T, root string) {
+func checkReflectRelayFacade(t *testing.T, root string) {
 	paths := []string{filepath.Join(root, "internal"), filepath.Join(root, "cmd")}
 	var violations []string
 
 	for _, path := range paths {
 		for _, imp := range productionImports(t, root, path) {
-			if !strings.HasPrefix(imp.path, fluxModule+"/") {
+			if !strings.HasPrefix(imp.path, relayModule+"/") {
 				continue
 			}
-			if imp.path == fluxModule+"/engine" || strings.HasPrefix(imp.path, fluxModule+"/engine/") {
+			if imp.path == relayModule+"/engine" || strings.HasPrefix(imp.path, relayModule+"/engine/") {
 				continue
 			}
-			// Rho uses the full vendored Flux API surface for provider, graph,
+			// Reflect uses the full vendored Relay API surface for provider, graph,
 			// and tooling contracts that the engine facade does not re-export.
 			switch imp.path {
-			case fluxModule + "/llm", fluxModule + "/graph", fluxModule + "/tools":
+			case relayModule + "/llm", relayModule + "/graph", relayModule + "/tools":
 				continue
 			}
-			violations = append(violations, formatImportViolation(root, imp, "use the flux/engine facade"))
+			violations = append(violations, formatImportViolation(root, imp, "use the relay/engine facade"))
 		}
 	}
 
-	assertNoPackageViolations(t, "Rho Flux facade", violations)
+	assertNoPackageViolations(t, "Reflect Relay facade", violations)
 }
 
-func checkRhoInternalLayers(t *testing.T, root string) {
+func checkReflectInternalLayers(t *testing.T, root string) {
 	rules := map[string][]string{
 		"internal/engine":      {"cmd", "internal/daemon", "internal/platform", "internal/bridge"},
 		"internal/permissions": {"cmd", "internal/daemon", "internal/engine", "internal/platform", "internal/bridge"},
@@ -80,18 +80,18 @@ func checkRhoInternalLayers(t *testing.T, root string) {
 			if err != nil {
 				t.Fatalf("relative path for %s: %v", imp.file, err)
 			}
-			if !strings.HasPrefix(imp.path, rhoModule+"/") {
+			if !strings.HasPrefix(imp.path, reflectModule+"/") {
 				continue
 			}
 			for _, prefix := range forbidden {
-				if strings.HasPrefix(imp.path, rhoModule+"/"+prefix+"/") || imp.path == rhoModule+"/"+prefix {
+				if strings.HasPrefix(imp.path, reflectModule+"/"+prefix+"/") || imp.path == reflectModule+"/"+prefix {
 					violations = append(violations, fmt.Sprintf("%s:%d imports %s (%s); %s must not depend on %s", filepath.ToSlash(rel), imp.line, imp.path, source, source, prefix))
 				}
 			}
 		}
 	}
 
-	assertNoPackageViolations(t, "Rho internal layers", violations)
+	assertNoPackageViolations(t, "Reflect internal layers", violations)
 }
 
 func checkSupportRepositoryBoundaries(t *testing.T, root string) {
@@ -100,8 +100,8 @@ func checkSupportRepositoryBoundaries(t *testing.T, root string) {
 	for _, owner := range supportEngines {
 		for _, repoRoot := range repositoryRoots(root, owner) {
 			for _, imp := range productionImports(t, root, repoRoot) {
-				if strings.HasPrefix(imp.path, rhoModule+"/internal/") {
-					violations = append(violations, formatImportViolation(root, imp, "support engines must not import Rho internals"))
+				if strings.HasPrefix(imp.path, reflectModule+"/internal/") {
+					violations = append(violations, formatImportViolation(root, imp, "support engines must not import Reflect internals"))
 					continue
 				}
 

@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	policycontracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
-	typescontracts "github.com/GrayCodeAI/rho/internal/contracts/types"
-	verifycontracts "github.com/GrayCodeAI/rho/internal/contracts/verify"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/taskruntime"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	graphcontracts "github.com/GrayCodeAI/reflect/internal/contracts/graph"
+	policycontracts "github.com/GrayCodeAI/reflect/internal/contracts/policy"
+	typescontracts "github.com/GrayCodeAI/reflect/internal/contracts/types"
+	verifycontracts "github.com/GrayCodeAI/reflect/internal/contracts/verify"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/taskruntime"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 func TestBuildProjectsSessionToolCallsAndSwiftCheckpoint(t *testing.T) {
@@ -42,7 +42,7 @@ func TestBuildProjectsSessionToolCallsAndSwiftCheckpoint(t *testing.T) {
 	export, err := Build(Input{
 		Session:         saved,
 		GeneratedAt:     generatedAt,
-		Scope:           graphcontracts.Scope{RepositoryID: "rho"},
+		Scope:           graphcontracts.Scope{RepositoryID: "reflect"},
 		ProducerVersion: "test",
 		SwiftCheckpoints: []SwiftCheckpointRef{{
 			CheckpointID: "abc123def456",
@@ -91,7 +91,7 @@ func TestBuildProjectsAuthoritativeSwiftSessionAndCheckpointLineage(t *testing.T
 
 	generatedAt := time.Date(2026, time.July, 25, 1, 30, 0, 0, time.UTC)
 	saved := &session.Session{
-		ID:        "rho-session",
+		ID:        "reflect-session",
 		CreatedAt: generatedAt.Add(-time.Hour),
 	}
 	export, err := Build(Input{
@@ -106,7 +106,7 @@ func TestBuildProjectsAuthoritativeSwiftSessionAndCheckpointLineage(t *testing.T
 			CreatedAt:      generatedAt.Add(-time.Minute),
 		}},
 		GeneratedAt: generatedAt,
-		Scope:       graphcontracts.Scope{RepositoryID: "rho"},
+		Scope:       graphcontracts.Scope{RepositoryID: "reflect"},
 	})
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
@@ -120,14 +120,14 @@ func TestBuildProjectsAuthoritativeSwiftSessionAndCheckpointLineage(t *testing.T
 	assertEdge(
 		t,
 		export.Edges,
-		"rho/session/rho-session",
+		"reflect/session/reflect-session",
 		"swift/session/swift-session",
 		graphcontracts.EdgeReferences,
 	)
 	assertEdge(
 		t,
 		export.Edges,
-		"rho/session/rho-session",
+		"reflect/session/reflect-session",
 		"swift/checkpoint/abc123def456",
 		graphcontracts.EdgeReferences,
 	)
@@ -201,7 +201,7 @@ func TestBuildProjectsTaskPolicyVerificationAndRuntimeState(t *testing.T) {
 			OccurredAt: generatedAt.Add(-5 * time.Minute),
 		}},
 		GeneratedAt: generatedAt,
-		Scope:       graphcontracts.Scope{RepositoryID: "rho"},
+		Scope:       graphcontracts.Scope{RepositoryID: "reflect"},
 	})
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
@@ -314,11 +314,11 @@ func TestBuildMergesRetrievedKnowledgeContext(t *testing.T) {
 		Session: saved,
 		ContextObservations: []ContextObservation{{
 			ID:      "context-1",
-			Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "rho/session/" + saved.ID},
+			Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "reflect/session/" + saved.ID},
 			Nodes:   []graphcontracts.Node{knowledge},
 		}},
 		GeneratedAt: generatedAt,
-		Scope:       graphcontracts.Scope{RepositoryID: "rho"},
+		Scope:       graphcontracts.Scope{RepositoryID: "reflect"},
 	})
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
@@ -369,12 +369,12 @@ func TestBuildMergesQualityGraph(t *testing.T) {
 		Session: saved,
 		QualityObservations: []QualityObservation{{
 			ID:      "quality-1",
-			Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "rho/session/" + saved.ID},
+			Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "reflect/session/" + saved.ID},
 			Nodes:   []graphcontracts.Node{report, finding},
 			Edges:   []graphcontracts.Edge{contains},
 		}},
 		GeneratedAt: generatedAt,
-		Scope:       graphcontracts.Scope{RepositoryID: "rho"},
+		Scope:       graphcontracts.Scope{RepositoryID: "reflect"},
 	})
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
@@ -410,10 +410,10 @@ func TestBuildMergesMixedRuntimeGraph(t *testing.T) {
 	export, err := Build(Input{
 		Session: saved,
 		RuntimeObservations: []RuntimeObservation{{
-			ID: "token-1", Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "rho/session/" + saved.ID},
+			ID: "token-1", Subject: graphcontracts.Ref{Kind: graphcontracts.NodeExecution, ID: "reflect/session/" + saved.ID},
 			Nodes: nodes, OccurredAt: at,
 		}},
-		GeneratedAt: at, Scope: graphcontracts.Scope{RepositoryID: "rho"},
+		GeneratedAt: at, Scope: graphcontracts.Scope{RepositoryID: "reflect"},
 	})
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)

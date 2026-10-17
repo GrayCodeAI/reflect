@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/gitcmd"
+	"github.com/GrayCodeAI/reflect/internal/gitcmd"
 	"github.com/fsnotify/fsnotify"
 )
 

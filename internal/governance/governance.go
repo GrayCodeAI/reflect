@@ -340,9 +340,9 @@ func homePath() string {
 func defaultManagedPaths() []string {
 	switch runtime.GOOS {
 	case "darwin":
-		return []string{"/Library/Application Support/Rho/security_policy.json"}
+		return []string{"/Library/Application Support/Reflect/security_policy.json"}
 	default:
-		return []string{"/etc/rho/security_policy.json"}
+		return []string{"/etc/reflect/security_policy.json"}
 	}
 }
 

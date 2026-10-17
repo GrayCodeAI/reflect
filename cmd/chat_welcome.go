@@ -4,28 +4,26 @@ import (
 	"context"
 	"fmt"
 	"image/color"
+	"os"
 	"sort"
 	"strings"
 
-	"github.com/mattn/go-runewidth"
-
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 type welcomeStatusSnapshot struct {
-	setup    rhoconfig.SetupState
+	setup    reflectconfig.SetupState
 	agentsOK bool
 }
 
 func loadWelcomeStatusSnapshot() welcomeStatusSnapshot {
 	ctx := context.Background()
 	return welcomeStatusSnapshot{
-		setup:    rhoconfig.EvaluateSetupCached(ctx),
-		agentsOK: rhoconfig.LoadAgentsMD() != "",
+		setup:    reflectconfig.EvaluateSetupCached(ctx),
+		agentsOK: reflectconfig.LoadAgentsMD() != "",
 	}
 }
 
@@ -71,8 +69,8 @@ func (m *chatModel) rebuildWelcomeCache(opts ...any) {
 	m.welcomeCache = buildWelcomeMessageWithSnapshotAndMascot(m.session, m.sessionID, m.registry, nil, m.settings, skillsCount, connectedMCPCount(m.registry), frame, width, height, m.welcomeStatusSnapshot(), m.lastCommand, m.mascotEnabled)
 }
 
-// buildWelcomeMessage renders the branded inline RHO welcome block.
-func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount int, blinkClosed bool, width, height int) string {
+// buildWelcomeMessage renders the branded inline REFLECT welcome block.
+func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings reflectconfig.Settings, skillsCount int, blinkClosed bool, width, height int) string {
 	frame := 0
 	if blinkClosed {
 		frame = 2
@@ -80,198 +78,70 @@ func buildWelcomeMessage(sess *engine.Session, sessionID string, registry *tool.
 	return buildWelcomeMessageWithSnapshot(sess, sessionID, registry, saved, settings, skillsCount, connectedMCPCount(registry), frame, width, height, loadWelcomeStatusSnapshot(), "")
 }
 
-func buildWelcomeMessageWithSnapshot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string) string {
+func buildWelcomeMessageWithSnapshot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings reflectconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string) string {
 	return buildWelcomeMessageWithSnapshotAndMascot(sess, sessionID, registry, saved, settings, skillsCount, mcpCount, eyeFrame, width, height, snapshot, lastCommand, false)
 }
 
-func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings rhoconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string, useMascot bool) string {
-	// Talon Gold is used for the RHO wordmark. All escapes come from the
-	// theme palette (theme.go) so a rebrand stays a one-file change.
-	logoC := ansiOrange
-	dimC := ansiDim
-	// Indicator colors — same as the rest of the TUI palette (success
-	// teal, error coral) so the ✓/× marks match the colors used
-	// elsewhere for success/error states.
-	greenC := ansiTeal
-	sepC := ansiGrayDim
-	rst := ansiReset
-
-	// Status marks — green ✓ = present, dim ○ = none (not an error),
-	// red × = actual problem. Using a
-	// neutral mark for "none" avoids the alarming all-red look on a fresh repo.
-	markPresent := greenC + ansiBold + icons.CheckBold() + rst
-	markNone := sepC + "○" + rst
-
-	totalW := width
-	if totalW < 40 {
-		totalW = 80
+func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID string, registry *tool.Registry, saved *session.Session, settings reflectconfig.Settings, skillsCount, mcpCount int, eyeFrame int, width, height int, snapshot welcomeStatusSnapshot, lastCommand string, useMascot bool) string {
+	if width <= 0 {
+		width = 80
 	}
-	totalH := height
-	if totalH <= 0 {
-		totalH = 24
+	// A small, left-aligned block keeps the empty state readable at every size.
+	indent := 2
+	if width < 40 {
+		indent = 0
 	}
-	tight := totalH < 30 || totalW < 72
-
-	center := func(visW int, styled string) string {
-		if visW <= 0 {
-			visW = runewidth.StringWidth(styled)
-		}
-		pad := (totalW - visW) / 2
-		if pad < 0 {
-			pad = 0
-		}
-		return strings.Repeat(" ", pad) + styled
+	line := func(text string) string {
+		return strings.Repeat(" ", indent) + clipFooterLine(text, width-indent) + "\n"
 	}
-
-	art := rhoLogoArtLines
-	useMascot = useMascot && !tight
-	// Keep the text wordmark even when a graphical mascot is requested. The
-	// mascot is a best-effort terminal escape sequence; hiding the canonical
-	// fallback makes the entire welcome screen disappear in terminals that
-	// advertise image support but do not render the sequence.
-	var eyeGlyph string
-	switch eyeFrame {
-	case 1, 3:
-		eyeGlyph = "|o\\/o|"
-	case 2:
-		eyeGlyph = "|-\\/-|"
+	version := DisplayVersion()
+	if version != "" && !strings.HasPrefix(strings.ToLower(version), "v") {
+		version = "v" + version
 	}
-	if eyeGlyph != "" && !useMascot {
-		art = append([]string(nil), rhoLogoArtLines...)
-		for i, line := range art {
-			art[i] = strings.Replace(line, "|0\\/0|", eyeGlyph, 1)
-		}
-	}
-
-	// Inject the version into the rho's body — centered in the lower gap.
-	verStr := DisplayVersion()
-	if verStr != "" && !strings.HasPrefix(verStr, "v") && !strings.HasPrefix(verStr, "V") {
-		verStr = "v" + verStr
-	}
-	const verGap = 14
-	if len(verStr) > verGap {
-		verStr = verStr[:verGap]
-	}
-	verLeft := (verGap - len(verStr)) / 2
-	verRight := verGap - len(verStr) - verLeft
-	verWing := strings.Repeat(" ", verLeft) + verStr + strings.Repeat(" ", verRight)
-	for i, line := range art {
-		art[i] = strings.Replace(line, "(\\              /)", "(\\"+verWing+"/)", 1)
-	}
-
 	var b strings.Builder
-
-	// Top breathing room so the wordmark isn't flush against the terminal edge.
 	b.WriteString("\n")
-
-	if tight {
-		// Compact single-line wordmark for small terminals — version sits
-		// inline so it's always visible even when the full rho is hidden.
-		verDisplay := DisplayVersion()
-		if verDisplay != "" && !strings.HasPrefix(verDisplay, "v") && !strings.HasPrefix(verDisplay, "V") {
-			verDisplay = "v" + verDisplay
+	heading := ansiBold + "Reflect" + ansiReset + ansiDim + "  " + version + ansiReset
+	selection := "Choose a model with /config"
+	if sess != nil && strings.TrimSpace(sess.Model()) != "" {
+		selection = shortModelID(sess.Model())
+		if provider := strings.TrimSpace(sess.Provider()); provider != "" {
+			selection = provider + " · " + selection
 		}
-		compactArt := logoC + "RHO" + rst + "  " + verDisplay
-		b.WriteString(center(runewidth.StringWidth("RHO   "+verDisplay), compactArt) + "\n")
+	}
+	workspace, err := os.Getwd()
+	if err != nil {
+		workspace = "."
+	}
+	details := []string{heading, ansiDim + selection + ansiReset, ansiDim + shortenHomePath(workspace) + ansiReset, ""}
+	mascot := reflectRobotArtLines()
+	if width-indent >= 50 {
+		for i, art := range mascot {
+			b.WriteString(line(ansiOrange + art + ansiReset + "  " + details[i]))
+		}
 	} else {
-		artW := blockLinesWidth(art)
-		for _, line := range art {
-			b.WriteString(center(artW, logoC+line+rst) + "\n")
+		for _, art := range mascot {
+			b.WriteString(line(ansiOrange + art + ansiReset))
 		}
-	}
-
-	modeBadge := ""
-	cpLine := ""
-	if sess != nil {
-		cpLine = welcomeControlPlaneLine(sess, dimC, rst)
-	}
-	modeLine := modeBadge
-	if cpLine != "" {
-		if modeBadge != "" {
-			modeLine += "  ·  " + cpLine
-		} else {
-			modeLine = cpLine
+		for _, detail := range details[:3] {
+			b.WriteString(line(detail))
 		}
 	}
 	b.WriteString("\n")
-	b.WriteString(center(visibleWidth(modeLine), modeLine) + "\n")
-
-	indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, greenC, sepC, rst, markPresent, markNone)
-	b.WriteByte('\n')
-	b.WriteString(center(visibleWidth(indicators), indicators) + "\n")
-
-	// Give a new session a useful starting point. This is deliberately two
-	// short lines rather than a panel: the input remains the primary action,
-	// while the empty state explains what to type without consuming the chat.
-	b.WriteString("\n")
-	guidance := dimC + "Inspect, change, or test this codebase with rho." + rst
-	examples := dimC + `Try: "explain this repo"  ·  "run the tests"  ·  "/help"` + rst
-	b.WriteString(center(visibleWidth(guidance), guidance) + "\n")
-	b.WriteString(center(visibleWidth(examples), examples) + "\n")
-
+	if indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, ansiDim, ansiGrayDim, ansiReset, "", ""); indicators != "" {
+		b.WriteString(line(indicators))
+		b.WriteString("\n")
+	}
+	if snapshot.setup.NeedsSetup {
+		b.WriteString(line("Choose a provider and model with /config."))
+	} else {
+		b.WriteString(line(`Try "explain this repo" or describe a task.`))
+	}
+	b.WriteString(line(ansiDim + "/help for commands" + ansiReset))
 	if resume := actLine(saved, sessionID); resume != "" {
 		b.WriteString("\n")
-		b.WriteString(center(runewidth.StringWidth(resume), dimC+resume+rst) + "\n")
+		b.WriteString(line(ansiDim + resume + ansiReset))
 	}
-
 	return b.String()
-}
-
-// welcomeControlPlaneLine renders the work-mode · folder-trust indicator on
-// the welcome screen (moved out of the footer bar).
-func welcomeControlPlaneLine(sess *engine.Session, dimC, rst string) string {
-	boldIcon := func(color, glyph string) string {
-		return color + ansiBold + glyph + ansiReset + color
-	}
-	work := sess.WorkMode()
-	// Use the denser terminal glyphs here. The UI already has the semantic
-	// text; these icons should add contrast, not vanish into the line height.
-	modeIcon := icons.Terminal()
-	modeLabel := "Action Mode"
-	modeColor := ansiCyan
-	switch work {
-	case engine.WorkModePlan:
-		modeIcon = icons.Brain()
-		modeLabel = "Planning Mode"
-		modeColor = ansiMagenta
-	case engine.WorkModeReview:
-		modeIcon = icons.Magnify()
-		modeLabel = "Review Mode"
-		modeColor = ansiAmber
-	}
-
-	tr := engine.ProjectTrust("")
-	var trustIcon string
-	trustColor := dimC
-	if !tr.Enforced {
-		trustIcon = icons.CircleOutline()
-		trustColor = dimC
-	} else if tr.Trusted {
-		trustIcon = icons.CheckDecagram()
-		trustColor = ansiVividGreen
-	} else if tr.Blocked {
-		trustIcon = icons.CloseCircle()
-		trustColor = ansiCoral
-	} else {
-		trustIcon = icons.CloseThick()
-		trustColor = ansiAmber
-	}
-	trustLabel := tr.String()
-	switch trustLabel {
-	case "trusted":
-		trustLabel = "Trusted"
-	case "blocked":
-		trustLabel = "Blocked"
-	case "":
-		trustLabel = "Untrusted"
-	default:
-		if len(trustLabel) > 0 {
-			trustLabel = strings.ToUpper(trustLabel[:1]) + trustLabel[1:]
-		}
-	}
-
-	return boldIcon(modeColor, modeIcon) + " " + modeLabel + rst +
-		"  ·  " + boldIcon(trustColor, trustIcon) + " " + trustLabel + rst
 }
 
 type mcpServerNamed interface {
@@ -294,34 +164,31 @@ func connectedMCPCount(registry *tool.Registry) int {
 }
 
 func welcomeIndicatorRow(skillsCount int, agentsOK bool, mcpCount int, activeC, idleC, rst, markPresent, markNone string) string {
-	boldIcon := func(color, glyph string) string {
-		// Keep the label's color after making only the glyph bold. This gives
-		// narrow Nerd Font icons more visual weight without bolding the copy.
-		return color + ansiBold + glyph + ansiReset + color
-	}
-	skillsColor, skillsMark := idleC, markNone
-	if skillsCount > 0 {
-		skillsColor, skillsMark = ansiLightPink, markPresent
-	}
-
-	agentsColor, agentsMark := idleC, markNone
+	var parts []string
 	if agentsOK {
-		agentsColor, agentsMark = ansiMagenta, markPresent
+		parts = append(parts, "Project instructions loaded")
 	}
-
-	mcpColor, mcpMark := idleC, markNone
+	if skillsCount > 0 {
+		label := "skill"
+		if skillsCount != 1 {
+			label = "skills"
+		}
+		parts = append(parts, fmt.Sprintf("%d %s", skillsCount, label))
+	}
 	if mcpCount > 0 {
-		mcpColor, mcpMark = ansiCyan, markPresent
+		label := "MCP server"
+		if mcpCount != 1 {
+			label = "MCP servers"
+		}
+		parts = append(parts, fmt.Sprintf("%d %s", mcpCount, label))
 	}
-	return fmt.Sprintf(
-		"%s Skills (%d)%s %s  ·  %s AGENTS.md%s %s  ·  %s MCPs (%d)%s %s",
-		boldIcon(skillsColor, icons.Bolt()), skillsCount, rst, skillsMark,
-		boldIcon(agentsColor, icons.Robot()), rst, agentsMark,
-		boldIcon(mcpColor, icons.Network()), mcpCount, rst, mcpMark,
-	)
+	if len(parts) == 0 {
+		return ""
+	}
+	return activeC + strings.Join(parts, " · ") + rst
 }
 
-// welcomeModeBadge is intentionally absent; rho uses host permission tiers.
+// welcomeModeBadge is intentionally absent; reflect uses host permission tiers.
 
 func actLine(saved *session.Session, sessionID string) string {
 	if saved != nil && len(sessionID) >= 8 {
@@ -334,7 +201,7 @@ func toolListSummary(registry *tool.Registry) string {
 	if registry == nil {
 		return "No tools enabled."
 	}
-	tools := registry.FluxTools()
+	tools := registry.RelayTools()
 	registered := len(registry.PrimaryTools())
 	if len(tools) == 0 {
 		return "No tools enabled."
@@ -364,7 +231,7 @@ func envSummary(provider, model string) string {
 
 func envSummaryWithSelection(provider, model string, includeSelection bool) string {
 	var providers []string
-	for _, gateway := range rhoconfig.GatewayStatuses(context.Background(), provider, model) {
+	for _, gateway := range reflectconfig.GatewayStatuses(context.Background(), provider, model) {
 		providers = append(providers, gateway.ID)
 	}
 	sort.Strings(providers)
@@ -372,17 +239,17 @@ func envSummaryWithSelection(provider, model string, includeSelection bool) stri
 	if includeSelection {
 		b.WriteString(fmt.Sprintf("Provider: %s\nModel: %s\n\n", provider, model))
 	}
-	b.WriteString(fmt.Sprintf("Credentials (%s):\n", rhoconfig.CredentialStoreName()))
+	b.WriteString(fmt.Sprintf("Credentials (%s):\n", reflectconfig.CredentialStoreName()))
 	for _, providerID := range providers {
-		b.WriteString(fmt.Sprintf("  %s: %s\n", providerID, rhoconfig.EnvKeyStatus(providerID)))
+		b.WriteString(fmt.Sprintf("  %s: %s\n", providerID, reflectconfig.EnvKeyStatus(providerID)))
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func configCommandSummary(settings rhoconfig.Settings) string {
+func configCommandSummary(settings reflectconfig.Settings) string {
 	_ = settings
-	providerName := displayConfigValue(rhoconfig.ActiveProvider(context.Background()))
-	modelName := displayConfigValue(rhoconfig.ActiveModel(context.Background()))
+	providerName := displayConfigValue(reflectconfig.ActiveProvider(context.Background()))
+	modelName := displayConfigValue(reflectconfig.ActiveModel(context.Background()))
 	keys := configuredKeyList()
 	keysColor := infoSky
 	if keys == "(none)" {
@@ -392,15 +259,15 @@ func configCommandSummary(settings rhoconfig.Settings) string {
 
   /config  → paste API key (OS keychain) + pick model
   /path    → verify readiness in TUI
-  rho path (CLI)
+  reflect path (CLI)
 
 %s:
   %s %s
   %s %s
   %s %s
 
-Model catalog and routing live in flux — rho is the UI only.`,
-		auditTint("Setup (flux)", textPrimary),
+Model catalog and routing live in relay — reflect is the UI only.`,
+		auditTint("Setup (relay)", textPrimary),
 		auditTint("Current", textPrimary),
 		auditTint("provider:", textMuted), auditTint(providerName, infoSky),
 		auditTint("model:", textMuted), auditTint(modelName, infoSky),
@@ -408,7 +275,7 @@ Model catalog and routing live in flux — rho is the UI only.`,
 }
 
 func apiKeyConfigSummary() string {
-	return auditTint("API keys ("+rhoconfig.CredentialStoreName()+")", textPrimary) + "\n" + indentedAPIKeyLines()
+	return auditTint("API keys ("+reflectconfig.CredentialStoreName()+")", textPrimary) + "\n" + indentedAPIKeyLines()
 }
 
 func configuredKeyList() string {
@@ -454,11 +321,11 @@ func apiKeyStatusColor(status string) color.Color {
 }
 
 func apiKeyStatusLines() []string {
-	providers := rhoconfig.AllSetupGateways()
+	providers := reflectconfig.AllSetupGateways()
 	sort.Strings(providers)
 	var lines []string
 	for _, provider := range providers {
-		lines = append(lines, fmt.Sprintf("%s: %s", provider, rhoconfig.EnvKeyStatus(provider)))
+		lines = append(lines, fmt.Sprintf("%s: %s", provider, reflectconfig.EnvKeyStatus(provider)))
 	}
 	return lines
 }

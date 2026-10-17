@@ -1,9 +1,9 @@
 package session
 
-import "github.com/GrayCodeAI/rho/internal/types"
+import "github.com/GrayCodeAI/reflect/internal/types"
 
-// FromRuntimeMessages converts Rho runtime messages into persisted session messages.
-func FromRuntimeMessages(in []types.FluxMessage) []Message {
+// FromRuntimeMessages converts Reflect runtime messages into persisted session messages.
+func FromRuntimeMessages(in []types.RelayMessage) []Message {
 	if len(in) == 0 {
 		return nil
 	}
@@ -22,25 +22,25 @@ func FromRuntimeMessages(in []types.FluxMessage) []Message {
 	return out
 }
 
-// FromRuntimeToolCalls converts Rho runtime tool calls into persisted contracts.
+// FromRuntimeToolCalls converts Reflect runtime tool calls into persisted contracts.
 // types.ToolCall and session.ToolCall are identical (both alias tools.ToolCall).
 func FromRuntimeToolCalls(in []types.ToolCall) []ToolCall {
 	return in
 }
 
-// FromRuntimeToolResults converts Rho runtime tool results into persisted contracts.
+// FromRuntimeToolResults converts Reflect runtime tool results into persisted contracts.
 func FromRuntimeToolResults(in []types.ToolResult) []ToolResult {
 	return in
 }
 
-// ToRuntimeMessages converts persisted session messages back into Rho runtime messages.
-func ToRuntimeMessages(in []Message) []types.FluxMessage {
+// ToRuntimeMessages converts persisted session messages back into Reflect runtime messages.
+func ToRuntimeMessages(in []Message) []types.RelayMessage {
 	if len(in) == 0 {
 		return nil
 	}
-	out := make([]types.FluxMessage, len(in))
+	out := make([]types.RelayMessage, len(in))
 	for i, msg := range in {
-		out[i] = types.FluxMessage{
+		out[i] = types.RelayMessage{
 			Role:         msg.Role,
 			Content:      msg.Content,
 			Thinking:     msg.Thinking,
@@ -53,12 +53,12 @@ func ToRuntimeMessages(in []Message) []types.FluxMessage {
 	return out
 }
 
-// ToRuntimeToolCalls converts persisted contracts back into Rho runtime tool calls.
+// ToRuntimeToolCalls converts persisted contracts back into Reflect runtime tool calls.
 func ToRuntimeToolCalls(in []ToolCall) []types.ToolCall {
 	return in
 }
 
-// ToRuntimeToolResults converts persisted contracts back into Rho runtime tool results.
+// ToRuntimeToolResults converts persisted contracts back into Reflect runtime tool results.
 func ToRuntimeToolResults(in []ToolResult) []types.ToolResult {
 	return in
 }

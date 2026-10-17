@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 	"github.com/spf13/cobra"
 )
 

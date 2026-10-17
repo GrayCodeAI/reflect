@@ -16,7 +16,7 @@ import (
 )
 
 // webpFixture is a static 4x3 webp raster (x/image/webp has no encoder; this
-// was produced with Pillow and is verified by the decoder in the test).
+// was produced with Pillow and is verified by the reflect in the test).
 const webpFixtureB64 = "UklGRjYAAABXRUJQVlA4ICoAAACQAQCdASoEAAMAAUAmJaACdLoAA5gA/vIiX/gN18W0y/+N462+tvZQAAA="
 
 // rasterFixture encodes a 4x3 gradient raster in the requested format.

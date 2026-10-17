@@ -28,7 +28,7 @@ func TestReadRequires(t *testing.T) {
 go 1.26
 
 require (
-	github.com/GrayCodeAI/flux v1.0.0
+	github.com/GrayCodeAI/relay v1.0.0
 	github.com/spf13/cobra v1.8.0
 )
 
@@ -40,7 +40,7 @@ require github.com/GrayCodeAI/other v1.9.0 // indirect
 		t.Fatalf("readRequires: %v", err)
 	}
 	tests := map[string]string{
-		"github.com/GrayCodeAI/flux":  "v1.0.0",
+		"github.com/GrayCodeAI/relay": "v1.0.0",
 		"github.com/spf13/cobra":      "v1.8.0",
 		"github.com/GrayCodeAI/other": "v1.9.0",
 	}
@@ -68,28 +68,28 @@ func TestReadRequires_InvalidMod(t *testing.T) {
 	}
 }
 
-// TestCheckDrift reports drift when a consumer pins an older version than rho.
+// TestCheckDrift reports drift when a consumer pins an older version than reflect.
 func TestCheckDrift_DetectsDrift(t *testing.T) {
 	ws := t.TempDir()
-	writeMod(t, filepath.Join(ws, "rho", "go.mod"), `module github.com/GrayCodeAI/rho
+	writeMod(t, filepath.Join(ws, "reflect", "go.mod"), `module github.com/GrayCodeAI/reflect
 
 go 1.26
 
-require github.com/GrayCodeAI/flux v1.5.0
+require github.com/GrayCodeAI/relay v1.5.0
 `)
 	// Consumer sibling pins an older version of the shared dependency.
 	writeMod(t, filepath.Join(ws, "consumer", "go.mod"), `module github.com/GrayCodeAI/consumer
 
 go 1.26
 
-require github.com/GrayCodeAI/flux v1.2.0
+require github.com/GrayCodeAI/relay v1.2.0
 `)
 
 	var buf bytes.Buffer
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := checkDrift(filepath.Join(ws, "rho"))
+	err := checkDrift(filepath.Join(ws, "reflect"))
 	_ = w.Close()
 	os.Stdout = old
 	_, _ = buf.ReadFrom(r)
@@ -106,24 +106,24 @@ require github.com/GrayCodeAI/flux v1.2.0
 // pins produce the "OK" line and no per-consumer drift lines.
 func TestCheckDrift_NoDriftWhenVersionsMatch(t *testing.T) {
 	ws := t.TempDir()
-	writeMod(t, filepath.Join(ws, "rho", "go.mod"), `module github.com/GrayCodeAI/rho
+	writeMod(t, filepath.Join(ws, "reflect", "go.mod"), `module github.com/GrayCodeAI/reflect
 
 go 1.26
 
-require github.com/GrayCodeAI/flux v1.5.0
+require github.com/GrayCodeAI/relay v1.5.0
 `)
 	writeMod(t, filepath.Join(ws, "consumer", "go.mod"), `module github.com/GrayCodeAI/consumer
 
 go 1.26
 
-require github.com/GrayCodeAI/flux v1.5.0
+require github.com/GrayCodeAI/relay v1.5.0
 `)
 
 	var buf bytes.Buffer
 	r, w, _ := os.Pipe()
 	old := os.Stdout
 	os.Stdout = w
-	err := checkDrift(filepath.Join(ws, "rho"))
+	err := checkDrift(filepath.Join(ws, "reflect"))
 	_ = w.Close()
 	os.Stdout = old
 	_, _ = buf.ReadFrom(r)
@@ -140,11 +140,11 @@ require github.com/GrayCodeAI/flux v1.5.0
 // without a go.mod (e.g. not a Go module) is skipped without failing.
 func TestCheckDrift_SkipsMissingSiblings(t *testing.T) {
 	ws := t.TempDir()
-	writeMod(t, filepath.Join(ws, "rho", "go.mod"), `module github.com/GrayCodeAI/rho
+	writeMod(t, filepath.Join(ws, "reflect", "go.mod"), `module github.com/GrayCodeAI/reflect
 
 go 1.26
 
-require github.com/GrayCodeAI/flux v1.5.0
+require github.com/GrayCodeAI/relay v1.5.0
 `)
 	// Directory present but no go.mod — must be skipped silently.
 	if err := os.MkdirAll(filepath.Join(ws, "not-checked-out"), 0o755); err != nil {
@@ -154,7 +154,7 @@ require github.com/GrayCodeAI/flux v1.5.0
 	r, w, _ := os.Pipe()
 	old := os.Stdout
 	os.Stdout = w
-	err := checkDrift(filepath.Join(ws, "rho"))
+	err := checkDrift(filepath.Join(ws, "reflect"))
 	_ = w.Close()
 	os.Stdout = old
 	_, _ = io.Copy(io.Discard, r)

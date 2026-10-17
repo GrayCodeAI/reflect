@@ -94,7 +94,7 @@ func TestInsecureEndpointNeverSendsTheDeviceToken(t *testing.T) {
 		t.Fatal("client with a plaintext remote endpoint must not be enabled")
 	}
 	ctx := context.Background()
-	if err := client.RecordUsage(ctx, UsageEvent{EventID: "event_0123456789", Capability: "rho"}); err == nil {
+	if err := client.RecordUsage(ctx, UsageEvent{EventID: "event_0123456789", Capability: "reflect"}); err == nil {
 		t.Fatal("RecordUsage succeeded against a plaintext endpoint")
 	}
 	if _, err := client.SyncGraph(ctx, GraphSyncRequest{SyncID: "graph_0123456789abcdef", Graph: json.RawMessage(`{}`)}); err == nil {
@@ -137,7 +137,7 @@ func TestClientRefusesRedirects(t *testing.T) {
 
 func TestSaveDeviceConfigRefusesPlaintextEndpoint(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", dir)
+	t.Setenv("REFLECT_CONFIG_DIR", dir)
 	err := SaveDeviceConfig(DeviceConfig{Endpoint: "http://cloud.graycodeai.com", DeviceID: "device_0123456789", ProjectID: "project_0123456789"}, "hwc_secret")
 	if !errors.Is(err, ErrInsecureEndpoint) {
 		t.Fatalf("SaveDeviceConfig error = %v, want ErrInsecureEndpoint", err)
@@ -149,7 +149,7 @@ func TestSaveDeviceConfigRefusesPlaintextEndpoint(t *testing.T) {
 
 func TestLoadClientRefusesSavedPlaintextEndpoint(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", dir)
+	t.Setenv("REFLECT_CONFIG_DIR", dir)
 	saved := `{"endpoint":"http://cloud.graycodeai.com","device_id":"device_0123456789","project_id":"project_0123456789"}`
 	if err := os.WriteFile(filepath.Join(dir, "cloud.json"), []byte(saved), 0o600); err != nil {
 		t.Fatal(err)

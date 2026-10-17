@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
 func gatewayRegionOptionIndex(providerID, region string) int {
@@ -15,7 +15,7 @@ func gatewayRegionOptionIndex(providerID, region string) int {
 	if region == "" {
 		return 0
 	}
-	opts := rhoconfig.GatewayRegionOptions(providerID)
+	opts := reflectconfig.GatewayRegionOptions(providerID)
 	for i, r := range opts {
 		if strings.EqualFold(r.Value, region) {
 			return i
@@ -32,23 +32,23 @@ func (m chatModel) closeConfigEntry() chatModel {
 
 func (m chatModel) startConfigGatewayRegion(providerID string) chatModel {
 	switch providerID {
-	case rhoconfig.ProviderXiaomiTokenPlan:
+	case reflectconfig.ProviderXiaomiTokenPlan:
 		m.configEntry = configEntryXiaomiRegion
-	case rhoconfig.ProviderZAICoding, rhoconfig.ProviderZAIPayg:
+	case reflectconfig.ProviderZAICoding, reflectconfig.ProviderZAIPayg:
 		m.configEntry = configEntryZAIRegion
 	default:
 		m.configEntry = configEntryGatewayRegion
 	}
 	m.configProvider = providerID
 	idx := 0
-	if !rhoconfig.NeedsGatewayRegion(providerID) {
-		idx = gatewayRegionOptionIndex(providerID, rhoconfig.GatewayRegionLabel(providerID))
+	if !reflectconfig.NeedsGatewayRegion(providerID) {
+		idx = gatewayRegionOptionIndex(providerID, reflectconfig.GatewayRegionLabel(providerID))
 	}
 	m.configGatewayRegionSel = idx
 	m.configZAIRegionSel = idx
-	name := rhoconfig.GatewayDisplayName(providerID)
+	name := reflectconfig.GatewayDisplayName(providerID)
 	notice := fmt.Sprintf("Select %s region (↑↓ · enter · esc cancel)", name)
-	if saved := rhoconfig.GatewayRegionLabel(providerID); saved != "" {
+	if saved := reflectconfig.GatewayRegionLabel(providerID); saved != "" {
 		notice = fmt.Sprintf("%s region · current %s (↑↓ · enter · esc cancel)", name, saved)
 	}
 	m.configNotice = notice
@@ -61,9 +61,9 @@ func (m chatModel) configGatewayRegionView() string {
 	rowStyle := configRowStyle()
 	var b strings.Builder
 	prov := m.configProvider
-	name := rhoconfig.GatewayDisplayName(prov)
+	name := reflectconfig.GatewayDisplayName(prov)
 	b.WriteString(renderConfigBreadcrumb(name+" region") + "\n\n")
-	opts := rhoconfig.GatewayRegionOptions(prov)
+	opts := reflectconfig.GatewayRegionOptions(prov)
 	for i, r := range opts {
 		prefix := "  "
 		if i == m.configGatewayRegionSel {
@@ -84,7 +84,7 @@ func (m chatModel) configGatewayRegionView() string {
 }
 
 func (m chatModel) handleConfigGatewayRegionKey(msg tea.KeyMsg) (chatModel, tea.Cmd) {
-	opts := rhoconfig.GatewayRegionOptions(m.configProvider)
+	opts := reflectconfig.GatewayRegionOptions(m.configProvider)
 	count := len(opts)
 	if count == 0 {
 		return m.closeConfigEntry(), nil
@@ -105,7 +105,7 @@ func (m chatModel) handleConfigGatewayRegionKey(msg tea.KeyMsg) (chatModel, tea.
 	case "enter":
 		if m.configGatewayRegionSel >= 0 && m.configGatewayRegionSel < count {
 			chosen := opts[m.configGatewayRegionSel]
-			if err := rhoconfig.SetGatewayRegion(m.configProvider, chosen.Value); err != nil {
+			if err := reflectconfig.SetGatewayRegion(m.configProvider, chosen.Value); err != nil {
 				m.configNotice = "Error saving region: " + err.Error()
 				return m, nil
 			}
@@ -116,8 +116,8 @@ func (m chatModel) handleConfigGatewayRegionKey(msg tea.KeyMsg) (chatModel, tea.
 				m.configPostSaveKeysProvider = ""
 				return m.startConfigKeyReplace(m.configProvider)
 			}
-			if rhoconfig.HasStoredCredentialForProvider(ctx, m.configProvider) {
-				m.configNotice = "Saved region for " + rhoconfig.GatewayDisplayName(m.configProvider)
+			if reflectconfig.HasStoredCredentialForProvider(ctx, m.configProvider) {
+				m.configNotice = "Saved region for " + reflectconfig.GatewayDisplayName(m.configProvider)
 				if idx := m.configGatewayRowIndex(m.configProvider); idx >= 0 {
 					m.configSel = idx
 				}

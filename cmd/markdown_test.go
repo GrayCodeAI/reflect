@@ -196,10 +196,10 @@ func TestRenderMarkdownOrderedList(t *testing.T) {
 }
 
 func TestRenderMarkdownLinks(t *testing.T) {
-	input := "Visit [Rho](https://example.com) for info"
+	input := "Visit [Reflect](https://example.com) for info"
 	out := renderMarkdown(input, 80)
 	plain := stripAnsi(out)
-	if !strings.Contains(plain, "Rho") {
+	if !strings.Contains(plain, "Reflect") {
 		t.Errorf("expected link text in output, got %q", plain)
 	}
 	if !strings.Contains(plain, "https://example.com") {

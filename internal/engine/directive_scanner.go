@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Directive is a parsed rho: comment from source code.
+// Directive is a parsed reflect: comment from source code.
 type Directive struct {
 	File    string
 	Line    int
@@ -17,9 +17,9 @@ type Directive struct {
 	Context string
 }
 
-var rhoDirectivePattern = regexp.MustCompile(`(?i)(?://|#|--|/\*)\s*rho:\s*(.+?)(?:\s*\*/)?$`)
+var reflectDirectivePattern = regexp.MustCompile(`(?i)(?://|#|--|/\*)\s*reflect:\s*(.+?)(?:\s*\*/)?$`)
 
-// ScanDirectives finds all `// rho: <command>` comments in source files.
+// ScanDirectives finds all `// reflect: <command>` comments in source files.
 func ScanDirectives(dir string) []Directive {
 	var directives []Directive
 	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
@@ -28,7 +28,7 @@ func ScanDirectives(dir string) []Directive {
 		}
 		if d.IsDir() {
 			name := d.Name()
-			if name == ".git" || name == "node_modules" || name == "vendor" || name == ".rho" {
+			if name == ".git" || name == "node_modules" || name == "vendor" || name == ".reflect" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -45,7 +45,7 @@ func ScanDirectives(dir string) []Directive {
 		}
 		lines := strings.Split(string(data), "\n")
 		for i, line := range lines {
-			matches := rhoDirectivePattern.FindStringSubmatch(line)
+			matches := reflectDirectivePattern.FindStringSubmatch(line)
 			if len(matches) > 1 {
 				start := i - 3
 				if start < 0 {
@@ -73,5 +73,5 @@ func DirectivePrompt(d Directive) string {
 	return "File: " + d.File + " (line " + fmt.Sprintf("%d", d.Line) + ")\n" +
 		"Directive: " + d.Command + "\n" +
 		"Context:\n```\n" + d.Context + "\n```\n\n" +
-		"Implement what the rho: comment asks for. Remove the rho: comment after implementing."
+		"Implement what the reflect: comment asks for. Remove the reflect: comment after implementing."
 }

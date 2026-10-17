@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
 
 func requireChatModel(t *testing.T, model any) *chatModel {
@@ -23,20 +23,20 @@ func requireChatModel(t *testing.T, model any) *chatModel {
 }
 
 func TestChatJourney_ConfigPermissionsAndCoreCommands(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	isolateCredentialHome(t)
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	ctx := context.Background()
 	if err := store.Set(ctx, gateway.AccountForEnv("OPENROUTER_API_KEY"), "sk-or-test-key-1234567890"); err != nil {
 		t.Fatal(err)
 	}
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 
 	m := newTestChatModel()
 

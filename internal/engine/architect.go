@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/planning"
-	"github.com/GrayCodeAI/rho/internal/provider/routing"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/planning"
+	"github.com/GrayCodeAI/reflect/internal/provider/routing"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // ArchitectConfig configures the two-model architect/editor pipeline.
@@ -42,7 +42,7 @@ type PlanStep struct {
 }
 
 // Message is a lightweight chat message used by the architect pipeline.
-// This avoids coupling to external message types from flux.
+// This avoids coupling to external message types from relay.
 type ArchitectMessage struct {
 	Role    string // "system", "user", "assistant"
 	Content string
@@ -133,7 +133,7 @@ type architectProvider struct {
 	a *Architect
 }
 
-func (p *architectProvider) Chat(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (p *architectProvider) Chat(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error) {
 	archMsgs := make([]ArchitectMessage, len(messages))
 	for i, m := range messages {
 		archMsgs[i] = ArchitectMessage{Role: m.Role, Content: m.Content}
@@ -146,10 +146,10 @@ func (p *architectProvider) Chat(ctx context.Context, messages []types.FluxMessa
 	if err != nil {
 		return nil, err
 	}
-	return &types.FluxResponse{Content: out}, nil
+	return &types.RelayResponse{Content: out}, nil
 }
 
-func (p *architectProvider) StreamChat(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.StreamResult, error) {
+func (p *architectProvider) StreamChat(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.StreamResult, error) {
 	return nil, nil
 }
 func (p *architectProvider) Ping(ctx context.Context) error { return nil }

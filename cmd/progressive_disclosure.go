@@ -52,22 +52,22 @@ func DefaultDisclosureConfig() DisclosureConfig {
 
 // BeginnerHelp returns a simplified help message for new users.
 func BeginnerHelp() string {
-	return `Getting Started with rho
+	return `Getting Started with reflect
 
-  Type your question or task and rho will help.
-  rho reads your project and understands your code.
+  Type your question or task and reflect will help.
+  reflect reads your project and understands your code.
 
 Essential Commands:
   /help     Show all commands
   /test     Run your project's tests
   /diff     See what you've changed
   /commit   Save your work with a smart message
-  /review   Have rho review your code
+  /review   Have reflect review your code
   /clear    Start a fresh conversation
 
 Tips:
   - Just describe what you want in plain English
-  - rho will read files, run commands, and make changes
+  - reflect will read files, run commands, and make changes
   - Use /help to discover more features as you get comfortable
 
 Type anything to get started!`
@@ -75,7 +75,7 @@ Type anything to get started!`
 
 // IntermediateHelp returns the standard help message.
 func IntermediateHelp() string {
-	return `rho Commands
+	return `reflect Commands
 
 Workflow:
   /test        Run tests and fix failures
@@ -110,7 +110,7 @@ Use /help all for the complete list.`
 
 // AdvancedHelp returns the full command reference.
 func AdvancedHelp() string {
-	return `rho Full Command Reference
+	return `reflect Full Command Reference
 
 Workflow:
   /test [cmd]        Run tests (default: go test ./...)

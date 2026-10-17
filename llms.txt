@@ -1,0 +1,31 @@
+# Reflect — coding agent CLI (Go)
+
+Reflect owns UX, orchestration, tools, permissions, sessions, product semantics.
+It uses Relay only through the engine facade and go.local.mod overlays for local development.
+
+## Navigation
+- README.md / AGENTS.md — workflow, conventions, common pitfalls, workspace overlay
+- docs/IMPLEMENTATION-ROADMAP.md — feature status
+- docs/PERMISSION-MODEL-IMPROVEMENTS.md — permission engine
+- docs/OTEL-CONVENTIONS.md — shared tracing vocabulary
+- docs/plans/YOLOGDEV-ADOPTION-PLAN.md — adoption plan derived from yologdev portfolio
+- docs/session-decomposition.md — session-store internals
+
+## Entry points and structure
+- cmd/ — Cobra commands, TUI (Bubble Tea), compaction UI
+- internal/engine/ — ChatService, sessions, context governor, compaction
+- internal/multiagent/ — Mission, waves, staged PRD/verify/fix
+- internal/session/ — persistence, branch, fork, checkpoint, search, lifeboat
+- internal/hooks/ — lifecycle hooks, decisions, HTTP hooks
+- internal/memory/ (if present) — cross-session memory
+- internal/safety/ / security — path safety, traversal checks
+
+## Safety and testing
+- `go test ./...`, `go vet ./...`, `golangci-lint` configured in .golangci.yml
+- Race-sensitive areas: session store, multiagent mission (run with -race)
+- Lifeboat: internal/session/lifeboat.go captures working memory before compaction
+
+## Conventions
+- Go 1.27.2+, Conventional Commits
+- Host-neutral: never import Relay internals directly, use engine facade
+- VERSION is single source of truth (VERSION file + sync-version.py)

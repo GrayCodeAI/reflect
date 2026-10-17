@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Cache stores LLM responses keyed by (model, prompt_hash, params) to avoid re-calling APIs.
@@ -24,7 +24,7 @@ type CacheEntry struct {
 	CostUSD  float64 `json:"cost_usd"`
 }
 
-// DefaultCache returns a cache in Rho's user cache directory.
+// DefaultCache returns a cache in Reflect's user cache directory.
 func DefaultCache() *Cache {
 	return &Cache{Dir: filepath.Join(storage.CacheDir(), "eval", "cache")}
 }

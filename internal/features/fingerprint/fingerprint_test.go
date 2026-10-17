@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// repoRoot returns the rho repo root (great-grandparent of internal/features/fingerprint).
+// repoRoot returns the reflect repo root (great-grandparent of internal/features/fingerprint).
 func repoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -17,7 +17,7 @@ func repoRoot(t *testing.T) string {
 	return filepath.Dir(filepath.Dir(filepath.Dir(wd)))
 }
 
-func TestGenerate_RhoRepo(t *testing.T) {
+func TestGenerate_ReflectRepo(t *testing.T) {
 	root := repoRoot(t)
 	fp, err := Generate(root)
 	if err != nil {
@@ -57,7 +57,7 @@ func TestGenerate_RhoRepo(t *testing.T) {
 	}
 
 	// Name should be the directory name. The repo may be checked out under a
-	// pre-rename directory (e.g. `hawk`) during the Rho migration, so compare
+	// pre-rename directory (e.g. `hawk`) during the Reflect migration, so compare
 	// against the actual root basename instead of hardcoding the product name.
 	if want := filepath.Base(root); fp.Name != want {
 		t.Errorf("expected Name=%q, got %q", want, fp.Name)

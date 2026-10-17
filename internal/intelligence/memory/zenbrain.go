@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // MemoryLayer identifies which layer a memory belongs to.

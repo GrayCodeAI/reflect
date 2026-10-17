@@ -2,11 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-08-04
-- Owners: Rho maintainers
+- Owners: Reflect maintainers
 
 ## Context
 
-Rho has several state-bearing components with different purposes:
+Reflect has several state-bearing components with different purposes:
 
 - `PersistenceService` owns live in-memory transcript and context state.
 - `internal/session` writes the durable JSONL session format and uses an
@@ -21,7 +21,7 @@ semantics and make corruption or partial writes difficult to resolve.
 
 ## Decision
 
-Rho uses a file-first, projection-based persistence model:
+Reflect uses a file-first, projection-based persistence model:
 
 1. **Runtime authority:** `PersistenceService` is authoritative only for the
    active in-memory session state.

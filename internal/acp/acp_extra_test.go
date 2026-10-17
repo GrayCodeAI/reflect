@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine"
 )
 
 // --- Error factory for testing ---

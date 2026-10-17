@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // autoCommitCaptureTool records ToolContext.AutoCommit for the wire path.

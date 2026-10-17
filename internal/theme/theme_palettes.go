@@ -7,7 +7,7 @@ package theme
 
 import "strings"
 
-// darkPalette is the default dark theme with Rho's Talon Gold accent.
+// darkPalette is the default dark theme with Reflect's Talon Gold accent.
 var darkPalette = Palette{
 	Panel:     "#1b1e26",
 	PromptBg:  "#262626",

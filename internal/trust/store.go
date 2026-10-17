@@ -1,7 +1,7 @@
 // Package trust implements folder trust for project automation (Year 0 PACK-03).
 //
 // Untrusted project directories must not load project-scoped hooks, MCP servers,
-// LSP configs, or plugins. User-global state under the Rho config/state dirs
+// LSP configs, or plugins. User-global state under the Reflect config/state dirs
 // remains available without per-folder trust.
 package trust
 
@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/flags"
-	"github.com/GrayCodeAI/rho/internal/fsutil"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/flags"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Entry records when and why a path was trusted.
@@ -33,7 +33,7 @@ type Store struct {
 	Entries map[string]Entry `json:"entries"`
 }
 
-// DefaultPath returns the trust store path under Rho state.
+// DefaultPath returns the trust store path under Reflect state.
 func DefaultPath() string {
 	return filepath.Join(storage.StateDir(), "folder-trust.json")
 }
@@ -154,10 +154,10 @@ func AllowProjectAutomation(projectRoot string) error {
 		return nil
 	}
 	abs, _ := canonicalize(projectRoot)
-	return fmt.Errorf("folder trust: project %q is not trusted — run `rho trust add %s` to allow project hooks/MCP/plugins", abs, abs)
+	return fmt.Errorf("folder trust: project %q is not trusted — run `reflect trust add %s` to allow project hooks/MCP/plugins", abs, abs)
 }
 
-// IsProjectPath reports whether path is under a project tree (not Rho user state/config).
+// IsProjectPath reports whether path is under a project tree (not Reflect user state/config).
 func IsProjectPath(path string) bool {
 	abs, err := canonicalize(path)
 	if err != nil {
@@ -178,7 +178,7 @@ func IsProjectPath(path string) bool {
 // RequiresFolderTrust reports whether path is a project-automation location
 // that must be trusted before load (hooks/plugins/MCP under the repo).
 // Generic temp dirs used in tests are not gated — only well-known project
-// automation roots like <repo>/.rho/plugins.
+// automation roots like <repo>/.reflect/plugins.
 func RequiresFolderTrust(path string) bool {
 	abs, err := canonicalize(path)
 	if err != nil {
@@ -189,10 +189,10 @@ func RequiresFolderTrust(path string) bool {
 	}
 	sep := string(filepath.Separator)
 	markers := []string{
-		sep + ".rho" + sep + "plugins",
-		sep + ".rho" + sep + "hooks",
-		sep + ".rho" + sep + "mcp",
-		sep + ".rho" + sep + "skills",
+		sep + ".reflect" + sep + "plugins",
+		sep + ".reflect" + sep + "hooks",
+		sep + ".reflect" + sep + "mcp",
+		sep + ".reflect" + sep + "skills",
 		sep + ".agents" + sep + "hooks",
 		sep + ".agents" + sep + "plugins",
 		sep + ".agents" + sep + "skills",
@@ -205,7 +205,7 @@ func RequiresFolderTrust(path string) bool {
 		if strings.Contains(abs, m) || strings.HasSuffix(abs, m) {
 			return true
 		}
-		// also when path ends with .rho/plugins etc.
+		// also when path ends with .reflect/plugins etc.
 		if strings.HasSuffix(abs, filepath.FromSlash(strings.TrimPrefix(m, sep))) {
 			return true
 		}
@@ -215,7 +215,7 @@ func RequiresFolderTrust(path string) bool {
 
 // AllowLoadPath gates loading automation from path.
 // User-global config/state paths always pass. Project automation roots
-// (.rho/plugins, .rho/hooks, …) need trust when enforcement is enabled.
+// (.reflect/plugins, .reflect/hooks, …) need trust when enforcement is enabled.
 func AllowLoadPath(path string) error {
 	if !Enabled() {
 		return nil

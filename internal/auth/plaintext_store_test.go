@@ -25,7 +25,7 @@ func TestUsesPlaintextTokenFileOnlyWithoutOSStore(t *testing.T) {
 
 func TestCredentialStoreNameNamesThePlaintextFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", dir)
+	t.Setenv("REFLECT_CONFIG_DIR", dir)
 	if TokenFilePath() != filepath.Join(dir, ".tokens") {
 		t.Fatalf("TokenFilePath = %q", TokenFilePath())
 	}

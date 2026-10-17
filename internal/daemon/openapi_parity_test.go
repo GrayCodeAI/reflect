@@ -12,7 +12,7 @@ import (
 )
 
 // TestOpenAPISpecMatchesRegisteredRoutes fails when api/openapi.yaml and the
-// routes registered on the daemon mux drift apart in either direction. Every
+// routes registered on the daemon relay drift apart in either direction. Every
 // operation in the spec must have a registered handler, and every registered
 // handler must be documented in the spec.
 func TestOpenAPISpecMatchesRegisteredRoutes(t *testing.T) {

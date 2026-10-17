@@ -1,6 +1,6 @@
 # Frontend contract
 
-Rho has one agent brain and several frontends. They meet at a single typed
+Reflect has one agent brain and several frontends. They meet at a single typed
 channel: `engine.StreamEvent`. This document defines that boundary so the TUI,
 daemon, ACP server, and print mode stay swappable — the discipline Tau calls
 "events are the contract."

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/features/taste"
-	workspacefeature "github.com/GrayCodeAI/rho/internal/features/workspace"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/system/staleness"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/features/taste"
+	workspacefeature "github.com/GrayCodeAI/reflect/internal/features/workspace"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/system/staleness"
 )
 
 func gitOutput(args ...string) (string, error) {
@@ -56,7 +56,7 @@ func (m *chatModel) mcpSummary() string {
 	}
 	if m.registry != nil {
 		var toolNames []string
-		for _, t := range m.registry.FluxTools() {
+		for _, t := range m.registry.RelayTools() {
 			if strings.HasPrefix(t.Name, "mcp__") {
 				toolNames = append(toolNames, t.Name)
 			}
@@ -77,7 +77,7 @@ func sessionStats(sess *engine.Session, id string) string {
 }
 
 func hooksSummary() string {
-	return "Hooks: pre_query, post_query, pre_tool, post_tool, session_start, session_end, permission_ask, error\nConfigure in Rho user settings"
+	return "Hooks: pre_query, post_query, pre_tool, post_tool, session_start, session_end, permission_ask, error\nConfigure in Reflect user settings"
 }
 
 func pluginsSummary(rt *plugin.Runtime) string {

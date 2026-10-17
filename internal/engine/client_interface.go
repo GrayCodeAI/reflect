@@ -3,15 +3,15 @@ package engine
 import (
 	"context"
 
-	"github.com/GrayCodeAI/flux/llm"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
+	"github.com/GrayCodeAI/relay/llm"
 )
 
 // ChatClient abstracts the LLM client methods used by Session.
-// The production implementation is the Flux engine adapter; tests can inject a mock.
+// The production implementation is the Relay engine adapter; tests can inject a mock.
 type ChatClient interface {
-	Chat(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error)
-	StreamChatContinue(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error)
+	Chat(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error)
+	StreamChatContinue(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error)
 }
 
 // resilienceManagingChatClient is an optional capability implemented by
@@ -58,18 +58,18 @@ func NewMockClientForTest() ChatClient {
 
 type exportedMockClient struct{}
 
-func (m *exportedMockClient) Chat(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
-	return &types.FluxResponse{
+func (m *exportedMockClient) Chat(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error) {
+	return &types.RelayResponse{
 		Content:      "mock test response",
 		FinishReason: "end_turn",
-		Usage:        &types.FluxUsage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
+		Usage:        &types.RelayUsage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
 	}, nil
 }
 
-func (m *exportedMockClient) StreamChatContinue(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error) {
-	ch := make(chan types.FluxStreamEvent, 5)
-	ch <- types.FluxStreamEvent{Type: "content", Content: "mock streamed response"}
-	ch <- types.FluxStreamEvent{Type: "done", StopReason: "end_turn", Usage: &types.FluxUsage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15}}
+func (m *exportedMockClient) StreamChatContinue(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error) {
+	ch := make(chan types.RelayStreamEvent, 5)
+	ch <- types.RelayStreamEvent{Type: "content", Content: "mock streamed response"}
+	ch <- types.RelayStreamEvent{Type: "done", StopReason: "end_turn", Usage: &types.RelayUsage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15}}
 	close(ch)
 	return &types.StreamResult{Events: ch}, nil
 }

@@ -1,5 +1,5 @@
 // Package errs provides error context enrichment, grouping, learning,
-// patterns, and recovery for the rho engine.
+// patterns, and recovery for the reflect engine.
 //
 // Named "errs" (not "error") to avoid shadowing the builtin error type.
 package errs

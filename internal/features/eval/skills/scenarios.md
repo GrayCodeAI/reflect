@@ -1,4 +1,4 @@
-# Rho Skills Eval Scenarios
+# Reflect Skills Eval Scenarios
 
 ## Scenario 1 — Go review activation
 
@@ -20,7 +20,7 @@
 
 ## Scenario 3 — Namespaced invocation
 
-**User:** `/rho:changelog`
+**User:** `/reflect:changelog`
 **Expected:** Skill activates immediately, reads git log, produces grouped changelog
 **Score:** Pass=correct format+grouping | Partial=wrong grouping | Fail=no activation
 

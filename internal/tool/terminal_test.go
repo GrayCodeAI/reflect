@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/terminal"
+	"github.com/GrayCodeAI/reflect/internal/terminal"
 )
 
 func TestTerminalTools_FullLifecycle(t *testing.T) {

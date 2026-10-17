@@ -67,7 +67,7 @@ func (TasksToIssuesTool) Execute(ctx context.Context, input json.RawMessage) (st
 	}
 
 	// Check if we're in a git repo
-	if err := exec.Command("gh", "auth", "status").Run(); err != nil {
+	if err := exec.CommandContext(ctx, "gh", "auth", "status").Run(); err != nil {
 		return "", fmt.Errorf("gh CLI not authenticated — run `gh auth login` first")
 	}
 
@@ -120,8 +120,8 @@ func (TasksToIssuesTool) Execute(ctx context.Context, input json.RawMessage) (st
 			args = append(args, "--label", label)
 		}
 
-		cmd := exec.Command("gh", args...)       // #nosec G204 -- gh CLI invocation with internally-derived args
-		cmd.Dir = filepath.Clean(dir + "/../..") // go to project root
+		cmd := exec.CommandContext(ctx, "gh", args...) // #nosec G204 -- gh CLI invocation with internally-derived args
+		cmd.Dir = filepath.Clean(dir + "/../..")       // go to project root
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Fprintf(&b, "  x Failed to create issue for %q: %v\n%s\n", task.Description, err, string(output))

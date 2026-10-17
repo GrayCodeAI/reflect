@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
+	chatfeature "github.com/GrayCodeAI/reflect/internal/features/chat"
 
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textarea"
@@ -16,15 +16,15 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
-	"github.com/GrayCodeAI/rho/internal/bridge/sessioncapture"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	"github.com/GrayCodeAI/rho/internal/features/taste"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/system/staleness"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/bridge/sessioncapture"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
+	"github.com/GrayCodeAI/reflect/internal/features/taste"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/system/staleness"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 // sessionWAL is the durability surface the chat model needs from its
@@ -56,10 +56,10 @@ func (m *chatModel) recordWALError(err error) {
 	if err == nil || m.durabilityWarning != "" {
 		return
 	}
-	m.durabilityWarning = "Warning: session persistence is failing — recent messages may be lost if rho crashes. Check disk space and permissions."
+	m.durabilityWarning = "Warning: session persistence is failing — recent messages may be lost if reflect crashes. Check disk space and permissions."
 }
 
-// All rho color/icon/glyph constants live in theme.go. This file holds
+// All reflect color/icon/glyph constants live in theme.go. This file holds
 // the pre-built lipgloss styles that combine a color with attributes
 // (bold, italic, border, etc.) for the most common patterns.
 
@@ -75,8 +75,8 @@ var (
 
 	slashCmdStyle     = lipgloss.NewStyle().Foreground(textDisabled)
 	slashDescStyle    = lipgloss.NewStyle().Foreground(textDisabled)
-	slashSelCmdStyle  = lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
-	slashSelDescStyle = lipgloss.NewStyle().Foreground(rhoColor)
+	slashSelCmdStyle  = lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
+	slashSelDescStyle = lipgloss.NewStyle().Foreground(reflectColor)
 	inputBorderStyle  = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, false, true, false).BorderForeground(borderDim)
 
 	// Backwards-compatible alias for callers that still use the old name.
@@ -88,13 +88,13 @@ func ghostHintStyle() lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(textDisabled).Italic(true)
 }
 
-// rhoSpinnerFrames feeds the bubbles spinner (matches BrailleSpinner default).
-var rhoSpinnerFrames = rhoSpinnerGlyphs
+// reflectSpinnerFrames feeds the bubbles spinner (matches BrailleSpinner default).
+var reflectSpinnerFrames = reflectSpinnerGlyphs
 
-// rhoSpinnerFrameInterval — compass frame cadence.
-const rhoSpinnerFrameInterval = 80 * time.Millisecond
+// reflectSpinnerFrameInterval — compass frame cadence.
+const reflectSpinnerFrameInterval = 80 * time.Millisecond
 
-// Spinner verbs (from rho-archive) — picked randomly per session
+// Spinner verbs (from reflect-archive) — picked randomly per session
 var spinnerVerbs = []string{
 	"Abstracting", "Architecting", "Brewing", "Calculating", "Cogitating",
 	"Compiling", "Computing", "Conjuring", "Contemplating", "Cooking",
@@ -154,7 +154,7 @@ type (
 		statusLeftBranch string
 		connStatusVal    string
 		connStatusKey    string
-		welcomeSetup     rhoconfig.SetupState
+		welcomeSetup     reflectconfig.SetupState
 		welcomeAgentsOK  bool
 	}
 	processArrowTickMsg struct {
@@ -219,7 +219,7 @@ type chatModel struct {
 	viewport                   viewport.Model
 	session                    *engine.Session
 	registry                   *tool.Registry
-	settings                   rhoconfig.Settings
+	settings                   reflectconfig.Settings
 	ref                        *progRef
 	cancel                     context.CancelFunc // cancel current stream
 	sessionID                  string
@@ -257,7 +257,7 @@ type chatModel struct {
 	width                      int
 	height                     int
 	quitting                   bool
-	mascotEnabled              bool // inline RHO mascot is available in the active terminal
+	mascotEnabled              bool // inline REFLECT mascot is available in the active terminal
 	blinkClosed                bool
 	eyeFrame                   int
 	slashSel                   int
@@ -270,7 +270,7 @@ type chatModel struct {
 	configNotice               string
 	configEntry                string              // configEntryNone, configEntryAPIKeyPaste, configEntryOllamaURL
 	configProvider             string              // e.g. configProviderOllama while entry overlay is open
-	configModelOptions         []configModelOption // labels + ids from flux catalog
+	configModelOptions         []configModelOption // labels + ids from relay catalog
 	configModelProvider        string              // filter models after API key paste
 	configModelSearch          string              // active model filter query
 	configModelSearchActive    bool                // typing into model search input
@@ -323,7 +323,7 @@ type chatModel struct {
 	sessionBootstrapDone         bool
 	toolStartTime                time.Time
 	welcomeCache                 string
-	welcomeSetupState            rhoconfig.SetupState
+	welcomeSetupState            reflectconfig.SetupState
 	welcomeAgentsOK              bool
 	viewDirty                    bool
 	layoutKey                    int    // input lines + slash menu height fingerprint

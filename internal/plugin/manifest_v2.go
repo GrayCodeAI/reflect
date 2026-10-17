@@ -11,13 +11,13 @@ import (
 // It is backward compatible with the original ToolManifest (V1) format.
 type ManifestV2 struct {
 	// V1 fields (backward compatible)
-	Name          string         `json:"name"`
-	Version       string         `json:"version"`
-	Description   string         `json:"description"`
-	Author        string         `json:"author"`
-	Tools         []ManifestTool `json:"tools"`
-	Permissions   []string       `json:"permissions"`
-	MinRhoVersion string         `json:"min_rho_version"`
+	Name              string         `json:"name"`
+	Version           string         `json:"version"`
+	Description       string         `json:"description"`
+	Author            string         `json:"author"`
+	Tools             []ManifestTool `json:"tools"`
+	Permissions       []string       `json:"permissions"`
+	MinReflectVersion string         `json:"min_reflect_version"`
 
 	// V2 extensions
 	Mode         string                 `json:"mode,omitempty"`         // "subprocess" (default) or "daemon"
@@ -135,13 +135,13 @@ func (m *ManifestV2) IsV2() bool {
 // V2-only fields are lost in this conversion.
 func (m *ManifestV2) ToV1() *ToolManifest {
 	return &ToolManifest{
-		Name:          m.Name,
-		Version:       m.Version,
-		Description:   m.Description,
-		Author:        m.Author,
-		Tools:         m.Tools,
-		Permissions:   m.Permissions,
-		MinRhoVersion: m.MinRhoVersion,
+		Name:              m.Name,
+		Version:           m.Version,
+		Description:       m.Description,
+		Author:            m.Author,
+		Tools:             m.Tools,
+		Permissions:       m.Permissions,
+		MinReflectVersion: m.MinReflectVersion,
 	}
 }
 

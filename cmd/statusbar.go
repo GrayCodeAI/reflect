@@ -3,22 +3,23 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/cost"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
-	"github.com/GrayCodeAI/rho/internal/engine/git"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/engine/git"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 var (
@@ -97,14 +98,21 @@ func renderPermissionStatus(m *chatModel) string {
 		return ""
 	}
 	level := effectivePermissionTier(m.session)
-	parts := []string{autonomyTierStyle(level).Render("Permission · " + autonomyTierName(level))}
+	mode := "Act"
+	switch m.session.WorkMode() {
+	case engine.WorkModePlan:
+		mode = "Plan"
+	case engine.WorkModeReview:
+		mode = "Review"
+	}
+	parts := []string{statusDimStyle.Render(mode), autonomyTierStyle(level).Render(autonomyTierName(level))}
 
 	trust := engine.ProjectTrust("")
 	trustLabel := "Untrusted"
 	trustStyle := statusDimStyle
 	if trust.Trusted {
 		trustLabel = "Trusted"
-		trustStyle = lipgloss.NewStyle().Foreground(tierTrust).Inline(true)
+		trustStyle = lipgloss.NewStyle().Foreground(doneGreen).Inline(true)
 	} else if trust.Blocked {
 		trustLabel = "Blocked"
 		trustStyle = lipgloss.NewStyle().Foreground(tierTrust).Inline(true)
@@ -168,7 +176,7 @@ func renderStatusBarPrimaryLeft(m *chatModel) string {
 	if !ok {
 		return ""
 	}
-	parts := []string{statusCwdStyle.Render(cwd)}
+	parts := []string{statusCwdStyle.Render(filepath.Base(cwd))}
 	if branch := cachedStatusBranch(m); branch != "" {
 		parts = append(parts, statusBranchStyle.Render(icons.Branch()+" "+branch))
 		if m != nil && len(m.statusLeftPRs) > 0 {
@@ -195,14 +203,14 @@ func renderStatusBarUsage(m *chatModel) []string {
 	}
 	tokens := m.session.CostValue().PromptTokens + m.session.CostValue().CompletionTokens
 	parts := []string{
-		statusTokenStyle.Render(icons.Database() + " " + formatTokenCountCompact(tokens) + " tokens"),
+		statusTokenStyle.Render(formatTokenCountCompact(tokens) + " tokens"),
 		statusCostStyle.Render(formatStatusCost(m.session.CostValue())),
 	}
 	sessionDur := time.Duration(0)
 	if !m.sessionStartedAt.IsZero() {
 		sessionDur = time.Since(m.sessionStartedAt)
 	}
-	parts = append(parts, statusClockStyle.Render(icons.ClockOutline()+" "+formatSessionDuration(sessionDur)))
+	parts = append(parts, statusDimStyle.Render(formatSessionDuration(sessionDur)))
 	if m.waiting || m.manualCompacting {
 		parts = append(parts, statusClockStyle.Render(formatSessionDuration(requestDuration(m))))
 	}
@@ -211,9 +219,9 @@ func renderStatusBarUsage(m *chatModel) []string {
 
 func formatStatusCost(c *cost.Cost) string {
 	if c == nil {
-		return icons.Ruby() + " $0.00"
+		return "$0.000"
 	}
-	return fmt.Sprintf("%s $%.3f", icons.Ruby(), c.TotalUSD())
+	return fmt.Sprintf("$%.3f", c.TotalUSD())
 }
 
 // renderStatusBarSecondaryRight — errors, dry-run, vim, focus/pause, spend.

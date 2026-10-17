@@ -6,8 +6,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine/project"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine/project"
 )
 
 // contextSubcommand implements the /context slash command. It
@@ -37,7 +37,7 @@ func (c *contextSubcommand) Handle(m *chatModel, args []string, text string) (te
 		}
 		return m, nil
 	}
-	m.messages = append(m.messages, displayMsg{role: "system", content: rhoconfig.BuildContextWithDirs(addDirs)})
+	m.messages = append(m.messages, displayMsg{role: "system", content: reflectconfig.BuildContextWithDirs(addDirs)})
 	return m, nil
 }
 

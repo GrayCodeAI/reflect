@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 )
 
 func TestYOLOConfirm_PendingConsumesNextInput(t *testing.T) {

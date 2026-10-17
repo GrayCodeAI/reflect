@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/reflect/internal/contracts/agent"
 
-	"github.com/GrayCodeAI/rho/internal/taskruntime"
+	"github.com/GrayCodeAI/reflect/internal/taskruntime"
 )
 
 // BackgroundAgentManager tracks background sub-agent goroutines so the

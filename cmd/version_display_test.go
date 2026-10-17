@@ -3,89 +3,43 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
 
-func TestDisplayVersion_FromVERSIONFile(t *testing.T) {
+func TestDisplayVersion_EmbeddedVersionIgnoresWorkingDirectory(t *testing.T) {
+	preserveCLICompilerVersionState(t)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "VERSION"), []byte("0.0.1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "VERSION"), []byte("9.9.9\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(dir)
-	SetVersion("dev")
-	if got := DisplayVersion(); got != "0.0.1" {
-		t.Fatalf("DisplayVersion() = %q, want 0.0.1", got)
-	}
-}
-
-func stubBuildInfo(t *testing.T, mainVersion string) {
-	t.Helper()
-	prev := readBuildInfo
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Path: "github.com/GrayCodeAI/rho", Version: mainVersion}}, true
-	}
-	t.Cleanup(func() { readBuildInfo = prev })
-}
-
-func TestDisplayVersion_GoInstallTaggedModule(t *testing.T) {
-	t.Chdir(t.TempDir()) // no VERSION file nearby
-	SetVersion("dev")
-	stubBuildInfo(t, "v0.3.0")
-	if got := DisplayVersion(); got != "0.3.0" {
-		t.Fatalf("DisplayVersion() = %q, want 0.3.0 for go install ...@v0.3.0", got)
-	}
-}
-
-func TestDisplayVersion_DevelopmentModuleVersionsFallBack(t *testing.T) {
-	for _, mv := range []string{
-		"(devel)",
-		"v0.0.0-20260921005105-13e05ceb15e5",   // go install ...@main
-		"v0.3.1-0.20260930120000-abcdefabcdef", // untagged commit after v0.3.0
-		"v0.3.0+dirty",                         // modified checkout at the tag
-		"",
-	} {
-		t.Run(mv, func(t *testing.T) {
-			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, "VERSION"), []byte("0.3.0\n"), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			t.Chdir(dir)
-			SetVersion("dev")
-			stubBuildInfo(t, mv)
-			if got := DisplayVersion(); got != "0.3.0" {
-				t.Fatalf("DisplayVersion() = %q, want the VERSION file value for module version %q", got, mv)
-			}
-		})
-	}
-}
-
-func TestDisplayVersion_LdflagsWinOverModuleVersion(t *testing.T) {
-	SetVersion("1.4.2")
-	t.Cleanup(func() { SetVersion("dev") })
-	stubBuildInfo(t, "v0.3.0")
-	if got := DisplayVersion(); got != "1.4.2" {
-		t.Fatalf("DisplayVersion() = %q, want the ldflags version 1.4.2", got)
+	for _, value := range []string{"", "dev"} {
+		SetVersion(value)
+		if got := DisplayVersion(); got != reflect.Version {
+			t.Fatalf("got %q, want embedded %q", got, reflect.Version)
+		}
 	}
 }
 
 func TestDisplayVersion_ReleaseBuild(t *testing.T) {
+	preserveCLICompilerVersionState(t)
 	SetVersion("1.4.2")
 	if got := DisplayVersion(); got != "1.4.2" {
-		t.Fatalf("DisplayVersion() = %q, want 1.4.2", got)
+		t.Fatalf("got %q, want 1.4.2", got)
 	}
 }
 
 func TestChatConnectionStatus_NoCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{session: nil}
@@ -96,12 +50,12 @@ func TestChatConnectionStatus_NoCredentials(t *testing.T) {
 }
 
 func TestChatBottomRightStatus_NoCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	m := chatModel{inputIndicator: &InputIndicator{}}

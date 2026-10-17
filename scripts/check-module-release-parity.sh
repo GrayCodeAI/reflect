@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Workspace release parity: verify every ecosystem module Rho requires
+# Workspace release parity: verify every ecosystem module Reflect requires
 # resolves to a published, reachable commit. This is a multi-repository
 # check; the repositories are sibling checkouts, not Git submodules.
-# Run from the Rho repository root.
+# Run from the Reflect repository root.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ECO_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
@@ -17,12 +17,12 @@ else
 fi
 repos=()
 while IFS= read -r repo; do
-  [[ "${repo}" != "rho" && -n "${repo}" ]] && repos+=("${repo}")
+  [[ "${repo}" != "reflect" && -n "${repo}" ]] && repos+=("${repo}")
 done < <("${ROOT_DIR}/scripts/ecosystem-manifest.sh" list workspace)
 failed=0
 
-# Directory and module path differ when a repo is renamed (e.g. flux
-# hosts module github.com/GrayCodeAI/flux), so resolve via the manifest.
+# Directory and module path differ when a repo is renamed (e.g. relay
+# hosts module github.com/GrayCodeAI/relay), so resolve via the manifest.
 module_for_repo() {
   awk -v dir="$1" '
     /^  - directory:/ { cur=$0; sub(/^  - directory:[[:space:]]*/, "", cur); next }

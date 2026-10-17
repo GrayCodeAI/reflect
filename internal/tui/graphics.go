@@ -1,4 +1,4 @@
-// Package tui provides terminal UI helpers for rho. graphics.go adds
+// Package tui provides terminal UI helpers for reflect. graphics.go adds
 // Kitty graphics protocol image display with capability detection and a safe
 // text fallback. It is isolated from the Bubble Tea render loop so the escape
 // sequences it emits never pass through content sanitization.
@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/tui/kitty"
+	"github.com/GrayCodeAI/reflect/internal/tui/kitty"
 )
 
 // Capability describes whether the current terminal supports Kitty graphics.
@@ -83,7 +83,7 @@ func EmitPNG(w io.Writer, png []byte, width, height int) (bool, error) {
 	return true, nil
 }
 
-// ClearGraphics removes graphics placed by rho from the terminal. Kitty
+// ClearGraphics removes graphics placed by reflect from the terminal. Kitty
 // graphics can outlive Bubble Tea's alternate screen, so shutdown must clear
 // them before printing the plain-text farewell.
 func ClearGraphics(w io.Writer) error {

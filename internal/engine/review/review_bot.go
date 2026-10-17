@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/diff"
+	"github.com/GrayCodeAI/reflect/internal/engine/diff"
 )
 
 // ReviewBot is a rule-based code review engine that produces structured

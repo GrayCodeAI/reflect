@@ -5,13 +5,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ECO_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
 
 # The canonical inventory lives in GrayCodeAI/graycode-eco, not in a product.
-# A tenant must not own the registry of its siblings: rho was renamed from hawk
+# A tenant must not own the registry of its siblings: reflect was renamed from hawk
 # without signalling the other nine repositories, and the in-product copy of
 # this list silently omitted beam. See graycode-eco/adr/0001.
 #
 # Prefer the roof. Fall back to the deprecated in-product copy only when the
 # roof is not checked out alongside, which happens for a standalone `go build`
-# of rho outside the ecosystem workspace. Callers do not need to know which one
+# of reflect outside the ecosystem workspace. Callers do not need to know which one
 # was used.
 ROOF_MANIFEST="${ECO_DIR}/graycode-eco/ecosystem.yaml"
 LEGACY_MANIFEST="${ROOT_DIR}/ecosystem.yaml"

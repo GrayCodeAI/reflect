@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/executiongraph"
+	"github.com/GrayCodeAI/reflect/internal/session"
 )
 
 func TestGetSessionGraphProjectsBoundedRequest(t *testing.T) {
@@ -27,17 +27,17 @@ func TestGetSessionGraphProjectsBoundedRequest(t *testing.T) {
 
 	request := httptest.NewRequest(
 		http.MethodGet,
-		"/v1/sessions/session-1/graph?repository=rho&swift_checkpoint=012345abcdef&swift_checkpoint=fedcba987654",
+		"/v1/sessions/session-1/graph?repository=reflect&swift_checkpoint=012345abcdef&swift_checkpoint=fedcba987654",
 		nil,
 	)
 	request.Header.Set("Authorization", "Bearer secret")
 	response := httptest.NewRecorder()
-	srv.mux.ServeHTTP(response, request)
+	srv.relay.ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", response.Code, response.Body.String())
 	}
-	if captured.SessionID != "session-1" || captured.RepositoryID != "rho" {
+	if captured.SessionID != "session-1" || captured.RepositoryID != "reflect" {
 		t.Fatalf("captured request = %#v", captured)
 	}
 	wantCheckpoints := []string{"012345abcdef", "fedcba987654"}
@@ -66,7 +66,7 @@ func TestGetSessionGraphRequiresAuthentication(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/sessions/session-1/graph", nil)
-	srv.mux.ServeHTTP(response, request)
+	srv.relay.ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", response.Code)
@@ -92,7 +92,7 @@ func TestGetSessionGraphRejectsInvalidInputBeforeFactory(t *testing.T) {
 		},
 		{
 			name: "repository control character",
-			url:  "/v1/sessions/session-1/graph?repository=rho%0Aother",
+			url:  "/v1/sessions/session-1/graph?repository=reflect%0Aother",
 			code: "invalid_repository",
 		},
 		{
@@ -105,7 +105,7 @@ func TestGetSessionGraphRejectsInvalidInputBeforeFactory(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			response := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodGet, test.url, nil)
-			srv.mux.ServeHTTP(response, request)
+			srv.relay.ServeHTTP(response, request)
 			if response.Code != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400", response.Code)
 			}
@@ -125,7 +125,7 @@ func TestGetSessionGraphUnavailableAndNotFound(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/sessions/session-1/graph", nil)
-	srv.mux.ServeHTTP(response, request)
+	srv.relay.ServeHTTP(response, request)
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("unconfigured status = %d, want 503", response.Code)
 	}
@@ -135,7 +135,7 @@ func TestGetSessionGraphUnavailableAndNotFound(t *testing.T) {
 	})
 	response = httptest.NewRecorder()
 	request = httptest.NewRequest(http.MethodGet, "/v1/sessions/session-1/graph", nil)
-	srv.mux.ServeHTTP(response, request)
+	srv.relay.ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("not found status = %d, want 404", response.Code)
 	}

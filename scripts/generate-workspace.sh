@@ -4,11 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ECO_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
 # The product repo may still be checked out under its pre-rename directory
-# name (e.g. `hawk`) while ecosystem.yaml already lists `rho`. Derive the
+# name (e.g. `hawk`) while ecosystem.yaml already lists `reflect`. Derive the
 # self directory from the checkout itself so the workspace generates during
 # and after the rename instead of hardcoding one name.
 SELF_DIR="$(basename "${ROOT_DIR}")"
-# macOS checkouts are case-insensitive, so `Rho` and the manifest's `rho`
+# macOS checkouts are case-insensitive, so `Reflect` and the manifest's `reflect`
 # name the same directory. Compare case-insensitively to avoid adding the
 # self module twice.
 SELF_DIR_LC="$(printf '%s' "${SELF_DIR}" | tr '[:upper:]' '[:lower:]')"

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
 )
 
 // seedPlatformContextCacheForTest primes the platform context cache so tests
@@ -133,10 +133,10 @@ func TestConnectionStatusParts_MimoShowsPlatformContext_HyphenProvider(t *testin
 }
 
 func TestGatewayDisplayName_XiaomiTokenPlanHyphen(t *testing.T) {
-	if got := rhoconfig.GatewayDisplayName("xiaomi-mimo-token-plan"); got != "Xiaomi MiMo — Token Plan" {
+	if got := reflectconfig.GatewayDisplayName("xiaomi-mimo-token-plan"); got != "Xiaomi MiMo — Token Plan" {
 		t.Fatalf("GatewayDisplayName(hyphen) = %q, want nice name", got)
 	}
-	if got := rhoconfig.GatewayDisplayName("xiaomi_mimo_token_plan"); got != "Xiaomi MiMo — Token Plan" {
+	if got := reflectconfig.GatewayDisplayName("xiaomi_mimo_token_plan"); got != "Xiaomi MiMo — Token Plan" {
 		t.Fatalf("GatewayDisplayName(underscore) = %q, want nice name", got)
 	}
 }

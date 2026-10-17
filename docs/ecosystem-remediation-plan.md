@@ -4,21 +4,21 @@ This document captures the improvement recommendations from the 2026-07-11
 full-ecosystem audit that require significant refactoring and are documented
 here for scheduled execution rather than immediate implementation.
 
-## 1. charmbracelet v1/v2 Dependency Duplication (rho + swift)
+## 1. charmbracelet v1/v2 Dependency Duplication (reflect + swift)
 
 **Status:** ✅ Done (2026-07-11)
-**Impact:** High — contributed ~20-30MB to rho binary size
+**Impact:** High — contributed ~20-30MB to reflect binary size
 
 ### Outcome
 
-- Rho and Swift imports migrated to `charm.land/*/v2` (`bubbles`, `bubbletea`,
+- Reflect and Swift imports migrated to `charm.land/*/v2` (`bubbles`, `bubbletea`,
   `lipgloss`, `huh`, `glamour`).
 - Direct `github.com/charmbracelet/{bubbles,bubbletea,lipgloss}` requires removed
-  from rho/swift `go.mod`.
+  from reflect/swift `go.mod`.
 - Binary size gate tightened: **110MB → 80MB** (`make size-check`).
-- Verified build: rho binary **~75 MB** (under gate) after migration.
+- Verified build: reflect binary **~75 MB** (under gate) after migration.
 
-Commits (rho): `2890c74` (migrate), `ccfa286` (API fixups), `7a42c1e` (size gate).
+Commits (reflect): `2890c74` (migrate), `ccfa286` (API fixups), `7a42c1e` (size gate).
 
 ### Residual notes
 
@@ -38,13 +38,13 @@ Commits (rho): `2890c74` (migrate), `ccfa286` (API fixups), `7a42c1e` (size gate
   (`replace github.com/GrayCodeAI/harrier => ../..`).
 - Core `github.com/GrayCodeAI/harrier` no longer requires
   `charmbracelet/{bubbles,bubbletea,lipgloss}`.
-- Rho embeds only the library packages (`engine`, `storage`, `graph`, …), so
-  the default rho binary does not pull the demo TUI module.
+- Reflect embeds only the library packages (`engine`, `storage`, `graph`, …), so
+  the default reflect binary does not pull the demo TUI module.
 - Verify: `cd harrier && go test ./...`; `cd harrier/cmd/harrier-tui && go test ./...`.
 
 ### Residual notes
 
-- The local `harrier` (Harrier) checkout and Rho's `go.mod` must resolve to a
+- The local `harrier` (Harrier) checkout and Reflect's `go.mod` must resolve to a
   published matching commit. **Publish Harrier before** relying on
   `GOWORK=off` / module-release parity (the Go proxy must see the commit for
   sumdb download).
@@ -98,13 +98,13 @@ large diffs and bloats the repo.
    `.gitignore`.
 2. **Generate at build/publish time:** Run `python tools/update_registry.py`
    in CI before publishing artifacts.
-3. **Runtime fetch:** Have `rho` fetch the registry from a CDN or GitHub
+3. **Runtime fetch:** Have `reflect` fetch the registry from a CDN or GitHub
    raw URL rather than embedding it.
 
 ### Risk
 
-If `registry.json` is read offline by rho, removing it requires adding a
-fetch-or-cache mechanism. Verify how rho consumes the registry before
+If `registry.json` is read offline by reflect, removing it requires adding a
+fetch-or-cache mechanism. Verify how reflect consumes the registry before
 removing from git.
 
 ---

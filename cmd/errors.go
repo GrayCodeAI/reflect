@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // friendlyError translates a raw error into a user-friendly message with an
@@ -25,7 +25,7 @@ func friendlyError(err error) string {
 
 // ─── panicRecovery ────────────────────────────────────────────────────────────
 // Catches panics, saves the current session state, logs the stack trace to
-// Rho's user state crash log, and exits with a user-friendly message.
+// Reflect's user state crash log, and exits with a user-friendly message.
 
 // panicSaveFn is set by runChat to a closure that persists the active session.
 // panicRecovery invokes it on an unexpected panic so a crash saves as much work
@@ -49,7 +49,7 @@ func panicRecovery(saveFn func()) {
 		stack := string(debug.Stack())
 
 		// Generate a short, unique error ID for support reference.
-		// Format: rho-YYMMDD-<6 hex chars from stack hash>
+		// Format: reflect-YYMMDD-<6 hex chars from stack hash>
 		errorID := generateErrorID(stack)
 
 		// Attempt to save session
@@ -82,14 +82,14 @@ func panicRecovery(saveFn func()) {
 		}
 
 		// Print user-friendly message
-		_, _ = fmt.Fprintf(os.Stderr, "\nrho encountered an unexpected error and needs to exit.\n")
+		_, _ = fmt.Fprintf(os.Stderr, "\nreflect encountered an unexpected error and needs to exit.\n")
 		if saveFn != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "Your session has been saved.\n")
 		} else {
 			_, _ = fmt.Fprintf(os.Stderr, "Session messages are persisted incrementally; the in-flight message may be lost.\n")
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "Details logged to %s\n", filepath.Join(storage.StateDir(), "crash.log"))
-		_, _ = fmt.Fprintf(os.Stderr, "Please report this at: https://github.com/GrayCodeAI/rho/issues\n")
+		_, _ = fmt.Fprintf(os.Stderr, "Please report this at: https://github.com/GrayCodeAI/reflect/issues\n")
 		_, _ = fmt.Fprintf(os.Stderr, "Include this error ID: %s\n\n", errorID)
 		_, _ = fmt.Fprintf(os.Stderr, "panic: %v\n", r)
 		os.Exit(1) // os.Exit intentional: panic recovery, defer already unwound
@@ -97,7 +97,7 @@ func panicRecovery(saveFn func()) {
 }
 
 // generateErrorID creates a short, unique error ID from the stack trace.
-// Format: rho-YYMMDD-<6 hex chars> — enough to correlate with crash.log
+// Format: reflect-YYMMDD-<6 hex chars> — enough to correlate with crash.log
 // entries without requiring a random source.
 func generateErrorID(stack string) string {
 	// Simple hash of the stack trace for uniqueness.
@@ -105,18 +105,18 @@ func generateErrorID(stack string) string {
 	for i := 0; i < len(stack) && i < 2000; i++ {
 		hash = ((hash << 5) + hash) ^ uint32(stack[i])
 	}
-	return fmt.Sprintf("rho-%s-%06x", time.Now().Format("060102"), hash&0xFFFFFF)
+	return fmt.Sprintf("reflect-%s-%06x", time.Now().Format("060102"), hash&0xFFFFFF)
 }
 
 // ─── errorLogger ──────────────────────────────────────────────────────────────
-// Writes errors to Rho's user state error log with timestamps. Thread-safe.
+// Writes errors to Reflect's user state error log with timestamps. Thread-safe.
 
 type errorLoggerT struct {
 	mu   sync.Mutex
 	path string
 }
 
-// LogError writes a timestamped error entry to the Rho error log.
+// LogError writes a timestamped error entry to the Reflect error log.
 func (l *errorLoggerT) LogError(context string, err error) {
 	if l == nil || err == nil {
 		return
@@ -140,7 +140,7 @@ func (l *errorLoggerT) LogError(context string, err error) {
 	_, _ = f.WriteString(entry)
 }
 
-// LogErrorf writes a formatted, timestamped error entry to the Rho error log.
+// LogErrorf writes a formatted, timestamped error entry to the Reflect error log.
 func (l *errorLoggerT) LogErrorf(format string, args ...interface{}) {
 	if l == nil {
 		return
@@ -179,24 +179,24 @@ func (w StartupWarning) String() string {
 	return fmt.Sprintf("[%s] %s", w.Check, w.Message)
 }
 
-func validateStartup(settings rhoconfig.Settings) []StartupWarning {
+func validateStartup(settings reflectconfig.Settings) []StartupWarning {
 	var warnings []StartupWarning
 
 	// 1. Check API key for configured provider.
-	// Rho reads credentials from the OS secret store (macOS Keychain /
+	// Reflect reads credentials from the OS secret store (macOS Keychain /
 	// Linux Keyring), not just env vars — so we must check there too.
 	providerName := strings.TrimSpace(settings.Provider)
 	if providerName == "" {
-		providerName = strings.TrimSpace(rhoconfig.ActiveProvider(context.Background()))
+		providerName = strings.TrimSpace(reflectconfig.ActiveProvider(context.Background()))
 	}
 	if providerName != "" && providerName != "ollama" {
 		hasEnv := false
-		if envKey := rhoconfig.ProviderAPIKeyEnv(providerName); envKey != "" {
+		if envKey := reflectconfig.ProviderAPIKeyEnv(providerName); envKey != "" {
 			hasEnv = os.Getenv(envKey) != ""
 		}
-		hasStored := rhoconfig.HasStoredCredentialForProvider(context.Background(), providerName)
+		hasStored := reflectconfig.HasStoredCredentialForProvider(context.Background(), providerName)
 		if !hasEnv && !hasStored {
-			envKey := rhoconfig.ProviderAPIKeyEnv(providerName)
+			envKey := reflectconfig.ProviderAPIKeyEnv(providerName)
 			warnings = append(warnings, StartupWarning{
 				Check:   "api_key",
 				Message: fmt.Sprintf("No API key found for %s. Set %s in your environment or run /config.", providerName, envKey),
@@ -232,10 +232,10 @@ func validateStartup(settings rhoconfig.Settings) []StartupWarning {
 // post-first-paint (background), not on the TUI startup critical path where an
 // offline machine would stall the UI for seconds. Returns a warning message, or
 // "" when reachable/not applicable.
-func checkNetworkReachability(settings rhoconfig.Settings) string {
+func checkNetworkReachability(settings reflectconfig.Settings) string {
 	providerName := strings.TrimSpace(settings.Provider)
 	if providerName == "" {
-		providerName = strings.TrimSpace(rhoconfig.ActiveProvider(context.Background()))
+		providerName = strings.TrimSpace(reflectconfig.ActiveProvider(context.Background()))
 	}
 	if providerName == "" || providerName == "ollama" {
 		return ""
@@ -244,7 +244,7 @@ func checkNetworkReachability(settings rhoconfig.Settings) string {
 	if host == "" {
 		return ""
 	}
-	if _, err := net.LookupHost(host); err != nil {
+	if _, err := net.DefaultResolver.LookupHost(context.Background(), host); err != nil {
 		return fmt.Sprintf("Cannot resolve %s. Check your internet connection.", host)
 	}
 	return ""
@@ -252,5 +252,5 @@ func checkNetworkReachability(settings rhoconfig.Settings) string {
 
 // providerDNSHost returns a hostname to check DNS resolution for a provider.
 func providerDNSHost(provider string) string {
-	return rhoconfig.GatewayDNSHost(provider)
+	return reflectconfig.GatewayDNSHost(provider)
 }

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // DependencyUpdater detects outdated packages and helps update them safely.

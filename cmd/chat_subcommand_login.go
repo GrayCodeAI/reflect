@@ -7,7 +7,7 @@ import (
 )
 
 // loginSubcommand implements the /login slash command. Tau uses /login as its
-// provider-auth entry point; Rho routes it to the existing config panel, which
+// provider-auth entry point; Reflect routes it to the existing config panel, which
 // owns credential storage (OS keychain) and provider/model selection.
 //
 // `/login <provider>` preselects a provider before opening the panel so the

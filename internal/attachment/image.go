@@ -18,7 +18,7 @@ func init() {
 	image.RegisterFormat("webp", "RIFF????WEBP", webp.Decode, webp.DecodeConfig)
 }
 
-// formatFor maps a media type to the decoder format name returned by
+// formatFor maps a media type to the reflect format name returned by
 // image.DecodeConfig, or "" for unsupported types.
 func formatFor(mt ImageMediaType) string {
 	switch mt {
@@ -36,7 +36,7 @@ func formatFor(mt ImageMediaType) string {
 }
 
 // decodeInfo fully decodes one image and returns its intrinsic dimensions and
-// decoder format name.
+// reflect format name.
 func decodeInfo(data []byte) (width, height int, format string, err error) {
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {

@@ -6,18 +6,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 )
 
 type SessionMemoryStrategy struct{}
 
 func (s *SessionMemoryStrategy) Name() string { return "session_memory" }
 
-func (s *SessionMemoryStrategy) ShouldTrigger(msgs []types.FluxMessage, tokenCount, threshold int) bool {
+func (s *SessionMemoryStrategy) ShouldTrigger(msgs []types.RelayMessage, tokenCount, threshold int) bool {
 	if tokenCount < threshold {
 		return false
 	}
@@ -52,12 +52,12 @@ func (s *SessionMemoryStrategy) Compact(ctx context.Context, sess *Session) (*co
 	kept := messages[keepIdx:]
 	kept = compact.FilterCompactBoundaries(kept)
 
-	result := make([]types.FluxMessage, 0, len(kept)+2)
-	result = append(result, types.FluxMessage{
+	result := make([]types.RelayMessage, 0, len(kept)+2)
+	result = append(result, types.RelayMessage{
 		Role:    "user",
 		Content: "[Session memory summary]\n" + memContent + "\n\n[Continue from the recent messages below.]",
 	})
-	result = append(result, types.FluxMessage{
+	result = append(result, types.RelayMessage{
 		Role:    "assistant",
 		Content: "Understood. I have the context from the session memory above. Continuing with the recent conversation.",
 	})

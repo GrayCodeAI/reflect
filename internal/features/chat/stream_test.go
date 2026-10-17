@@ -3,7 +3,7 @@ package chat
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine"
 )
 
 func TestPumpStreamEventsCoalescesContentAndPreservesTerminalEvent(t *testing.T) {

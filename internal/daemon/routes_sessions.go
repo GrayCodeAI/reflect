@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // handleGetSession handles GET /v1/sessions/{id} — get session detail.

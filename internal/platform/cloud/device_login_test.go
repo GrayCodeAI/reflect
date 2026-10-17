@@ -47,16 +47,16 @@ func TestStartDeviceLoginSendsGraycodeVersion(t *testing.T) {
 		Platform        string `json:"platform"`
 		GraycodeVersion string `json:"graycodeVersion"`
 	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&body); err != nil {
+	reflect := json.NewDecoder(bytes.NewReader(raw))
+	reflect.DisallowUnknownFields()
+	if err := reflect.Decode(&body); err != nil {
 		t.Fatalf("device start body %s violates the strict schema: %v", raw, err)
 	}
 	if body.Label != "build-host" || body.Platform != "linux" || body.GraycodeVersion != "0.3.0" {
 		t.Fatalf("body = %+v", body)
 	}
-	if bytes.Contains(raw, []byte("rhoVersion")) {
-		t.Fatalf("body still sends rhoVersion: %s", raw)
+	if bytes.Contains(raw, []byte("reflectVersion")) {
+		t.Fatalf("body still sends reflectVersion: %s", raw)
 	}
 	if start.UserCode != "ABCD-EFGH" || start.Interval != 5 {
 		t.Fatalf("start = %+v", start)
@@ -90,7 +90,7 @@ func TestStartDeviceLoginBoundsFields(t *testing.T) {
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["label"] != "rho" || body["graycodeVersion"] != "dev" {
+	if body["label"] != "reflect" || body["graycodeVersion"] != "dev" {
 		t.Fatalf("blank fields = %+v, want fallbacks", body)
 	}
 }

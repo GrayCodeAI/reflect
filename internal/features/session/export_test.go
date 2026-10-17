@@ -61,7 +61,7 @@ func TestRenderTextPreservesRoleLabels(t *testing.T) {
 		t.Fatalf("Render text: %v", err)
 	}
 	text := string(data)
-	for _, want := range []string{"Rho Session: session-1", "[User]", "hello", "[Tool Result]", "done"} {
+	for _, want := range []string{"Reflect Session: session-1", "[User]", "hello", "[Tool Result]", "done"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("text export missing %q: %q", want, text)
 		}

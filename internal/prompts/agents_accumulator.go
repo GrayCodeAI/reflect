@@ -1,5 +1,5 @@
-// Package prompts manages workspace context for rho sessions.
-// This file implements auto-accumulation of learnings into Rho user state.
+// Package prompts manages workspace context for reflect sessions.
+// This file implements auto-accumulation of learnings into Reflect user state.
 package prompts
 
 import (
@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // AgentsAccumulator captures learnings from successful edits and appends
@@ -51,7 +51,7 @@ func (a *AgentsAccumulator) Record(context string, pattern string, files []strin
 	})
 }
 
-// Flush writes all buffered learnings to Rho user state.
+// Flush writes all buffered learnings to Reflect user state.
 func (a *AgentsAccumulator) Flush() error {
 	a.mu.Lock()
 	learnings := make([]Learning, len(a.buffer))

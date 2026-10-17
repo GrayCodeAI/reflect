@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/intelligence/memory"
-	"github.com/GrayCodeAI/rho/internal/token"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/memory"
+	"github.com/GrayCodeAI/reflect/internal/token"
 )
 
 // ToolExecutor is a function that executes a named tool with JSON input.
@@ -23,25 +23,25 @@ func readOnlyAnnotations(title string) *ToolAnnotations {
 	return &ToolAnnotations{Title: title, ReadOnlyHint: boolPtr(true), DestructiveHint: boolPtr(false)}
 }
 
-// RegisterDefaultTools registers rho's standard capabilities as MCP tools.
-// If executor is non-nil, tools that delegate to rho's tool registry will
+// RegisterDefaultTools registers reflect's standard capabilities as MCP tools.
+// If executor is non-nil, tools that delegate to reflect's tool registry will
 // use it for execution; otherwise those tools return a not-configured error.
 func RegisterDefaultTools(server *MCPServer, executor ToolExecutor) {
-	server.RegisterTool(rhoChatTool(executor))
-	server.RegisterTool(rhoSearchTool(executor))
-	server.RegisterTool(rhoMemoryRecallTool(executor))
-	server.RegisterTool(rhoMemoryStoreTool(executor))
-	server.RegisterTool(rhoCompressTool(executor))
+	server.RegisterTool(reflectChatTool(executor))
+	server.RegisterTool(reflectSearchTool(executor))
+	server.RegisterTool(reflectMemoryRecallTool(executor))
+	server.RegisterTool(reflectMemoryStoreTool(executor))
+	server.RegisterTool(reflectCompressTool(executor))
 }
 
-// rhoChatTool sends a prompt to rho and returns the response.
-func rhoChatTool(executor ToolExecutor) MCPToolHandler {
+// reflectChatTool sends a prompt to reflect and returns the response.
+func reflectChatTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name: "rho_chat",
-		Description: "Send a prompt to the rho AI coding agent and receive a response. " +
+		Name: "reflect_chat",
+		Description: "Send a prompt to the reflect AI coding agent and receive a response. " +
 			"WARNING: this runs an autonomous agent that may execute shell commands and modify files.",
 		Annotations: &ToolAnnotations{
-			Title:           "Run rho agent",
+			Title:           "Run reflect agent",
 			ReadOnlyHint:    boolPtr(false),
 			DestructiveHint: boolPtr(true),
 			OpenWorldHint:   boolPtr(true),
@@ -51,7 +51,7 @@ func rhoChatTool(executor ToolExecutor) MCPToolHandler {
 			"properties": map[string]interface{}{
 				"prompt": map[string]interface{}{
 					"type":        "string",
-					"description": "The prompt or question to send to rho.",
+					"description": "The prompt or question to send to reflect.",
 				},
 			},
 			"required": []string{"prompt"},
@@ -71,12 +71,12 @@ func rhoChatTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoSearchTool searches across rho sessions.
-func rhoSearchTool(executor ToolExecutor) MCPToolHandler {
+// reflectSearchTool searches across reflect sessions.
+func reflectSearchTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_search",
-		Description: "Search across rho sessions and conversation history.",
-		Annotations: readOnlyAnnotations("Search rho sessions"),
+		Name:        "reflect_search",
+		Description: "Search across reflect sessions and conversation history.",
+		Annotations: readOnlyAnnotations("Search reflect sessions"),
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -107,12 +107,12 @@ func rhoSearchTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoMemoryRecallTool recalls information from rho's local memory store.
-func rhoMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
+// reflectMemoryRecallTool recalls information from reflect's local memory store.
+func reflectMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_memory_recall",
-		Description: "Recall stored information from rho's local persistent memory.",
-		Annotations: readOnlyAnnotations("Recall from rho memory"),
+		Name:        "reflect_memory_recall",
+		Description: "Recall stored information from reflect's local persistent memory.",
+		Annotations: readOnlyAnnotations("Recall from reflect memory"),
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -157,13 +157,13 @@ func rhoMemoryRecallTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoMemoryStoreTool stores information to rho's local memory store.
-func rhoMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
+// reflectMemoryStoreTool stores information to reflect's local memory store.
+func reflectMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_memory_store",
-		Description: "Store information in rho's local persistent memory for future recall.",
+		Name:        "reflect_memory_store",
+		Description: "Store information in reflect's local persistent memory for future recall.",
 		Annotations: &ToolAnnotations{
-			Title:           "Store in rho memory",
+			Title:           "Store in reflect memory",
 			ReadOnlyHint:    boolPtr(false),
 			DestructiveHint: boolPtr(false), // additive write, does not destroy existing data
 		},
@@ -208,11 +208,11 @@ func rhoMemoryStoreTool(executor ToolExecutor) MCPToolHandler {
 	}
 }
 
-// rhoCompressTool compresses text via the embedded token engine.
-func rhoCompressTool(executor ToolExecutor) MCPToolHandler {
+// reflectCompressTool compresses text via the embedded token engine.
+func reflectCompressTool(executor ToolExecutor) MCPToolHandler {
 	return MCPToolHandler{
-		Name:        "rho_compress",
-		Description: "Compress text using rho's embedded token engine to reduce token usage while preserving meaning.",
+		Name:        "reflect_compress",
+		Description: "Compress text using reflect's embedded token engine to reduce token usage while preserving meaning.",
 		Annotations: readOnlyAnnotations("Compress text (token engine)"),
 		InputSchema: map[string]interface{}{
 			"type": "object",

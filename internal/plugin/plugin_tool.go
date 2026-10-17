@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/GrayCodeAI/rho/internal/mcp"
+	"github.com/GrayCodeAI/reflect/internal/mcp"
 )
 
 // PluginToolAdapter wraps a PluginTool as a tool.Tool interface

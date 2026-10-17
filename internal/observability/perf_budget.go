@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // SLO defines a Service Level Objective for a performance metric.

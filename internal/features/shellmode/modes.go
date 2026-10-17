@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Mode represents the REPL routing mode.

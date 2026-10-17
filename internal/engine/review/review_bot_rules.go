@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/diff"
+	"github.com/GrayCodeAI/reflect/internal/engine/diff"
 )
 
 // This file holds the built-in review rule set used by ReviewBot. The engine,

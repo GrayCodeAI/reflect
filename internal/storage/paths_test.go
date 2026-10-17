@@ -26,26 +26,26 @@ func TestStorageDirsRespectOverrides(t *testing.T) {
 	}
 }
 
-func TestProviderConfigPathUsesFluxOverrideWithoutMovingRhoSettings(t *testing.T) {
-	rhoDir := filepath.Join(t.TempDir(), "rho")
-	fluxDir := filepath.Join(t.TempDir(), "flux")
-	t.Setenv(envConfigDir, rhoDir)
-	t.Setenv(envFluxConfigDir, fluxDir)
+func TestProviderConfigPathUsesRelayOverrideWithoutMovingReflectSettings(t *testing.T) {
+	reflectDir := filepath.Join(t.TempDir(), "reflect")
+	relayDir := filepath.Join(t.TempDir(), "relay")
+	t.Setenv(envConfigDir, reflectDir)
+	t.Setenv(envRelayConfigDir, relayDir)
 
-	if got, want := ProviderConfigPath(), filepath.Join(fluxDir, "provider.json"); got != want {
-		t.Fatalf("ProviderConfigPath() = %q, want FLUX_CONFIG_DIR path %q", got, want)
+	if got, want := ProviderConfigPath(), filepath.Join(relayDir, "provider.json"); got != want {
+		t.Fatalf("ProviderConfigPath() = %q, want RELAY_CONFIG_DIR path %q", got, want)
 	}
-	if got, want := SettingsPath(), filepath.Join(rhoDir, "settings.json"); got != want {
-		t.Fatalf("SettingsPath() = %q, want RHO_CONFIG_DIR path %q", got, want)
+	if got, want := SettingsPath(), filepath.Join(reflectDir, "settings.json"); got != want {
+		t.Fatalf("SettingsPath() = %q, want REFLECT_CONFIG_DIR path %q", got, want)
 	}
 }
 
-func TestProviderConfigPathDefaultsToFluxDir(t *testing.T) {
-	t.Setenv(envConfigDir, filepath.Join(t.TempDir(), "rho"))
-	t.Setenv(envFluxConfigDir, "  ")
+func TestProviderConfigPathDefaultsToRelayDir(t *testing.T) {
+	t.Setenv(envConfigDir, filepath.Join(t.TempDir(), "reflect"))
+	t.Setenv(envRelayConfigDir, "  ")
 
-	if got, want := ProviderConfigPath(), filepath.Join(mustUserConfigDir(), "flux", "provider.json"); got != want {
-		t.Fatalf("ProviderConfigPath() = %q, want Flux default %q", got, want)
+	if got, want := ProviderConfigPath(), filepath.Join(mustUserConfigDir(), "relay", "provider.json"); got != want {
+		t.Fatalf("ProviderConfigPath() = %q, want Relay default %q", got, want)
 	}
 }
 

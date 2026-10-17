@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // setupTestRepo creates a temporary git repo and changes into it.
@@ -80,7 +80,7 @@ func TestAutoCommitAndRevert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(msg, "rho: Write hello.txt") {
+	if !strings.HasPrefix(msg, "reflect: Write hello.txt") {
 		t.Fatalf("unexpected commit message: %q", msg)
 	}
 
@@ -99,13 +99,13 @@ func TestAutoCommitAndRevert(t *testing.T) {
 	}
 }
 
-func TestRevertNonRhoCommitFails(t *testing.T) {
+func TestRevertNonReflectCommitFails(t *testing.T) {
 	_, cleanup := setupTestRepo(t)
 	defer cleanup()
 
-	// HEAD is "initial commit" — not a rho commit.
+	// HEAD is "initial commit" — not a reflect commit.
 	if err := RevertLastAutoCommit(); err == nil {
-		t.Fatal("expected error reverting non-rho commit")
+		t.Fatal("expected error reverting non-reflect commit")
 	}
 }
 
@@ -175,7 +175,7 @@ func TestAutoCommitAssistedByTrailerOptional(t *testing.T) {
 	}
 
 	body := gitCommitBody(t)
-	if !strings.Contains(body, "Assisted-by: Rho") {
+	if !strings.Contains(body, "Assisted-by: Reflect") {
 		t.Fatalf("expected assisted-by trailer, got: %q", body)
 	}
 }
@@ -315,7 +315,7 @@ func TestAttributionModesIndependent(t *testing.T) {
 		},
 		{
 			name:         "co-authored-by only",
-			modes:        &AttributionModes{CoAuthoredBy: "Rho <rho@rho.ai>"},
+			modes:        &AttributionModes{CoAuthoredBy: "Reflect <reflect@reflect.ai>"},
 			wantCoAuthor: true,
 		},
 		{
@@ -333,7 +333,7 @@ func TestAttributionModesIndependent(t *testing.T) {
 			modes: &AttributionModes{
 				Author:       "Alice <alice@example.com>",
 				Committer:    "Bob <bob@example.com>",
-				CoAuthoredBy: "Rho <rho@rho.ai>",
+				CoAuthoredBy: "Reflect <reflect@reflect.ai>",
 			},
 			wantCoAuthor:     true,
 			wantAuthorEnv:    true,
@@ -345,7 +345,7 @@ func TestAttributionModesIndependent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Co-authored-by trailer is applied to the message body.
 			msg := applyAttributionModes("feat: x", tc.modes)
-			hasCo := strings.Contains(msg, "Co-authored-by: Rho <rho@rho.ai>")
+			hasCo := strings.Contains(msg, "Co-authored-by: Reflect <reflect@reflect.ai>")
 			if hasCo != tc.wantCoAuthor {
 				t.Errorf("co-author trailer present=%v, want %v (msg=%q)", hasCo, tc.wantCoAuthor, msg)
 			}
@@ -387,14 +387,14 @@ func TestCommitStagedWithAttribution(t *testing.T) {
 
 	modes := &AttributionModes{
 		Author:       "Alice <alice@example.com>",
-		CoAuthoredBy: "Rho <rho@rho.ai>",
+		CoAuthoredBy: "Reflect <reflect@reflect.ai>",
 	}
 	if err := CommitStaged(context.Background(), "feat: add x", modes); err != nil {
 		t.Fatalf("CommitStaged: %v", err)
 	}
 
 	body := gitCommitBody(t)
-	if !strings.Contains(body, "Co-authored-by: Rho <rho@rho.ai>") {
+	if !strings.Contains(body, "Co-authored-by: Reflect <reflect@reflect.ai>") {
 		t.Fatalf("expected co-author trailer, got: %q", body)
 	}
 

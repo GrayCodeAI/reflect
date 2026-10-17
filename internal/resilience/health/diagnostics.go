@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // DiagnosticResult holds the outcome of a single diagnostic check.
@@ -135,7 +135,7 @@ func FormatResults(suite *DiagnosticSuite) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("=== Rho Diagnostics ===\n\n")
+	b.WriteString("=== Reflect Diagnostics ===\n\n")
 
 	passCount := 0
 	warnCount := 0
@@ -275,7 +275,7 @@ func checkShellAvailable() DiagnosticResult {
 func checkDiskSpace() DiagnosticResult {
 	start := time.Now()
 	// Use a simple heuristic: try to create a temp file to verify we can write
-	tmpFile, err := os.CreateTemp("", "rho-disk-check-*")
+	tmpFile, err := os.CreateTemp("", "reflect-disk-check-*")
 	if err != nil {
 		return DiagnosticResult{
 			Name:     "disk_space",
@@ -305,7 +305,7 @@ func checkConfigFileValid() DiagnosticResult {
 			Name:     "config_file_valid",
 			Status:   "warn",
 			Message:  fmt.Sprintf("Config file not found at %s", configPath),
-			Fix:      "Run 'rho init' to create a default configuration",
+			Fix:      "Run 'reflect init' to create a default configuration",
 			Duration: time.Since(start),
 		}
 	}
@@ -314,7 +314,7 @@ func checkConfigFileValid() DiagnosticResult {
 			Name:     "config_file_valid",
 			Status:   "fail",
 			Message:  fmt.Sprintf("Error accessing config: %v", err),
-			Fix:      "Check file permissions on Rho's config directory",
+			Fix:      "Check file permissions on Reflect's config directory",
 			Duration: time.Since(start),
 		}
 	}
@@ -323,7 +323,7 @@ func checkConfigFileValid() DiagnosticResult {
 			Name:     "config_file_valid",
 			Status:   "warn",
 			Message:  "Config file is empty",
-			Fix:      "Run 'rho init' to regenerate configuration",
+			Fix:      "Run 'reflect init' to regenerate configuration",
 			Duration: time.Since(start),
 		}
 	}
@@ -349,7 +349,7 @@ func checkAPIKeySet() DiagnosticResult {
 			Name:     "api_key_set",
 			Status:   "fail",
 			Message:  "No API credentials stored in the OS secret store",
-			Fix:      "Run /config to save a key, or rho credentials status to verify storage",
+			Fix:      "Run /config to save a key, or reflect credentials status to verify storage",
 			Duration: time.Since(start),
 		}
 	}
@@ -364,13 +364,13 @@ func checkAPIKeySet() DiagnosticResult {
 
 func checkModelConfigured() DiagnosticResult {
 	start := time.Now()
-	model := config.Getenv("RHO_MODEL")
+	model := config.Getenv("REFLECT_MODEL")
 	if model == "" {
 		return DiagnosticResult{
 			Name:     "model_configured",
 			Status:   "warn",
-			Message:  "RHO_MODEL not set, will use default",
-			Fix:      "Set RHO_MODEL environment variable to specify preferred model",
+			Message:  "REFLECT_MODEL not set, will use default",
+			Fix:      "Set REFLECT_MODEL environment variable to specify preferred model",
 			Duration: time.Since(start),
 		}
 	}
@@ -460,7 +460,7 @@ func checkProjectDirWritable() DiagnosticResult {
 			Name:     "project_dir_writable",
 			Status:   "fail",
 			Message:  fmt.Sprintf("Could not get working directory: %v", err),
-			Fix:      "Ensure you are running rho from a valid directory",
+			Fix:      "Ensure you are running reflect from a valid directory",
 			Duration: time.Since(start),
 		}
 	}
@@ -529,7 +529,7 @@ func checkDirWritable(name, dir string, start time.Time) DiagnosticResult {
 	}
 
 	// Try writing a temp file in the directory
-	testFile := filepath.Join(dir, ".rho-write-test")
+	testFile := filepath.Join(dir, ".reflect-write-test")
 	if err := os.WriteFile(testFile, []byte("test"), 0o600); err != nil {
 		return DiagnosticResult{
 			Name:     name,

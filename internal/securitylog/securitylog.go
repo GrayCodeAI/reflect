@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // EventSeverity classifies the impact of a security event.
@@ -71,7 +71,7 @@ type Log struct {
 }
 
 // DefaultDir returns the default on-disk location for the security event log,
-// rooted under rho's per-user state directory.
+// rooted under reflect's per-user state directory.
 func DefaultDir() string {
 	return filepath.Join(storage.StateDir(), "securitylog")
 }

@@ -9,7 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"golang.org/x/term"
 
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
+	chatfeature "github.com/GrayCodeAI/reflect/internal/features/chat"
 )
 
 // selectionResumedMsg is delivered to the chat model after the user finishes a
@@ -57,7 +57,7 @@ func enterSelectionMode(ref *progRef, transcript string, restoreMouse bool) tea.
 		fmt.Fprintln(os.Stderr, "  Click and drag to select text in this terminal.")
 		fmt.Fprintln(os.Stderr, "  Copy with your terminal's normal copy shortcut (e.g. Cmd+C,")
 		fmt.Fprintln(os.Stderr, "  Ctrl+Shift+C, or Ctrl+Insert).")
-		fmt.Fprintln(os.Stderr, "  Press any key to return to rho.")
+		fmt.Fprintln(os.Stderr, "  Press any key to return to reflect.")
 		fmt.Fprintln(os.Stderr, "────────────────────────────────────────────────────────────")
 		fmt.Fprintln(os.Stderr, "")
 		// Block on stdin in raw mode so any single keypress resumes the

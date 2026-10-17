@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/reflect/internal/session"
 )
 
 // FilterEntries ranks saved sessions by ID, preview, and working-directory

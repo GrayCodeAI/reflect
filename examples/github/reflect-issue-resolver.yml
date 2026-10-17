@@ -1,0 +1,69 @@
+# Reflect Issue Resolver
+#
+# Copy this file to .github/workflows/reflect-issue-resolver.yml in your repository.
+#
+# It runs the Reflect agent in two scenarios:
+#   1. Automation mode  - when an issue is labeled `reflect-agent`, Reflect reads the
+#      issue title + body and attempts to resolve it autonomously.
+#   2. Interactive mode - when someone comments "@reflect ..." on an issue or PR,
+#      Reflect replies conversationally to the request.
+#
+# The mode is auto-detected by `reflect exec` from the GitHub event payload, so a
+# single composite action handles both paths.
+name: Reflect Issue Resolver
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  reflect:
+    # Run on the `reflect-agent` label, or on any comment mentioning @reflect.
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'reflect-agent') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@reflect')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@reflect'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Reflect
+        id: reflect
+        uses: GrayCodeAI/reflect/.github/actions/reflect@main
+        with:
+          # Leave prompt empty so Reflect derives it from the triggering event.
+          # Set a "/skill-name args" prompt here to dispatch a skill instead.
+          prompt: ""
+          auto: semi
+          output-format: text
+        env:
+          # Provide your model provider credentials as repository secrets.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Post Reflect response as a comment
+        if: ${{ steps.reflect.outputs.response != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `🦅 **Reflect**\n\n${{ toJSON(steps.reflect.outputs.response) }}`;
+            const issueNumber = context.issue.number;
+            if (issueNumber) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body,
+              });
+            }

@@ -1,11 +1,11 @@
 package cmd
 
-// theme.go — the single source of truth for rho's visual identity.
+// theme.go — the single source of truth for reflect's visual identity.
 //
 // All color constants (24-bit RGB via lipgloss), raw ANSI escape codes
 // (used by the spinner line), and glyph/icon constants live here. Every
 // other file in the package references these names instead of repeating
-// hex codes or magic strings. To rebrand rho, edit this file; to audit
+// hex codes or magic strings. To rebrand reflect, edit this file; to audit
 // what's used where, grep this file.
 //
 // Organization:
@@ -27,17 +27,17 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
 
-	internaltheme "github.com/GrayCodeAI/rho/internal/theme"
+	internaltheme "github.com/GrayCodeAI/reflect/internal/theme"
 )
 
 // ---------------------------------------------------------------------------
 // 1. Brand & identity
 // ---------------------------------------------------------------------------
 
-// rhoColor is Talon Gold (#FFD700). Used for the RHO wordmark, rho,
+// reflectColor is Talon Gold (#FFD700). Used for the REFLECT wordmark, reflect,
 // ⛬ assistant prefix, prompt arrow, cursor, exit prompt, and
 // any place that should "speak" as the brand.
-var rhoColor = lipgloss.Color(internaltheme.BrandPrimary)
+var reflectColor = lipgloss.Color(internaltheme.BrandPrimary)
 
 // ---------------------------------------------------------------------------
 // 2. UI state
@@ -217,7 +217,7 @@ func ansiFromHex(hex string) string {
 // ---------------------------------------------------------------------------
 // 10. Icons & glyphs
 //
-// Rho's icon registry lives in internal/ui/icons. Every call site
+// Reflect's icon registry lives in internal/ui/icons. Every call site
 // references icons.ChevronRight() / icons.Robot() / etc. directly; this
 // file no longer holds any glyph constants. The audit test in
 // internal/testaudit fails CI if any non-ASCII literal appears in
@@ -261,7 +261,7 @@ func ApplyTheme(name string) {
 	p := entry.Palette
 
 	// 1. Brand — fixed across themes; palette accents remain theme-specific.
-	rhoColor = lipgloss.Color(internaltheme.BrandPrimary)
+	reflectColor = lipgloss.Color(internaltheme.BrandPrimary)
 
 	// 2. Semantic feedback.
 	successTeal = lipgloss.Color(p.Green)
@@ -338,12 +338,12 @@ var minimalChrome bool
 // unsynchronized from View.
 func refreshThemeStyles() {
 	// markdown.go
-	mdH1Style = lipgloss.NewStyle().Foreground(rhoColor).Bold(true).Underline(true)
+	mdH1Style = lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Underline(true)
 	mdH2Style = lipgloss.NewStyle().Foreground(successTeal).Bold(true)
 	mdH3Style = lipgloss.NewStyle().Foreground(infoSky).Bold(true)
 	mdH4Style = lipgloss.NewStyle().Foreground(costViolet).Bold(true)
 	mdHeaderStyle = lipgloss.NewStyle().Foreground(textPrimary).Bold(true)
-	mdBoldStyle = lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	mdBoldStyle = lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 	mdInlineCodeStyle = lipgloss.NewStyle().Foreground(infoSky)
 	mdCodeBlockStyle = lipgloss.NewStyle().Background(bgCode)
 	mdCodeLabelStyle = lipgloss.NewStyle().Foreground(textDisabled).Background(bgCode)
@@ -362,8 +362,8 @@ func refreshThemeStyles() {
 	toolDimStyle = lipgloss.NewStyle().Foreground(textDisabled)
 	slashCmdStyle = lipgloss.NewStyle().Foreground(textDisabled)
 	slashDescStyle = lipgloss.NewStyle().Foreground(textDisabled)
-	slashSelCmdStyle = lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
-	slashSelDescStyle = lipgloss.NewStyle().Foreground(rhoColor)
+	slashSelCmdStyle = lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
+	slashSelDescStyle = lipgloss.NewStyle().Foreground(reflectColor)
 	if minimalChrome {
 		// Tau-style: a single hairline rule under the input, no side borders.
 		inputBorderStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false).BorderForeground(borderDim)
@@ -373,7 +373,7 @@ func refreshThemeStyles() {
 	dimColor = textDisabled
 
 	// agent_grid.go
-	agentActiveStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(rhoColor).Padding(0, 1)
+	agentActiveStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(reflectColor).Padding(0, 1)
 	agentDoneStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(doneGreen).Padding(0, 1)
 	agentFailStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(errorCoral).Padding(0, 1)
 	agentIdleStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(textDisabled).Padding(0, 1)

@@ -9,8 +9,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func configModelChoices(opts []configModelOption, showProvider bool) []string {
@@ -87,11 +87,11 @@ func (m chatModel) configProviderKeyView() string {
 	title := icons.Key() + " Paste API key"
 	hint := "validates with provider API · stored in " + credentialsStoreLabel()
 	if providerName != "" {
-		title = icons.Key() + " " + rhoconfig.GatewayDisplayName(providerName)
+		title = icons.Key() + " " + reflectconfig.GatewayDisplayName(providerName)
 		hint = "paste key for this gateway only · " + hint
 	}
-	if providerName == rhoconfig.ProviderXiaomiTokenPlan {
-		reg := rhoconfig.GatewayRegionLabel(rhoconfig.ProviderXiaomiTokenPlan)
+	if providerName == reflectconfig.ProviderXiaomiTokenPlan {
+		reg := reflectconfig.GatewayRegionLabel(reflectconfig.ProviderXiaomiTokenPlan)
 		if reg == "" {
 			reg = "not set — esc and pick region with g or enter on gateway row"
 		}
@@ -116,7 +116,7 @@ func (m chatModel) configOllamaURLView() string {
 
 	var b strings.Builder
 	b.WriteString(titleStyle.Render(icons.Llama()+" Ollama local") + "\n")
-	b.WriteString(mutedStyle.Render("no API key · flux discovers installed models") + "\n\n")
+	b.WriteString(mutedStyle.Render("no API key · relay discovers installed models") + "\n\n")
 	if notice := strings.TrimSpace(m.configNotice); notice != "" {
 		b.WriteString(mutedStyle.Render(sanitizeConfigNotice(notice)) + "\n\n")
 	}
@@ -198,7 +198,7 @@ func (m chatModel) configModelsTabView() string {
 		gw = strings.TrimSpace(m.session.Provider())
 	}
 	if gw != "" {
-		body.WriteString(renderConfigGatewayLine(rhoconfig.GatewayDisplayName(gw)) + "\n\n")
+		body.WriteString(renderConfigGatewayLine(reflectconfig.GatewayDisplayName(gw)) + "\n\n")
 	}
 
 	if len(m.configModelOptions) > 0 || m.configModelSearchActive {
@@ -245,15 +245,15 @@ func (m chatModel) startConfigModelSearch() (chatModel, tea.Cmd) {
 	m.configInput.EchoCharacter = 0
 	m.configInput.SetStyles(textinput.Styles{
 		Focused: textinput.StyleState{
-			Prompt: lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt: lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 			Text:   lipgloss.NewStyle().Foreground(textPrimary),
 		},
 		Blurred: textinput.StyleState{
-			Prompt: lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt: lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 			Text:   lipgloss.NewStyle().Foreground(textPrimary),
 		},
 		Cursor: textinput.CursorStyle{
-			Color: rhoColor,
+			Color: reflectColor,
 		},
 	})
 	m.configInput.Focus()
@@ -333,11 +333,11 @@ func (m chatModel) configActiveModelID() string {
 			return modelName
 		}
 	}
-	return strings.TrimSpace(rhoconfig.ActiveModel(context.Background()))
+	return strings.TrimSpace(reflectconfig.ActiveModel(context.Background()))
 }
 
 func modelOptionIsActive(opt configModelOption, activeModelID string) bool {
-	return modelOptionIsActiveResolved(opt, activeModelID, rhoconfig.CanonicalModelID(context.Background(), activeModelID))
+	return modelOptionIsActiveResolved(opt, activeModelID, reflectconfig.CanonicalModelID(context.Background(), activeModelID))
 }
 
 func modelOptionIsActiveResolved(opt configModelOption, activeModelID, activeCanonicalID string) bool {
@@ -364,7 +364,7 @@ func (m chatModel) focusConfigActiveModelSelection() chatModel {
 		return m
 	}
 	activeID := m.configActiveModelID()
-	activeCanonicalID := rhoconfig.CanonicalModelID(context.Background(), activeID)
+	activeCanonicalID := reflectconfig.CanonicalModelID(context.Background(), activeID)
 	windowSize := m.configVisibleRows()
 	for i, opt := range opts {
 		if modelOptionIsActiveResolved(opt, activeID, activeCanonicalID) {
@@ -405,7 +405,7 @@ func (m chatModel) configModelsBody() string {
 	total := len(opts)
 	allTotal := len(m.configModelOptions)
 	activeModelID := m.configActiveModelID()
-	activeCanonicalID := rhoconfig.CanonicalModelID(context.Background(), activeModelID)
+	activeCanonicalID := reflectconfig.CanonicalModelID(context.Background(), activeModelID)
 	windowSize := m.configVisibleRows()
 	maxScroll := maxInt(0, total-windowSize)
 	if m.configScroll > maxScroll {
@@ -446,7 +446,7 @@ func (m chatModel) configModelsBody() string {
 			return b.String()
 		}
 		b.WriteString(mutedStyle.Render("  No models available.") + "\n")
-		if hint := rhoconfig.CatalogEmptyHint(context.Background()); hint != "" {
+		if hint := reflectconfig.CatalogEmptyHint(context.Background()); hint != "" {
 			b.WriteString(mutedStyle.Render("  "+hint) + "\n")
 		}
 		if gw == configProviderOllama {
@@ -523,15 +523,15 @@ func (m chatModel) startConfigEntry(kind, provider string) (chatModel, tea.Cmd) 
 	m.configInput.EchoCharacter = '*'
 	m.configInput.SetStyles(textinput.Styles{
 		Focused: textinput.StyleState{
-			Prompt: lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt: lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 			Text:   lipgloss.NewStyle().Foreground(textPrimary),
 		},
 		Blurred: textinput.StyleState{
-			Prompt: lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt: lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 			Text:   lipgloss.NewStyle().Foreground(textPrimary),
 		},
 		Cursor: textinput.CursorStyle{
-			Color: rhoColor,
+			Color: reflectColor,
 		},
 	})
 	m.configInput.Focus()
@@ -580,7 +580,7 @@ func (m chatModel) finishConfigEntry() (chatModel, tea.Cmd) {
 			m.restoreChatInput()
 			return m, nil
 		}
-		if providerName == rhoconfig.ProviderXiaomiTokenPlan && rhoconfig.NeedsGatewayRegion(providerName) {
+		if providerName == reflectconfig.ProviderXiaomiTokenPlan && reflectconfig.NeedsGatewayRegion(providerName) {
 			m.configEntry = configEntryNone
 			m.wipeConfigKeyInput()
 			m.restoreChatInput()
@@ -592,7 +592,7 @@ func (m chatModel) finishConfigEntry() (chatModel, tea.Cmd) {
 		m.configProvider = ""
 		m.wipeConfigKeyInput()
 		m.restoreChatInput()
-		inference, err := rhoconfig.CredentialInferenceForProvider(providerName)
+		inference, err := reflectconfig.CredentialInferenceForProvider(providerName)
 		if err != nil {
 			m.configTab = configTabGateways
 			m.configNotice = "Could not save key: " + sanitizeConfigNotice(err.Error())
@@ -604,7 +604,7 @@ func (m chatModel) finishConfigEntry() (chatModel, tea.Cmd) {
 		m.configPostSaveKeysProvider = providerName
 		m.configSaving = true
 		notice := fmt.Sprintf("Validating key for %s…", inference.DisplayName)
-		if hint := rhoconfig.CredentialGuidance(providerName, value); hint != "" {
+		if hint := reflectconfig.CredentialGuidance(providerName, value); hint != "" {
 			notice = hint + " · " + notice
 		}
 		m.configNotice = notice
@@ -867,7 +867,7 @@ func (m chatModel) handleConfigKey(msg tea.KeyMsg) (chatModel, tea.Cmd) {
 				return m.startConfigKeyView(row.ID), nil
 			}
 		case "g", "G":
-			if row, ok := m.selectedConfigGateway(); ok && row.ID == rhoconfig.ProviderXiaomiTokenPlan {
+			if row, ok := m.selectedConfigGateway(); ok && row.ID == reflectconfig.ProviderXiaomiTokenPlan {
 				return m.startConfigGatewayRegion(row.ID), nil
 			}
 		}
@@ -960,7 +960,7 @@ func (m chatModel) selectConfigModelFromOptions(opts []configModelOption) (chatM
 	}
 	selected := opts[m.configSel]
 	modelID := selected.ID
-	if err := rhoconfig.SetGlobalSetting("model", modelID); err != nil {
+	if err := reflectconfig.SetGlobalSetting("model", modelID); err != nil {
 		m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 		return m.closeConfigPanel(), nil
 	}
@@ -976,7 +976,7 @@ func (m chatModel) selectConfigModelFromOptions(opts []configModelOption) (chatM
 		provider = prov
 	}
 	if provider != "" {
-		if err := rhoconfig.SetGlobalSetting("provider", provider); err != nil {
+		if err := reflectconfig.SetGlobalSetting("provider", provider); err != nil {
 			m.messages = append(m.messages, displayMsg{role: "error", content: "model set, but saving provider failed: " + err.Error()})
 		}
 	}
@@ -986,7 +986,7 @@ func (m chatModel) selectConfigModelFromOptions(opts []configModelOption) (chatM
 	next.invalidateConnStatus()
 	next = next.stopConfigModelSearch(true)
 	next = next.closeConfigPanel()
-	if !rhoconfig.EvaluateSetupCached(context.Background()).NeedsSetup {
+	if !reflectconfig.EvaluateSetupCached(context.Background()).NeedsSetup {
 		next.messages = append(next.messages, displayMsg{
 			role:    "setup_complete",
 			content: next.session.Model(),
@@ -1001,19 +1001,19 @@ func (m chatModel) toggleConfigModelThinking() (chatModel, tea.Cmd) {
 		return m, nil
 	}
 	selected := opts[m.configSel]
-	if !rhoconfig.ModelCapabilitySupportsThinking(selected.Capabilities) {
+	if !reflectconfig.ModelCapabilitySupportsThinking(selected.Capabilities) {
 		m.configNotice = "Thinking not supported for this model"
 		return m, nil
 	}
-	settings := rhoconfig.LoadSettings()
-	pref := rhoconfig.ThinkingPrefForModel(settings, selected.ID)
+	settings := reflectconfig.LoadSettings()
+	pref := reflectconfig.ThinkingPrefForModel(settings, selected.ID)
 	// Current effective display: unset → off. Toggle flips that.
 	currentlyOn := false
 	if pref != nil {
 		currentlyOn = *pref
 	}
 	next := !currentlyOn
-	if err := rhoconfig.SetModelThinking(selected.ID, next); err != nil {
+	if err := reflectconfig.SetModelThinking(selected.ID, next); err != nil {
 		m.configNotice = err.Error()
 		return m, nil
 	}
@@ -1027,7 +1027,7 @@ func (m chatModel) toggleConfigModelThinking() (chatModel, tea.Cmd) {
 		m.configNotice = label + " thinking → off"
 	}
 	// If this is the active model, apply immediately.
-	if m.session != nil && modelOptionIsActiveResolved(selected, m.configActiveModelID(), rhoconfig.CanonicalModelID(context.Background(), m.configActiveModelID())) {
+	if m.session != nil && modelOptionIsActiveResolved(selected, m.configActiveModelID(), reflectconfig.CanonicalModelID(context.Background(), m.configActiveModelID())) {
 		m.session.SetThinkingEnabled(&next)
 	}
 	return m, nil
@@ -1037,7 +1037,7 @@ func (m chatModel) applyModelThinkingPref(selected configModelOption) {
 	if m.session == nil {
 		return
 	}
-	settings := rhoconfig.LoadSettings()
+	settings := reflectconfig.LoadSettings()
 	provider := strings.TrimSpace(m.configModelProvider)
 	if provider == "" {
 		provider = strings.TrimSpace(selected.GatewayID)
@@ -1045,5 +1045,5 @@ func (m chatModel) applyModelThinkingPref(selected configModelOption) {
 	if provider == "" {
 		provider = strings.TrimSpace(selected.ProviderID)
 	}
-	m.session.SetThinkingEnabled(rhoconfig.ResolveThinkingForModel(settings, selected.ID, provider))
+	m.session.SetThinkingEnabled(reflectconfig.ResolveThinkingForModel(settings, selected.ID, provider))
 }

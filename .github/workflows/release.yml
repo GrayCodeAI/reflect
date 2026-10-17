@@ -1,4 +1,4 @@
-# Release workflow for rho. A maintainer pushes a v<VERSION> tag after the
+# Release workflow for reflect. A maintainer pushes a v<VERSION> tag after the
 # release PR (VERSION + CHANGELOG) has merged; creating v* tags is restricted by
 # the repository ruleset "protect-release-tags". See docs/RELEASING.md.
 # Source of truth: .shared-templates/workflows/go-release.yml.tmpl
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPROXY: "https://proxy.golang.org,direct"
-      # Release builds resolve every dependency (including flux) from
+      # Release builds resolve every dependency (including relay) from
       # go.mod/go.sum through the public proxy — never from sibling checkouts.
       GOWORK: "off"
     steps:
@@ -32,6 +32,9 @@ jobs:
           fetch-depth: 0   # goreleaser needs full history for changelog
           persist-credentials: false
 
+      - name: Verify canonical version metadata
+        run: python3 scripts/sync-version.py --check
+
       # Refuses a tag that disagrees with VERSION or has no CHANGELOG section,
       # and extracts that section as the release notes.
       - name: Check tag against VERSION and CHANGELOG
@@ -40,7 +43,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
-          go-version: "1.26.6"
+          go-version: "1.27.2"
           cache: true
 
       - name: Refuse local replace directives

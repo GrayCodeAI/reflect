@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/governance"
+	"github.com/GrayCodeAI/reflect/internal/governance"
 )
 
 // govPolicy builds a policy layer with the given capabilities.

@@ -7,23 +7,23 @@ Linux Foundation / Agentic AI Foundation)
 
 ## Executive Decision
 
-Goose's audit against rho found that most of its runtime concepts already have
-a native rho implementation (providers via flux, sessions, MCP, ACP, skills,
-host-native policy, permissions). The genuinely novel, rho-relevant ideas are
+Goose's audit against reflect found that most of its runtime concepts already have
+a native reflect implementation (providers via relay, sessions, MCP, ACP, skills,
+host-native policy, permissions). The genuinely novel, reflect-relevant ideas are
 adopted here in Go, without copying Rust code or adding a second execution
 sandbox runtime.
 
-## Existing Rho Capabilities
+## Existing Reflect Capabilities
 
-| Goose package/concept | Rho implementation | Decision |
+| Goose package/concept | Reflect implementation | Decision |
 |---|---|---|
-| Provider abstraction (~36) | sibling `flux` (28 built-in + 75+ live) | Keep rho |
-| Sessions (SQLite WAL) | `internal/session` JSONL+WAL+zstd + sibling `swift` (Swift) | Keep rho |
-| MCP (client+server) | `internal/mcp` + sibling `falcon` | Keep rho |
-| ACP | `internal/acp` | Keep rho |
-| Extensions/skills | `internal/plugin`, skills registry | Keep rho |
+| Provider abstraction (~36) | sibling `relay` (28 built-in + 75+ live) | Keep reflect |
+| Sessions (SQLite WAL) | `internal/session` JSONL+WAL+zstd + sibling `swift` (Swift) | Keep reflect |
+| MCP (client+server) | `internal/mcp` + sibling `falcon` | Keep reflect |
+| ACP | `internal/acp` | Keep reflect |
+| Extensions/skills | `internal/plugin`, skills registry | Keep reflect |
 | Execution safety | `internal/engine/safety`, path guards, trust policy | Host-native, fail-closed |
-| OSV malware gate | `internal/permissions/osv_checker.go` (`CheckCommand`/`CheckPackage`) | Keep rho |
+| OSV malware gate | `internal/permissions/osv_checker.go` (`CheckCommand`/`CheckPackage`) | Keep reflect |
 | Hints / AGENTS.md | `internal/config` AGENTS.md loader | **Adopt** @file references + subdir hints |
 | Context compaction | sibling `shrike` (Shrike) + `internal/engine/compaction` | **Adopt** structured-summary retry ladder |
 | Extension env safety | none (only OSV gate) | **Adopt** disallowed-env-var filter |
@@ -31,7 +31,7 @@ sandbox runtime.
 
 ## Priority Model
 
-- **P0:** Security-relevant, bounded, rho-native adoptions.
+- **P0:** Security-relevant, bounded, reflect-native adoptions.
 - **P1:** High-value product improvements.
 - **Defer:** Larger or cross-cutting changes needing an RFC.
 
@@ -50,7 +50,7 @@ or MCP stdio processes by filtering dangerous environment overrides
   checker) — a `sanitizeEnv` / `SafeEnv` helper.
 - Consumers: `internal/mcp` stdio launch path and `internal/plugin` package
   execution.
-- No changes to sibling `flux`.
+- No changes to sibling `relay`.
 
 ### Required behavior
 
@@ -114,7 +114,7 @@ strict size/depth budgets — matching goose `hints/import_files.rs`.
 
 ### Goal
 
-Upgrade rho's context compaction to a structured summary with a progressive
+Upgrade reflect's context compaction to a structured summary with a progressive
 tool-response-dropping retry ladder on overflow, and token-estimator-backed
 accounting, matching `goose-context-management`.
 
@@ -142,18 +142,18 @@ accounting, matching `goose-context-management`.
 
 ## Deliberately Deferred
 
-- Goose's SQLite session store (`usage_ledger`, token/cost schema): rho's
+- Goose's SQLite session store (`usage_ledger`, token/cost schema): reflect's
   JSONL/WAL + swift + cost tracker cover it; a schema migration is a larger
   change and is tracked separately.
 - MCP Apps / agent-provided HTML UIs: novel but requires UI-layer design.
 - ACP-as-provider wrapping other CLIs: larger provider abstraction change.
-- Local-inference tool emulation / toolshim: depends on flux's local-model
+- Local-inference tool emulation / toolshim: depends on relay's local-model
   path.
-- Recipe security scanner / cron recipes: rho already has schedule/cron.
+- Recipe security scanner / cron recipes: reflect already has schedule/cron.
 
 ## Verification
 
 - `go test ./...` full suite.
-- `make vet`, `make lint`, `rho verify`.
+- `make vet`, `make lint`, `reflect verify`.
 - Focused tests for the env filter, AGENTS.md references, and compaction retry.
 - markdownlint on this document.

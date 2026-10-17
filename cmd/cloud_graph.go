@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	cloud "github.com/GrayCodeAI/rho/internal/platform/cloud"
+	"github.com/GrayCodeAI/reflect/internal/executiongraph"
+	cloud "github.com/GrayCodeAI/reflect/internal/platform/cloud"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func newCloudGraphCmd() *cobra.Command {
 	syncCmd := &cobra.Command{
 		Use:   "sync [session-id]",
 		Short: "Upload a privacy-normalized execution graph to GrayCode Cloud",
-		Long: `Build the same read-only execution graph as "rho graph export", hash
+		Long: `Build the same read-only execution graph as "reflect graph export", hash
 cloud-sensitive metadata, enforce GrayCode Cloud's upload bounds, and upload it
 with a deterministic idempotency key. Sync completed session snapshots: graph
 facts are immutable after acceptance. This is explicit and opt-in; local

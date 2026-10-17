@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	store "github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Rename changes the durable filename for a session after validating the new

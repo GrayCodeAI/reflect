@@ -148,7 +148,7 @@ func (tc *TerminalContext) captureTerminalOutput() string {
 // detectTerminalCapture checks for tmux, screen, or macOS terminal APIs.
 func detectTerminalCapture() string {
 	// tmux takes priority (works inside terminal emulators)
-	if os.Getenv("TMUX") != "" {
+	if os.Getenv("TRELAY") != "" {
 		if _, err := exec.LookPath("tmux"); err == nil {
 			return "tmux capture-pane -p"
 		}

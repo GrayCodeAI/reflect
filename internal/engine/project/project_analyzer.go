@@ -280,7 +280,7 @@ func (pa *ProjectAnalyzer) detectFramework() string {
 	frameworks := map[string]string{
 		"github.com/gin-gonic/gin": "Gin",
 		"github.com/labstack/echo": "Echo",
-		"github.com/gorilla/mux":   "Gorilla",
+		"github.com/gorilla/relay": "Gorilla",
 		"github.com/go-chi/chi":    "Chi",
 		"github.com/gofiber/fiber": "Fiber",
 		"github.com/spf13/cobra":   "Cobra CLI",

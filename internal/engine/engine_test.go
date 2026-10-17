@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/reflect/internal/engine/cost"
 )
 
 func TestPermissionMemoryAlwaysAllow(t *testing.T) {

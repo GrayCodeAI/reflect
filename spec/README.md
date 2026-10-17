@@ -1,9 +1,9 @@
 # Spec
 
-Curated spec-driven development resource consolidated for rho's spec mode.
+Curated spec-driven development resource consolidated for reflect's spec mode.
 
-rho's spec engine lives in `internal/spec/` (DAG, delta merge, validator, state).
-The OpenSpec artifact-workflow schema below is the source rho's
+reflect's spec engine lives in `internal/spec/` (DAG, delta merge, validator, state).
+The OpenSpec artifact-workflow schema below is the source reflect's
 `DefaultSchema` derives from — everything else in `spec/` is reference material
 that was trimmed as dead weight.
 
@@ -27,5 +27,5 @@ Removed (2026-08, dead or duplicated elsewhere):
 ## Why OpenSpec schema is kept
 
 `internal/spec/schema.go`'s `DefaultSchema` is derived from
-`spec/openspec/schema.yaml` (the `requires:`/delta-spec vocabulary rho's DAG
+`spec/openspec/schema.yaml` (the `requires:`/delta-spec vocabulary reflect's DAG
 parser uses). It is load-bearing and must stay.

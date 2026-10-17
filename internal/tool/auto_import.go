@@ -233,7 +233,7 @@ func NewAutoImporter() *AutoImporter {
 		"gin":        "github.com/gin-gonic/gin",
 		"echo":       "github.com/labstack/echo/v4",
 		"fiber":      "github.com/gofiber/fiber/v2",
-		"mux":        "github.com/gorilla/mux",
+		"relay":      "github.com/gorilla/relay",
 		"httprouter": "github.com/julienschmidt/httprouter",
 
 		// CLI

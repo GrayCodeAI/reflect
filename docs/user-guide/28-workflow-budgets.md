@@ -1,6 +1,6 @@
 # Workflow Budgets
 
-Rho exposes several independent limits. Configure the smallest useful scope
+Reflect exposes several independent limits. Configure the smallest useful scope
 for automation and distinguish them when diagnosing termination.
 
 | Budget | Limits | Purpose |

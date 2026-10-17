@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/catalogtest"
+	"github.com/GrayCodeAI/reflect/internal/catalogtest"
 )
 
 func TestCatalogReady_MissingCache(t *testing.T) {
 	InvalidateCatalogHealthCache()
 	dir := t.TempDir()
-	t.Setenv("FLUX_MODEL_CATALOG_PATH", filepath.Join(dir, "missing.json"))
+	t.Setenv("RELAY_MODEL_CATALOG_PATH", filepath.Join(dir, "missing.json"))
 	if CatalogReady(context.Background()) {
 		t.Fatal("expected not ready without cache")
 	}
@@ -50,11 +50,11 @@ func TestCatalogNeedsAutoRefresh_Fresh(t *testing.T) {
 }
 
 func TestAutoRefreshCatalogEnabled(t *testing.T) {
-	t.Setenv("RHO_AUTO_REFRESH_CATALOG", "false")
+	t.Setenv("REFLECT_AUTO_REFRESH_CATALOG", "false")
 	if autoRefreshCatalogEnabled() {
 		t.Fatal("expected disabled")
 	}
-	t.Setenv("RHO_AUTO_REFRESH_CATALOG", "")
+	t.Setenv("REFLECT_AUTO_REFRESH_CATALOG", "")
 	if !autoRefreshCatalogEnabled() {
 		t.Fatal("expected enabled by default")
 	}

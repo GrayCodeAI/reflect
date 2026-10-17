@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-// forwardToRho posts a prompt to the daemon's /v1/chat endpoint and returns the
+// forwardToReflect posts a prompt to the daemon's /v1/chat endpoint and returns the
 // assistant reply. daemonAddr must include a scheme (e.g. "http://127.0.0.1:4590").
 // apiKey, when non-empty, is sent as a Bearer token. Shared by the Discord and
 // Slack gateways; Telegram keeps its own method for backwards compatibility.
-func forwardToRho(ctx context.Context, client *http.Client, daemonAddr, apiKey, prompt string) (string, error) {
+func forwardToReflect(ctx context.Context, client *http.Client, daemonAddr, apiKey, prompt string) (string, error) {
 	payload, _ := json.Marshal(map[string]string{"prompt": prompt})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, daemonAddr+"/v1/chat", strings.NewReader(string(payload)))
 	if err != nil {
@@ -41,7 +41,7 @@ func forwardToRho(ctx context.Context, client *http.Client, daemonAddr, apiKey, 
 }
 
 // Gateway is a bidirectional messaging bridge between an external chat platform
-// (Telegram, Discord, Slack, ...) and the rho daemon. Implementations forward
+// (Telegram, Discord, Slack, ...) and the reflect daemon. Implementations forward
 // inbound messages to the daemon's /v1/chat endpoint and relay the reply back.
 type Gateway interface {
 	// Name returns a short identifier for the gateway (e.g. "telegram").
@@ -93,7 +93,7 @@ type SlackConfig struct {
 	Enabled       bool   `json:"enabled,omitempty"`
 	SigningSecret string `json:"signing_secret,omitempty"`
 	BotToken      string `json:"bot_token,omitempty"` // xoxb- token for chat.postMessage
-	// Path is the HTTP route registered on the daemon mux for the Events API
+	// Path is the HTTP route registered on the daemon relay for the Events API
 	// webhook. Defaults to "/v1/slack/events" when empty.
 	Path        string   `json:"path,omitempty"`
 	PairingCode string   `json:"pairing_code,omitempty"`

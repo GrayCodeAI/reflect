@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // copyResult describes where the copied content ended up.
@@ -68,7 +68,7 @@ func copyToClipboardNative(text string) error {
 }
 
 // copyToFallbackFile writes the given text to a timestamped file in the
-// rho state directory when the system clipboard is unavailable. This
+// reflect state directory when the system clipboard is unavailable. This
 // ensures the user can still recover copied content from SSH sessions,
 // containers, or headless environments.
 func copyToFallbackFile(text string) (string, error) {

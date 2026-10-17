@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // Ticket represents a linked issue/ticket from any tracking system.
@@ -58,7 +58,7 @@ func NewTicketCompliance() *TicketCompliance {
 
 // ExtractTicketRef parses ticket references from branch names and PR descriptions.
 // It recognizes patterns like: #123, PROJ-456, fixes #789, closes #101,
-// feature/PROJ-123-description, "Fixes #42", "Resolves RHO-99".
+// feature/PROJ-123-description, "Fixes #42", "Resolves REFLECT-99".
 func (tc *TicketCompliance) ExtractTicketRef(branchName, prDescription string) []string {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
@@ -91,7 +91,7 @@ func (tc *TicketCompliance) ExtractTicketRef(branchName, prDescription string) [
 			addRef("#" + m[1])
 		}
 
-		// Keyword-linked JIRA references (Resolves RHO-99).
+		// Keyword-linked JIRA references (Resolves REFLECT-99).
 		matches = keywordJiraRefRe.FindAllStringSubmatch(prDescription, -1)
 		for _, m := range matches {
 			addRef(m[1])
@@ -394,7 +394,7 @@ func (t *TicketComplianceTool) Schema() ToolSchema {
 			"branch_name":     {Type: "string", Description: "The current branch name to extract ticket references from"},
 			"pr_description":  {Type: "string", Description: "The PR description/body text to extract ticket references from"},
 			"ticket_content":  {Type: "string", Description: "The raw ticket/issue content including title, description, and acceptance criteria"},
-			"ticket_id":       {Type: "string", Description: "The ticket/issue identifier (e.g., RHO-123, #42)"},
+			"ticket_id":       {Type: "string", Description: "The ticket/issue identifier (e.g., REFLECT-123, #42)"},
 			"ticket_source":   {Type: "string", Enum: []interface{}{"github", "jira", "linear"}, Description: "The ticket source system: github, jira, or linear"},
 			"diff":            {Type: "string", Description: "The PR diff to check against ticket requirements"},
 			"commit_messages": {Type: "string", Description: "The commit messages in the PR"},

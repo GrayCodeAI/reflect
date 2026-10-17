@@ -12,17 +12,17 @@ import (
 	"strings"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/resilience/health"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/stt"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/resilience/health"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/stt"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
-func doctorReport(settings rhoconfig.Settings) string {
+func doctorReport(settings reflectconfig.Settings) string {
 	// Diagnostics must report the requested/effective selection even when its
 	// credential is missing; readiness and health sections explain why it is
 	// not yet usable. Hiding it as auto/default makes misconfiguration harder
@@ -38,7 +38,7 @@ func doctorReport(settings rhoconfig.Settings) string {
 
 	cwd, _ := os.Getwd()
 	var b strings.Builder
-	b.WriteString("Rho doctor\n")
+	b.WriteString("Reflect doctor\n")
 	b.WriteString(fmt.Sprintf("Version: %s\n", version))
 	b.WriteString(fmt.Sprintf("Go version: %s\n", runtime.Version()))
 	b.WriteString(fmt.Sprintf("Directory: %s\n", cwd))
@@ -55,7 +55,7 @@ func doctorReport(settings rhoconfig.Settings) string {
 	// Ecosystem versions
 	b.WriteString("\nEcosystem versions:\n")
 	for _, component := range []struct{ directory, product string }{
-		{directory: "flux", product: "Flux"},
+		{directory: "relay", product: "Relay"},
 	} {
 		versionFile := filepath.Join(filepath.Dir(cwd), component.directory, "VERSION")
 		// #nosec G304 -- versionFile is built from a fixed sibling-repo list
@@ -65,16 +65,16 @@ func doctorReport(settings rhoconfig.Settings) string {
 			b.WriteString(fmt.Sprintf("  %s (%s): not checked out\n", component.product, component.directory))
 		}
 	}
-	b.WriteString("\n" + rhoconfig.FormatEcosystemPanel(context.Background(), providerName, modelName) + "\n")
-	b.WriteString("\n" + rhoconfig.FormatCatalogHealth(rhoconfig.CatalogHealthReport(context.Background())) + "\n")
-	preflight := rhoconfig.EnginePreflightReportWithSettings(context.Background(), settings, rhoconfig.EnginePreflightOptions{})
-	b.WriteString("\n" + rhoconfig.FormatEnginePreflight(preflight) + "\n")
+	b.WriteString("\n" + reflectconfig.FormatEcosystemPanel(context.Background(), providerName, modelName) + "\n")
+	b.WriteString("\n" + reflectconfig.FormatCatalogHealth(reflectconfig.CatalogHealthReport(context.Background())) + "\n")
+	preflight := reflectconfig.EnginePreflightReportWithSettings(context.Background(), settings, reflectconfig.EnginePreflightOptions{})
+	b.WriteString("\n" + reflectconfig.FormatEnginePreflight(preflight) + "\n")
 	b.WriteString("\nBackends (Gap-05):\n")
 	b.WriteString(fmt.Sprintf("  media:      %s\n", backendStatus(tool.MediaEngineName(), tool.MediaEngineName() != "")))
 	b.WriteString(fmt.Sprintf("  stt:        %s\n", backendStatus("", stt.Enabled())))
 	b.WriteString(fmt.Sprintf("  computer:   %s\n", backendStatus(tool.ComputerBackendName(), tool.ComputerBackendName() != "")))
-	b.WriteString("\n" + rhoconfig.CredentialStorageStatus(context.Background()).Formatted + "\n")
-	if deployReport, err := rhoconfig.DeploymentStatusReportWithSettings(context.Background(), settings, modelName); err == nil {
+	b.WriteString("\n" + reflectconfig.CredentialStorageStatus(context.Background()).Formatted + "\n")
+	if deployReport, err := reflectconfig.DeploymentStatusReportWithSettings(context.Background(), settings, modelName); err == nil {
 		b.WriteString("\n" + deployReport + "\n")
 	}
 	b.WriteString("\n" + envSummaryWithSelection(providerName, modelName, false) + "\n")
@@ -86,18 +86,18 @@ func doctorReport(settings rhoconfig.Settings) string {
 	}
 
 	// Project instructions
-	if md := rhoconfig.LoadAgentsMD(); md != "" {
+	if md := reflectconfig.LoadAgentsMD(); md != "" {
 		b.WriteString("\nProject instructions: found\n")
 	} else {
 		b.WriteString("\nProject instructions: not found (consider creating AGENTS.md)\n")
 	}
 
-	// Installed skills (rho ships none; skills come from user/marketplace installs)
+	// Installed skills (reflect ships none; skills come from user/marketplace installs)
 	skillsDir := filepath.Join(storage.StateDir(), "skills")
 	if entries, err := os.ReadDir(skillsDir); err == nil && len(entries) > 0 {
 		b.WriteString(fmt.Sprintf("Installed skills: %d\n", len(entries)))
 	} else {
-		b.WriteString("Installed skills: none (install with `rho skills install`)\n")
+		b.WriteString("Installed skills: none (install with `reflect skills install`)\n")
 	}
 	// Warn when installed skills drifted from the lockfile pins (content
 	// changed or SKILL.md removed after install). Warn-only: local edits are
@@ -120,7 +120,7 @@ func doctorReport(settings rhoconfig.Settings) string {
 	// Session recovery status
 	recoveryCandidates := session.ScanForRecovery()
 	if len(recoveryCandidates) > 0 {
-		b.WriteString(fmt.Sprintf("\nInterrupted sessions: %d (run rho recover)\n", len(recoveryCandidates)))
+		b.WriteString(fmt.Sprintf("\nInterrupted sessions: %d (run reflect recover)\n", len(recoveryCandidates)))
 	} else {
 		b.WriteString("\nInterrupted sessions: none\n")
 	}
@@ -142,14 +142,14 @@ func backendStatus(name string, enabled bool) string {
 	return "wired (" + name + ")"
 }
 
-func healthCheckReport(settings rhoconfig.Settings, provider string) string {
+func healthCheckReport(settings reflectconfig.Settings, provider string) string {
 	registry := health.NewRegistry()
 
 	registry.Register("api_key", providerCredentialHealthChecker(provider))
 
 	// Settings validation
 	registry.Register("config", func(ctx context.Context) health.Check {
-		result := rhoconfig.ValidateSettings(settings)
+		result := reflectconfig.ValidateSettings(settings)
 		if result.Valid {
 			return health.Check{Name: "config", Status: health.Healthy, Message: "Configuration valid"}
 		}
@@ -211,7 +211,7 @@ func providerCredentialHealthChecker(provider string) health.Checker {
 
 		status := health.Unhealthy
 		message := label + " credential not configured"
-		if providerID != "" && rhoconfig.HasStoredCredentialForProvider(ctx, providerID) {
+		if providerID != "" && reflectconfig.HasStoredCredentialForProvider(ctx, providerID) {
 			status = health.Healthy
 			message = label + " credential configured"
 		}
@@ -229,19 +229,19 @@ func providerCredentialHealthChecker(provider string) health.Checker {
 func diagnosticsProvider(ctx context.Context, provider string) string {
 	provider = strings.TrimSpace(provider)
 	if provider == "" || strings.EqualFold(provider, "auto") {
-		provider = strings.TrimSpace(rhoconfig.ActiveGateway(ctx))
+		provider = strings.TrimSpace(reflectconfig.ActiveGateway(ctx))
 		if provider == "" || strings.EqualFold(provider, "auto") {
-			provider = strings.TrimSpace(rhoconfig.EffectiveSelection(ctx, rhoconfig.SelectionOptions{}).Provider)
+			provider = strings.TrimSpace(reflectconfig.EffectiveSelection(ctx, reflectconfig.SelectionOptions{}).Provider)
 		}
 	}
-	return rhoconfig.ActiveProviderID(provider)
+	return reflectconfig.ActiveProviderID(provider)
 }
 
-func settingsSummary(settings rhoconfig.Settings) string {
+func settingsSummary(settings reflectconfig.Settings) string {
 	return configCommandSummary(settings)
 }
 
-func mcpConfigSummary(settings rhoconfig.Settings) string {
+func mcpConfigSummary(settings reflectconfig.Settings) string {
 	if len(settings.MCPServers) == 0 && len(mcpServers) == 0 {
 		return auditTint("No MCP servers configured.", textMuted)
 	}

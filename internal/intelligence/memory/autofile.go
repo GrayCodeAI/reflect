@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // AutoFile manages a user-visible MEMORY.md that auto-discovers project conventions.

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/session"
 )
 
 type echoTestProvider struct {
@@ -61,7 +61,7 @@ func TestContinuable_LifecycleAndFIFOOrder(t *testing.T) {
 		ParentSessionID: parentID,
 		Provider:        "test-echo",
 		Label:           "Worker Subagent",
-		Model:           "rho-1",
+		Model:           "reflect-1",
 		InitialPrompt:   "initial turn",
 		Depth:           2,
 	}

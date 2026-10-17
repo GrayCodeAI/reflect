@@ -12,15 +12,16 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	reflectmod "github.com/GrayCodeAI/reflect"
 )
 
-// clientVersion is the rho version reported in MCP `initialize` clientInfo.
-// It is wired at startup by main.go from the canonical rho version (the
-// VERSION file at the repo root, injected via ldflags). The "dev" default
-// applies only to local builds without ldflags.
-var clientVersion = "dev"
+// clientVersion is the reflect version reported in MCP `initialize` clientInfo.
+// It is wired at startup by main.go from the canonical reflect version (the
+// embedded VERSION file, optionally injected via ldflags).
+var clientVersion = reflectmod.Version
 
-// SetClientVersion lets main.go propagate the canonical rho version into
+// SetClientVersion lets main.go propagate the canonical reflect version into
 // this package without creating an import cycle with cmd.
 func SetClientVersion(v string) { clientVersion = v }
 
@@ -119,7 +120,7 @@ func Connect(ctx context.Context, name, command string, args ...string) (*Server
 	_, err = s.callWithTimeout(ctx, "initialize", map[string]interface{}{
 		"protocolVersion": "2025-03-26",
 		"capabilities":    map[string]interface{}{},
-		"clientInfo":      map[string]interface{}{"name": "rho", "version": clientVersion},
+		"clientInfo":      map[string]interface{}{"name": "reflect", "version": clientVersion},
 	})
 	if err != nil {
 		_ = cmd.Process.Kill()
@@ -280,7 +281,7 @@ func (s *Server) CallTool(ctx context.Context, name string, args map[string]inte
 // (isError:true), the content carries the failure detail and this returns it as
 // a Go error so the agent loop surfaces it to the model — which can then
 // self-correct — instead of mistaking a failure for a successful result.
-// rho's own MCP server sets this flag (internal/mcp/server.go), so the client
+// reflect's own MCP server sets this flag (internal/mcp/server.go), so the client
 // must read it for symmetry. An undecodable result falls back to the raw bytes.
 func parseToolCallResult(result json.RawMessage) (string, error) {
 	var resp struct {

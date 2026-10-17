@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/resilience/health"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect/internal/resilience/health"
 )
 
 type diagnosticsContextKey struct{}
@@ -25,7 +25,7 @@ func (s *contextRecordingCredentialStore) Get(ctx context.Context, account strin
 
 func TestDoctorReport(t *testing.T) {
 	t.Parallel()
-	settings := rhoconfig.Settings{}
+	settings := reflectconfig.Settings{}
 	report := doctorReport(settings)
 	if report == "" {
 		t.Error("doctorReport should produce non-empty output")
@@ -33,14 +33,14 @@ func TestDoctorReport(t *testing.T) {
 	if !strings.Contains(report, "Version") {
 		t.Error("report should mention version")
 	}
-	if !strings.Contains(report, "Ecosystem (flux · token engine)") {
+	if !strings.Contains(report, "Ecosystem (relay · token engine)") {
 		t.Error("report should include ecosystem panel")
 	}
 }
 
 func TestDoctorReportProviderModelOrder(t *testing.T) {
 	t.Parallel()
-	settings := rhoconfig.Settings{
+	settings := reflectconfig.Settings{
 		Model:    "claude-sonnet-4-20250514",
 		Provider: "anthropic",
 	}
@@ -56,14 +56,14 @@ func TestDoctorReportProviderModelOrder(t *testing.T) {
 
 func TestDoctorReportUsesResolvedProviderForChecks(t *testing.T) {
 	isolateCredentialHome(t)
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	gateway.SetDefaultStore(&gateway.MapStore{})
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
-	report := doctorReport(rhoconfig.Settings{
+	report := doctorReport(reflectconfig.Settings{
 		Model:    "claude-sonnet-4-20250514",
 		Provider: "anthropic",
 	})
@@ -74,23 +74,23 @@ func TestDoctorReportUsesResolvedProviderForChecks(t *testing.T) {
 
 func TestProviderCredentialHealthCheckerResolvesAuto(t *testing.T) {
 	isolateCredentialHome(t)
-	t.Setenv("FLUX_CONFIG_DIR", t.TempDir())
-	rhoconfig.InvalidateConfigUICache()
+	t.Setenv("RELAY_CONFIG_DIR", t.TempDir())
+	reflectconfig.InvalidateConfigUICache()
 	store := &contextRecordingCredentialStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	ctx := context.WithValue(context.Background(), diagnosticsContextKey{}, "checker-context")
 	if err := store.Set(ctx, gateway.AccountForEnv("OPENROUTER_API_KEY"), "sk-or-test-key-1234567890"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
+	if err := reflectconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
+	if err := reflectconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
 		t.Fatal(err)
 	}
 	store.contextValue = nil
@@ -117,12 +117,12 @@ func TestProviderCredentialHealthCheckerResolvesAuto(t *testing.T) {
 
 func TestProviderCredentialHealthCheckerMissingIsUnhealthy(t *testing.T) {
 	isolateCredentialHome(t)
-	t.Setenv("FLUX_CONFIG_DIR", t.TempDir())
-	rhoconfig.InvalidateConfigUICache()
+	t.Setenv("RELAY_CONFIG_DIR", t.TempDir())
+	reflectconfig.InvalidateConfigUICache()
 	gateway.SetDefaultStore(&gateway.MapStore{})
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	result := providerCredentialHealthChecker("openai")(context.Background())
@@ -142,7 +142,7 @@ func TestProviderCredentialHealthCheckerMissingIsUnhealthy(t *testing.T) {
 
 func TestSettingsSummary(t *testing.T) {
 	t.Parallel()
-	settings := rhoconfig.Settings{
+	settings := reflectconfig.Settings{
 		Model:    "claude-sonnet-4-20250514",
 		Provider: "anthropic",
 	}
@@ -154,7 +154,7 @@ func TestSettingsSummary(t *testing.T) {
 
 func TestMcpConfigSummary(t *testing.T) {
 	t.Parallel()
-	settings := rhoconfig.Settings{}
+	settings := reflectconfig.Settings{}
 	summary := mcpConfigSummary(settings)
 	if summary == "" {
 		t.Error("mcpConfigSummary should produce output")

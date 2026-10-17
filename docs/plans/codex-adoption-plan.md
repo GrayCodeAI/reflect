@@ -1,9 +1,9 @@
 # OpenAI Codex CLI Adoption Plan
 
-Status: Audited. Core ideas already implemented natively in rho; remaining
+Status: Audited. Core ideas already implemented natively in reflect; remaining
 deltas recorded as future RFCs.
 
-> **Superseded runtime assumptions (2026-09-20):** Rho no longer ships a
+> **Superseded runtime assumptions (2026-09-20):** Reflect no longer ships a
 > native OS/container sandbox or a Docker execution backend. The permission
 > engine, path guard, trust policy, and destructive-command hard blocks are
 > the current local safety boundary. Sandbox rows below are historical design
@@ -14,9 +14,9 @@ Source: `https://github.com/openai/codex` (Apache-2.0, Rust workspace
 
 ## Executive Decision
 
-The audit found that every codex-rs capability relevant to rho's security and
+The audit found that every codex-rs capability relevant to reflect's security and
 runtime model already has a native Go implementation, several of them deeper
-than codex's equivalents because they build on Rho's independent ecosystem
+than codex's equivalents because they build on Reflect's independent ecosystem
 repositories.
 No second runtime, sandbox layer, or policy engine was created.
 
@@ -27,18 +27,18 @@ Three codex ideas are deliberately deferred as future RFCs; see
 
 ## Capability Audit
 
-| codex-rs crate/concept | rho implementation | Decision |
+| codex-rs crate/concept | reflect implementation | Decision |
 |---|---|---|
-| `core` agent loop | `internal/engine` | Keep rho |
-| `tui`, `ansi-escape`, `terminal-detection` | Bubble Tea/Lipgloss TUI | Keep rho |
-| `rollout`, `thread-store`, `history` JSONL sessions with resume/fork | `internal/session` JSONL + WAL + named checkpoints + fork + recovery + handover | Keep rho (richer) |
-| `app-server-daemon`, `app-server-protocol` (JSON-RPC for IDE/desktop) | `internal/daemon` HTTP/SSE on 4590 + `internal/acp` | Keep rho |
-| `mcp-server`, `codex-mcp`, `rmcp-client`, `connectors` | `internal/mcp` client+server, sibling `falcon` scaffolding | Keep rho |
-| `skills`, `plugin`, `hooks` | community skill registry + structural validator, plugins, expanded lifecycle hook events | Keep rho |
-| `login`, `keyring-store`, `aws-auth` | flux credential store in OS keychain across 28 providers | Keep rho (broader) |
-| `model-provider(-info)`, `models-manager`, `ollama`, `lmstudio` | sibling `flux` adapters, catalog, cascade routing | Keep rho (much broader) |
-| `memories`, `agent-graph-store`, `context-fragments` | sibling `harrier` (Harrier) graph memory; eventlog/graphjournal projections | Keep rho |
-| `apply-patch`, `file-search`, `file-watcher`, `git-utils` | edit tools, codegraph, git tooling, watcher hooks | Keep rho |
+| `core` agent loop | `internal/engine` | Keep reflect |
+| `tui`, `ansi-escape`, `terminal-detection` | Bubble Tea/Lipgloss TUI | Keep reflect |
+| `rollout`, `thread-store`, `history` JSONL sessions with resume/fork | `internal/session` JSONL + WAL + named checkpoints + fork + recovery + handover | Keep reflect (richer) |
+| `app-server-daemon`, `app-server-protocol` (JSON-RPC for IDE/desktop) | `internal/daemon` HTTP/SSE on 4590 + `internal/acp` | Keep reflect |
+| `mcp-server`, `codex-mcp`, `rmcp-client`, `connectors` | `internal/mcp` client+server, sibling `falcon` scaffolding | Keep reflect |
+| `skills`, `plugin`, `hooks` | community skill registry + structural validator, plugins, expanded lifecycle hook events | Keep reflect |
+| `login`, `keyring-store`, `aws-auth` | relay credential store in OS keychain across 28 providers | Keep reflect (broader) |
+| `model-provider(-info)`, `models-manager`, `ollama`, `lmstudio` | sibling `relay` adapters, catalog, cascade routing | Keep reflect (much broader) |
+| `memories`, `agent-graph-store`, `context-fragments` | sibling `harrier` (Harrier) graph memory; eventlog/graphjournal projections | Keep reflect |
+| `apply-patch`, `file-search`, `file-watcher`, `git-utils` | edit tools, codegraph, git tooling, watcher hooks | Keep reflect |
 | `external-agent-migration` | swift reads Claude Code / Codex / Gemini CLI / OpenCode / Cursor sessions | Parity |
 | **`linux-sandbox`** (Landlock + seccomp-bpf) | Removed from the local product runtime | Removed |
 | **macOS Seatbelt** | Removed from the local product runtime | Removed |
@@ -68,19 +68,19 @@ Three codex ideas are deliberately deferred as future RFCs; see
   the safe read-only fan-out case. Arbitrary-script execution still requires an
   embedded runtime, capabilities model, and output-trust threat model; track as
   a standalone RFC.
-- **Agent identity signing** (`agent-identity`): rho already provides a
+- **Agent identity signing** (`agent-identity`): reflect already provides a
   per-harness anonymous user identity (`internal/identity`) and a tamper-evident
   HMAC-chained security log with session-scoped events (`internal/securitylog`).
   Signed subagent delegation chains are worth a focused design once multi-org
   delegation exists.
 - **Cloud tasks client** (`cloud-tasks*`): remote task queue integration.
-  Rho Cloud already provides sync/review surfaces; a queue protocol would
+  Reflect Cloud already provides sync/review surfaces; a queue protocol would
   duplicate that until a concrete consumer exists.
 
 ## Verification
 
 - `go test ./...` full suite green.
-- `make vet`, `make lint`, `rho verify` green.
+- `make vet`, `make lint`, `reflect verify` green.
 - Repo-owned markdown passes `markdownlint-cli2 '**/*.md'` (CI scope);
   findings under sibling repositories belong to those repositories and follow
   their own contribution flow.

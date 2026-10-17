@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/env"
-	homepkg "github.com/GrayCodeAI/rho/internal/home"
+	"github.com/GrayCodeAI/reflect/internal/env"
+	homepkg "github.com/GrayCodeAI/reflect/internal/home"
 )
 
 // dangerousCommands are commands that should ALWAYS be blocked.
@@ -102,7 +102,7 @@ var (
 	ifsInjectionRe          = regexp.MustCompile(`\$IFS|\$\{[^}]*IFS`)
 	procEnvironRe           = regexp.MustCompile(`/proc/.*environ`)
 	envDumpRe               = regexp.MustCompile(`(?i)(^|[;&|]\s*|\s)(printenv|env)(\s|$)`)
-	rhoEnvReadRe            = regexp.MustCompile(`(?i)\b(cat|type|head|less|more|dd)\b[^\n;|]*\.rho/(env|\.env)\b`)
+	reflectEnvReadRe        = regexp.MustCompile(`(?i)\b(cat|type|head|less|more|dd)\b[^\n;|]*\.reflect/(env|\.env)\b`)
 	apiKeyEchoRe            = regexp.MustCompile(`(?i)\becho\s+[^\n;|]*\$?(ANTHROPIC|OPENAI|OPENROUTER|GEMINI|GROK|XAI)_API_KEY`)
 	ansiCQuotingRe          = regexp.MustCompile(`\$'[^']*'`)
 	localeQuotingRe         = regexp.MustCompile(`\$"[^"]*"`)

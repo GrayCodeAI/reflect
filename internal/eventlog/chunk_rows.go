@@ -13,7 +13,7 @@
 // and use bare (dot-less, slash-less) type tags so a reader cannot confuse
 // them with the event taxonomy. The packer whitelists exact shapes —
 // anything it does not fully recognize is stored verbatim, so unknown fields
-// or future chunk variants lose compression, never data. The decoder validates
+// or future chunk variants lose compression, never data. The reflect validates
 // before expanding and fails loud on a malformed row-tagged value instead of
 // silently dropping a whole run.
 //
@@ -77,7 +77,7 @@ const minPackRun = 3
 var chunkFactKeys = []string{"turn", "step", "chunk"}
 
 // classifyChunk determines whether an assistant.chunk WireEvent can enter a
-// text-chunk pack. Rho's ChunkFact is text-only (no index), so every
+// text-chunk pack. Reflect's ChunkFact is text-only (no index), so every
 // non-empty ChunkFact with the canonical three keys (text) or four keys
 // (text+kind) is packable. Returns nil for events that cannot pack (empty
 // chunk, non-canonical keys, or non-chunk types).

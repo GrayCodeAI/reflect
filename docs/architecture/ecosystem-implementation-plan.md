@@ -1,7 +1,7 @@
 # Ecosystem Architecture Implementation Plan
 
 This is the execution plan for the independent-repository architecture around
-Rho. The plan treats `graycode-eco` as a parent folder only. It does not add a
+Reflect. The plan treats `graycode-eco` as a parent folder only. It does not add a
 root repository, root runtime module, or second product CLI.
 
 ## Target architecture
@@ -10,12 +10,12 @@ root repository, root runtime module, or second product CLI.
 SDKs (Sparrow / Robin / Wren)
               |
               v
-       Rho CLI and daemon
+       Reflect CLI and daemon
               |
    +----------+----------+
    |          |          |
    v          v          v
-Flux     Harrier     Shrike
+Relay     Harrier     Shrike
 models    memory      tokens
    |          |          |
    +----------+----------+
@@ -28,20 +28,20 @@ models    memory      tokens
 Falcon MCP kit     GrayCode Platform
                    HTTP / cloud plane
 
-Swift, Kestrel, and Merlin are additional Rho capabilities.
-Starling extends Rho through skills. Owl reads the canonical manifest.
+Swift, Kestrel, and Merlin are additional Reflect capabilities.
+Starling extends Reflect through skills. Owl reads the canonical manifest.
 ```
 
 ## Invariants
 
-1. `rho` is the only main product CLI and orchestration root.
+1. `reflect` is the only main product CLI and orchestration root.
 2. `eagle` owns neutral cross-repository contracts.
-3. Engines do not import Rho internals or peer engines.
-4. SDKs use Rho's public HTTP/OpenAPI surface.
-5. Starling uses Rho's skill/plugin surface.
-6. Owl consumes `rho/ecosystem.yaml` as a read-only projection source.
+3. Engines do not import Reflect internals or peer engines.
+4. SDKs use Reflect's public HTTP/OpenAPI surface.
+5. Starling uses Reflect's skill/plugin surface.
+6. Owl consumes `reflect/ecosystem.yaml` as a read-only projection source.
 7. No Go module imports `graycode-platform`.
-8. Rho uses the platform only through optional authenticated runtime calls.
+8. Reflect uses the platform only through optional authenticated runtime calls.
 9. Every release must work with `GOWORK=off` and published module versions.
 
 ## Phase 1: Repository and naming baseline — complete
@@ -50,57 +50,57 @@ Starling extends Rho through skills. Owl reads the canonical manifest.
 - Keep `graycode-eco` file-free except for checked-out repository directories.
 - Use bird codenames consistently for directories, module paths, and repository
   names.
-- Keep `rho/ecosystem.yaml` as the canonical inventory.
+- Keep `reflect/ecosystem.yaml` as the canonical inventory.
 - Keep `owl/ecosystem.json` synchronized with the canonical inventory.
 - Remove old repository directories and old module paths from active source.
 
 Acceptance checks:
 
 ```text
-bash rho/scripts/ecosystem-manifest.sh validate
+bash reflect/scripts/ecosystem-manifest.sh validate
 bash owl/scripts/sync-ecosystem.sh
 ```
 
 ## Phase 2: Contract and dependency boundaries — complete locally
 
-- Keep Eagle imports in Rho and engines limited to shared contracts.
+- Keep Eagle imports in Reflect and engines limited to shared contracts.
 - Keep Falcon imports limited to MCP-serving components.
-- Keep Rho's Flux integration behind `flux/engine`.
-- Keep Rho's SDKs outside the Go workspace and outside engine dependencies.
+- Keep Reflect's Relay integration behind `relay/engine`.
+- Keep Reflect's SDKs outside the Go workspace and outside engine dependencies.
 - Keep platform integration at the HTTP/Service Binding boundary.
-- Keep graph and quality projections as explicit, reviewed Rho integration
+- Keep graph and quality projections as explicit, reviewed Reflect integration
   surfaces; do not spread their implementation types into unrelated packages.
 
 Acceptance checks:
 
 ```text
-bash rho/scripts/check-ecosystem-boundaries.sh
-bash rho/scripts/check-support-repo-coupling.sh
-bash rho/scripts/check-flux-engine-boundary.sh
-bash rho/scripts/check-flux-client-imports.sh
-bash rho/scripts/check-no-replace-directives.sh
+bash reflect/scripts/check-ecosystem-boundaries.sh
+bash reflect/scripts/check-support-repo-coupling.sh
+bash reflect/scripts/check-relay-engine-boundary.sh
+bash reflect/scripts/check-relay-client-imports.sh
+bash reflect/scripts/check-no-replace-directives.sh
 ```
 
 ## Phase 3: Published-module cutover — pending external release
 
-The local Flux source already uses Eagle contracts. Rho's current published
-Flux pseudo-version still declares the retired compatibility contract
-transitively, so this phase requires publishing the compatible Flux revision.
+The local Relay source already uses Eagle contracts. Reflect's current published
+Relay pseudo-version still declares the retired compatibility contract
+transitively, so this phase requires publishing the compatible Relay revision.
 
-1. Publish the current Eagle-compatible Flux revision.
+1. Publish the current Eagle-compatible Relay revision.
 2. Resolve its canonical Go pseudo-version from the published commit.
-3. Update Rho's Flux requirement to that version.
-4. Run `GOWORK=off go mod tidy` in Rho.
-5. Confirm the retired compatibility module is absent from Rho's module graph.
+3. Update Reflect's Relay requirement to that version.
+4. Run `GOWORK=off go mod tidy` in Reflect.
+5. Confirm the retired compatibility module is absent from Reflect's module graph.
 6. Remove any obsolete transition excludes.
-7. Run Rho's standalone release-parity checks.
+7. Run Reflect's standalone release-parity checks.
 
 Acceptance checks:
 
 ```text
 GOWORK=off go mod tidy
 GOWORK=off go list -m all
-bash rho/scripts/check-module-release-parity.sh
+bash reflect/scripts/check-module-release-parity.sh
 GOWORK=off go test ./...
 ```
 
@@ -109,7 +109,7 @@ The release graph must resolve from published module versions.
 
 ## Phase 4: SDK and platform integration — complete locally; release verify
 
-- Keep Sparrow, Robin, and Wren aligned with Rho's public API snapshots.
+- Keep Sparrow, Robin, and Wren aligned with Reflect's public API snapshots.
 - Keep SDKs independent from engines and Eagle implementation packages.
 - Keep the Web app calling the BFF rather than reaching into Worker internals.
 - Keep the BFF-to-Worker connection private through the configured Service
@@ -131,11 +131,11 @@ pnpm run format:check
 
 ## Phase 5: Continuous verification
 
-- Run the manifest and boundary checks on every Rho ecosystem change.
+- Run the manifest and boundary checks on every Reflect ecosystem change.
 - Run standalone module-mode tests before release; workspace tests are an
   additional integration pass.
 - Regenerate Owl after every canonical manifest change.
-- Reject new imports of Rho internals from sibling repositories.
+- Reject new imports of Reflect internals from sibling repositories.
 - Reject new direct SDK-to-engine or engine-to-peer-engine dependencies.
 - Record any intentional boundary exception in the architecture document and
   add a focused test or guard for it.
@@ -146,10 +146,10 @@ The architecture is complete when:
 
 - all local invariants and boundary checks pass;
 - all repositories match the canonical manifest;
-- Rho builds and tests with `GOWORK=off`;
+- Reflect builds and tests with `GOWORK=off`;
 - SDK and platform contract checks pass; and
-- the published Flux revision no longer brings the retired compatibility
-  contract into Rho's standalone module graph.
+- the published Relay revision no longer brings the retired compatibility
+  contract into Reflect's standalone module graph.
 
 Current state: Phases 1, 2, and the local portion of Phase 4 are complete.
 Phase 3 is the only remaining release-dependent item.

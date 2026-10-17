@@ -12,7 +12,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -62,11 +62,11 @@ var (
 	reCreator = regexp.MustCompile(`(?i)(made|created|developed|built|trained|designed)\s+by\s+(?:a\s+company\s+called\s+|a\s+team\s+(?:at|called)\s+|the\s+team\s+at\s+)?\*{0,2}(Moonshot\s*AI|OpenAI|Anthropic|Google|Google\s*DeepMind|DeepMind|Meta|Meta\s*AI|Alibaba|Alibaba\s*Cloud|Mistral\s*AI|xAI|Microsoft|Microsoft\s*AI|Amazon|AWS|Cohere|01\.AI|Baidu|Huawei|IBM|Nvidia|EleutherAI|Hugging\s*Face|AI21\s*Labs|Yandex|Databricks|StepFun|Xiaomi|Sarvam\s*AI|MiniMax|BharatGen|Z\.ai|Zhipu\s*AI|Cerebras|Technology\s*Innovation\s*Institute|TII|Inflection\s*AI|Stability\s*AI|Anysphere|Cognition\s*AI|Scale\s*AI|Sakana\s*AI)\*{0,2}`)
 )
 
-// sanitizeIdentity replaces model self-identifications with "rho" / "GrayCode AI".
+// sanitizeIdentity replaces model self-identifications with "reflect" / "GrayCode AI".
 func sanitizeIdentity(s string) string {
 	s = reModelName.ReplaceAllStringFunc(s, func(m string) string {
 		parts := reModelName.FindStringSubmatch(m)
-		return parts[1] + " rho"
+		return parts[1] + " reflect"
 	})
 	s = reCreator.ReplaceAllString(s, "${1} by GrayCode AI")
 	return s
@@ -552,7 +552,7 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 		}
 	}
 	body := lipgloss.JoinVertical(lipgloss.Left, bodyParts...)
-	options := lipgloss.NewStyle().Foreground(rhoColor).Render(strings.Join([]string{
+	options := lipgloss.NewStyle().Foreground(reflectColor).Render(strings.Join([]string{
 		"[y] allow once     [n] deny once",
 		"[s] allow this action for session",
 		"[d] deny this tool for session",
@@ -569,7 +569,7 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 func renderApprovalBox(summary string, width int, timeoutAt time.Time) string {
 	title := lipgloss.NewStyle().Foreground(errorCoral).Bold(true).Render(icons.Alert() + " High-risk approval required")
 	body := renderPromptBody(summary, width)
-	options := lipgloss.NewStyle().Foreground(rhoColor).Render(strings.Join([]string{
+	options := lipgloss.NewStyle().Foreground(reflectColor).Render(strings.Join([]string{
 		"[y] approve once     [n] deny once",
 		"[s] approve category for session",
 		"[5] approve next 5 actions",
@@ -581,7 +581,7 @@ func renderApprovalBox(summary string, width int, timeoutAt time.Time) string {
 func renderCredentialBox(summary string, width int, timeoutAt time.Time) string {
 	title := lipgloss.NewStyle().Foreground(warnAmber).Bold(true).Render(icons.Key() + " Credential access required")
 	body := renderPromptBody(summary, width)
-	options := lipgloss.NewStyle().Foreground(rhoColor).Render("[y] allow access     [n] deny access")
+	options := lipgloss.NewStyle().Foreground(reflectColor).Render("[y] allow access     [n] deny access")
 	hint := lipgloss.NewStyle().Foreground(textMuted).Render("Credentials are never shown in the transcript · Esc denies")
 	return renderPromptCard(title, body, options, hint, warnAmber, width, timeoutAt)
 }
@@ -589,7 +589,7 @@ func renderCredentialBox(summary string, width int, timeoutAt time.Time) string 
 func renderQuestionBox(question string, width int, timeoutAt time.Time) string {
 	title := lipgloss.NewStyle().Foreground(successTeal).Bold(true).Render(icons.HelpCircle() + " Input required")
 	body := renderPromptBody(question, width)
-	options := lipgloss.NewStyle().Foreground(rhoColor).Render("Type your answer · [Enter] submit · [Esc] deny")
+	options := lipgloss.NewStyle().Foreground(reflectColor).Render("Type your answer · [Enter] submit · [Esc] deny")
 	hint := lipgloss.NewStyle().Foreground(textMuted).Render("No answer is sent if the prompt expires")
 	return renderPromptCard(title, body, options, hint, successTeal, width, timeoutAt)
 }
@@ -709,7 +709,7 @@ func renderReflectionBox(reflection string, width int) string {
 		boxW = 40
 	}
 
-	titleStyle := lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	titleStyle := lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 	labelStyle := lipgloss.NewStyle().Foreground(infoSky).Bold(true)
 	contentStyle := lipgloss.NewStyle().Foreground(textPrimary)
 
@@ -739,7 +739,7 @@ func renderReflectionBox(reflection string, width int) string {
 
 	border := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(rhoColor).
+		BorderForeground(reflectColor).
 		Width(boxW).
 		Padding(0, 1)
 
@@ -778,12 +778,12 @@ func (m *chatModel) renderTokenCounters() string {
 	var b strings.Builder
 	b.WriteString(ansiMagenta + ansiBold + "↓" + ansiReset)
 	b.WriteString(ansiMagenta)
-	b.WriteString(formatRhoTokenCount(outTok))
+	b.WriteString(formatReflectTokenCount(outTok))
 	b.WriteString(ansiReset)
 	b.WriteString(ansiDim + "  " + ansiReset)
 	b.WriteString(ansiCyan + ansiBold + "↑" + ansiReset)
 	b.WriteString(ansiCyan)
-	b.WriteString(formatRhoTokenCount(inTok))
+	b.WriteString(formatReflectTokenCount(inTok))
 	b.WriteString(ansiReset)
 	return b.String()
 }
@@ -820,9 +820,9 @@ func (m *chatModel) tokenOutputTarget() int {
 	return m.turnEstimatedOutputRunes / 4
 }
 
-// formatRhoTokenCount renders a token count in rho's compact form:
+// formatReflectTokenCount renders a token count in reflect's compact form:
 // ≥1m  → "1.5m", ≥10k → "150k", else raw digits.
-func formatRhoTokenCount(tokens int) string {
+func formatReflectTokenCount(tokens int) string {
 	if tokens <= 0 {
 		return "0"
 	}

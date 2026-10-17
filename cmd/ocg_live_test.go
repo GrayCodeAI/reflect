@@ -4,7 +4,7 @@
 // Live integration test for the OpenCodeGo provider adapter end-to-end.
 // Opt-in only — not run by default `go test ./...` or CI. Run with:
 //
-//	OPENCODEGO_API_KEY=... go test -tags=live_test -run TestLiveOpenCodeGoMiniMaxM3FullRhoPath ./cmd
+//	OPENCODEGO_API_KEY=... go test -tags=live_test -run TestLiveOpenCodeGoMiniMaxM3FullReflectPath ./cmd
 //
 // Or via `make test-live` in this repo.
 package cmd
@@ -15,15 +15,15 @@ import (
 	"testing"
 	"time"
 
-	fluxcfg "github.com/GrayCodeAI/flux/config"
-	"github.com/GrayCodeAI/flux/credentials"
-	"github.com/GrayCodeAI/flux/setup"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
+	"github.com/GrayCodeAI/reflect/internal/observability/logger"
+	relaycfg "github.com/GrayCodeAI/relay/config"
+	"github.com/GrayCodeAI/relay/credentials"
+	"github.com/GrayCodeAI/relay/setup"
 )
 
-func TestLiveOpenCodeGoMiniMaxM3FullRhoPath(t *testing.T) {
+func TestLiveOpenCodeGoMiniMaxM3FullReflectPath(t *testing.T) {
 	if credentials.LookupSecret(context.Background(), "OPENCODEGO_API_KEY") == "" {
-		t.Skip("OPENCODEGO_API_KEY not configured") // TODO: https://github.com/GrayCodeAI/rho/issues/29
+		t.Skip("OPENCODEGO_API_KEY not configured") // TODO: https://github.com/GrayCodeAI/reflect/issues/29
 	}
 	settings, err := loadEffectiveSettings()
 	if err != nil {
@@ -38,12 +38,12 @@ func TestLiveOpenCodeGoMiniMaxM3FullRhoPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("provider=%s model=%s tools=%d system_len=%d", effectiveProvider, effectiveModel, len(registry.FluxTools()), len(systemPrompt))
+	t.Logf("provider=%s model=%s tools=%d system_len=%d", effectiveProvider, effectiveModel, len(registry.RelayTools()), len(systemPrompt))
 
-	adapter := setup.ConfiguredDeploymentAdapters(fluxcfg.LoadProviderConfig(""))["opencodego"]
+	adapter := setup.ConfiguredDeploymentAdapters(relaycfg.LoadProviderConfig(""))["opencodego"]
 	t.Logf("adapter_type=%T", adapter.Provider)
 
-	sess := newRhoSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry)
+	sess := newReflectSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry)
 	sess.SetLogger(logger.New(ioDiscard{}, logger.Info))
 	if cfgErr := configureSession(sess, settings); cfgErr != nil {
 		t.Fatal(cfgErr)

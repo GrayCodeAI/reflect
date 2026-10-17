@@ -3,10 +3,10 @@ package engine
 import (
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
-func isRecentToolHeavy(messages []types.FluxMessage) bool {
+func isRecentToolHeavy(messages []types.RelayMessage) bool {
 	const lookback = 3
 	toolTurns := 0
 	assistantSeen := 0
@@ -25,7 +25,7 @@ func isRecentToolHeavy(messages []types.FluxMessage) bool {
 	return assistantSeen >= lookback && toolTurns == assistantSeen
 }
 
-func isTextQuestion(messages []types.FluxMessage) bool {
+func isTextQuestion(messages []types.RelayMessage) bool {
 	var lastUserMsg string
 	for i := len(messages) - 1; i >= 0; i-- {
 		msg := messages[i]
@@ -53,7 +53,7 @@ func isTextQuestion(messages []types.FluxMessage) bool {
 	return strings.HasSuffix(strings.TrimSpace(lower), "?")
 }
 
-func classifyPromptForBudget(messages []types.FluxMessage) string {
+func classifyPromptForBudget(messages []types.RelayMessage) string {
 	if isRecentToolHeavy(messages) {
 		return "tool"
 	}

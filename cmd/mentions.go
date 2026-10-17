@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/GrayCodeAI/rho/internal/mention"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/mention"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 // handleMentions processes @-prefixed file mentions in user input.

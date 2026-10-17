@@ -7,65 +7,65 @@ import (
 	"strings"
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
 
 func isolateCredentialHome(t *testing.T) {
 	t.Helper()
 	home := t.TempDir()
-	rhoDir := filepath.Join(home, ".rho")
-	_ = os.MkdirAll(rhoDir, 0o700)
+	reflectDir := filepath.Join(home, ".reflect")
+	_ = os.MkdirAll(reflectDir, 0o700)
 	t.Setenv("HOME", home)
-	t.Setenv("RHO_CONFIG_DIR", rhoDir)
-	t.Setenv("FLUX_CONFIG_DIR", filepath.Join(home, "flux"))
+	t.Setenv("REFLECT_CONFIG_DIR", reflectDir)
+	t.Setenv("RELAY_CONFIG_DIR", filepath.Join(home, "relay"))
 }
 
 func TestEffectiveModelAndProvider_ClearsWithoutCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	isolateCredentialHome(t)
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	ctx := context.Background()
-	if err := rhoconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
+	if err := reflectconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
+	if err := reflectconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
 		t.Fatal(err)
 	}
 
-	model, provider := effectiveModelAndProvider(rhoconfig.Settings{})
+	model, provider := effectiveModelAndProvider(reflectconfig.Settings{})
 	if model != "" || provider != "" {
 		t.Fatalf("expected empty selection without credentials, got model=%q provider=%q", model, provider)
 	}
 }
 
 func TestEffectiveModelAndProvider_KeepsWithCredentials(t *testing.T) {
-	rhoconfig.InvalidateConfigUICache()
+	reflectconfig.InvalidateConfigUICache()
 	isolateCredentialHome(t)
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
 	t.Cleanup(func() {
 		gateway.SetDefaultStore(nil)
-		rhoconfig.InvalidateConfigUICache()
+		reflectconfig.InvalidateConfigUICache()
 	})
 
 	ctx := context.Background()
 	_ = store.Set(ctx, gateway.AccountForEnv("OPENROUTER_API_KEY"), "sk-or-test-key-1234567890")
-	rhoconfig.InvalidateConfigUICache()
-	if err := rhoconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
+	reflectconfig.InvalidateConfigUICache()
+	if err := reflectconfig.SetActiveProvider(ctx, "openrouter"); err != nil {
 		t.Fatal(err)
 	}
-	if err := rhoconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
+	if err := reflectconfig.SetActiveModel(ctx, "gpt-4o"); err != nil {
 		t.Fatal(err)
 	}
 
-	model, provider := effectiveModelAndProvider(rhoconfig.Settings{})
+	model, provider := effectiveModelAndProvider(reflectconfig.Settings{})
 	if provider == "" {
 		t.Fatalf("expected provider with credentials, got model=%q provider=%q", model, provider)
 	}

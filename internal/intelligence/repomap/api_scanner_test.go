@@ -72,8 +72,8 @@ import "net/http"
 func main() {
 	http.HandleFunc("/api/hello", HelloHandler)
 	http.Handle("/static/", http.FileServer(http.Dir("./static")))
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/users", UsersHandler)
+	relay := http.NewServeMux()
+	relay.HandleFunc("/api/users", UsersHandler)
 }
 `
 	endpoints := ScanNetHTTP(content, "server.go")
@@ -99,9 +99,9 @@ func TestScanNetHTTPMethodPattern(t *testing.T) {
 import "net/http"
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/users", ListUsers)
-	mux.HandleFunc("POST /api/users", CreateUser)
+	relay := http.NewServeMux()
+	relay.HandleFunc("GET /api/users", ListUsers)
+	relay.HandleFunc("POST /api/users", CreateUser)
 }
 `
 	endpoints := ScanNetHTTP(content, "server.go")
@@ -214,10 +214,10 @@ func main() {
 func TestScanGorilla(t *testing.T) {
 	content := `package main
 
-import "github.com/gorilla/mux"
+import "github.com/gorilla/relay"
 
 func main() {
-	r := mux.NewRouter()
+	r := relay.NewRouter()
 	r.HandleFunc("/api/users", ListUsers).Methods("GET")
 	r.HandleFunc("/api/users", CreateUser).Methods("POST")
 	r.HandleFunc("/api/users/{id}", GetUser).Methods("GET")

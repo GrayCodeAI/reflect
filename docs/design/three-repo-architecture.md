@@ -8,12 +8,12 @@ proposal. See also `gateway-architecture.md` (human-readable version),
 
 ```mermaid
 flowchart LR
-    subgraph CLI["rho"]
+    subgraph CLI["reflect"]
         TUI["chat · exec · review\nagent loop · sessions"]
-        ENG["flux engine\n(compiled in)"]
+        ENG["relay engine\n(compiled in)"]
     end
 
-    subgraph ROUTER["flux"]
+    subgraph ROUTER["relay"]
         LIB["engine library\n(router, adapters)"]
         SRV["HTTP server (skeleton)\ninternal/api + openapi.yaml"]
     end
@@ -32,18 +32,18 @@ Wires, with evidence:
 
 | From → To | Mechanism | Evidence |
 |---|---|---|
-| CLI → Router | Go module dep, in-process construction | `go.mod` requires `github.com/GrayCodeAI/flux`; `internal/provider/gateway/gateway.go` is the sole importer |
+| CLI → Router | Go module dep, in-process construction | `go.mod` requires `github.com/GrayCodeAI/relay`; `internal/provider/gateway/gateway.go` is the sole importer |
 | CLI → Platform | Opt-in HTTPS (login, usage, graph sync) | `internal/platform/cloud/client.go`; `Enabled()` requires endpoint + token; no default URL |
-| Router → CLI | none | router `go.mod`/`go.sum` contain zero rho refs |
+| Router → CLI | none | router `go.mod`/`go.sum` contain zero reflect refs |
 | Router ↔ Platform | none | no imports, package deps, or API calls either direction |
 
 ## Target state (proposal)
 
 ```mermaid
 flowchart LR
-    CLI2["rho\n(default: in-process)"] -. "opt-in --model-gateway" .-> GW
+    CLI2["reflect\n(default: in-process)"] -. "opt-in --model-gateway" .-> GW
     WEB2["platform web/BFF"] -->|per-user keys| GW
-    subgraph GW["flux: common service"]
+    subgraph GW["relay: common service"]
         API["OpenAI-compatible API\n/v1/chat/completions + SSE"]
         POL["routing · retry · guardrails\nspend tracking"]
     end

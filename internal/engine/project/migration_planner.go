@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
 )
 
 // MigrationPlan represents a complete plan for a large-scale code migration.

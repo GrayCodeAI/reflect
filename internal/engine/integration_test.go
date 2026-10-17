@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/reflect/internal/engine/cost"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 // TestSessionLifecycle tests the full session lifecycle.
@@ -25,7 +25,7 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatal("expected session")
 	}
 
-	// Test basic properties: no implicit provider/model defaults in Rho.
+	// Test basic properties: no implicit provider/model defaults in Reflect.
 	if sess.Provider() != "" {
 		t.Fatalf("expected empty provider by default, got %q", sess.Provider())
 	}

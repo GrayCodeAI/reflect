@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
-func segTestMessages() []types.FluxMessage {
-	return []types.FluxMessage{
+func segTestMessages() []types.RelayMessage {
+	return []types.RelayMessage{
 		{Role: "user", Content: "fix the flaky test in pkg/foo"},
 		{
 			Role: "assistant", Content: "Looking into it.",
@@ -74,7 +74,7 @@ func TestParseCompactionDetail(t *testing.T) {
 
 func TestWriteCompactionSegmentAndIndex(t *testing.T) {
 	stateDir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", stateDir)
+	t.Setenv("REFLECT_STATE_DIR", stateDir)
 	sessionID := "seg-test-session"
 	path, err := WriteCompactionSegment(sessionID, segTestMessages(), SegmentVerbose)
 	if err != nil {

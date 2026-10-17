@@ -3,7 +3,7 @@ package schedule
 import (
 	"encoding/json"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
+	"github.com/GrayCodeAI/reflect/internal/eventlog"
 )
 
 // Fold folds a sequence of eventlog events into a map of active ScheduleItems.

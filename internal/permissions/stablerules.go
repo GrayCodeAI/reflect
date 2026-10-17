@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 	"github.com/gofrs/flock"
 )
 
@@ -133,7 +133,7 @@ func (s *StableRuleStore) Save() error {
 	return writeStableRulesAtomically(s.path, data)
 }
 
-// lockStableRulesFile serializes read/modify/write mutations across rho
+// lockStableRulesFile serializes read/modify/write mutations across reflect
 // processes. The lock file is intentionally retained; flock ownership, not
 // its presence, provides exclusion and the kernel releases it on crash.
 func lockStableRulesFile(path string) (func(), error) {
@@ -278,7 +278,7 @@ func (s *StableRuleStore) saveStateValue(state stableid.State) error {
 
 // writeStableRulesAtomically writes policy state through a unique temporary
 // file and renames it into place. A fixed "*.tmp" sibling is unsafe when two
-// rho processes update the same project concurrently: one process can rename
+// reflect processes update the same project concurrently: one process can rename
 // or remove the other's partial file.
 func writeStableRulesAtomically(path string, data []byte) error {
 	dir := filepath.Dir(path)

@@ -1,6 +1,6 @@
 # Monitoring and Usage
 
-Rho tracks token usage, costs, and session activity for monitoring and debugging.
+Reflect tracks token usage, costs, and session activity for monitoring and debugging.
 
 ---
 
@@ -11,8 +11,8 @@ Token usage is tracked per session and aggregated.
 ### View Usage
 
 ```bash
-rho usage
-rho doctor    # Full health report
+reflect usage
+reflect doctor    # Full health report
 ```
 
 Usage shows:
@@ -24,12 +24,12 @@ Usage shows:
 
 ## Telemetry
 
-Rho can send anonymous usage telemetry.
+Reflect can send anonymous usage telemetry.
 
 ### Enable/Disable
 
 ```json
-// ~/.rho/settings.json
+// ~/.reflect/settings.json
 {
   "telemetry": {
     "enabled": false
@@ -40,7 +40,7 @@ Rho can send anonymous usage telemetry.
 Or:
 
 ```bash
-rho --telemetry    # Enable
+reflect --telemetry    # Enable
 haw --no-telemetry  # Disable
 ```
 
@@ -77,7 +77,7 @@ Accessible via `/ecosystem` in TUI.
 
 ## Cloud Integration
 
-Rho Cloud provides managed usage tracking:
+Reflect Cloud provides managed usage tracking:
 
 - Organization-level metrics
 - Budget alerts

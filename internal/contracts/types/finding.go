@@ -1,5 +1,5 @@
 // Vendored from github.com/GrayCodeAI/eagle/types at v0.0.0-20260902153929-5877bed17503 (MIT, Copyright (c) 2026 GrayCode AI).
-// The upstream repository no longer exists; this copy is owned by Rho as its contract surface.
+// The upstream repository no longer exists; this copy is owned by Reflect as its contract surface.
 package types
 
 import (
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Finding represents a unified analysis concern sourced from Rho support engines.
+// Finding represents a unified analysis concern sourced from Reflect support engines.
 type Finding struct {
 	ID         string            `json:"id"`
 	Source     string            `json:"source"`

@@ -9,24 +9,24 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/scaffold"
+	"github.com/GrayCodeAI/reflect/internal/engine/scaffold"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	ctxrepomap "github.com/GrayCodeAI/rho/internal/context/repomap"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/branching"
-	"github.com/GrayCodeAI/rho/internal/engine/lifecycle"
-	"github.com/GrayCodeAI/rho/internal/intelligence/memory"
-	"github.com/GrayCodeAI/rho/internal/intelligence/repomap"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/prompt"
-	"github.com/GrayCodeAI/rho/internal/prompts"
-	rhomodel "github.com/GrayCodeAI/rho/internal/provider/routing"
-	"github.com/GrayCodeAI/rho/internal/snapshot"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	ctxrepomap "github.com/GrayCodeAI/reflect/internal/context/repomap"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/branching"
+	"github.com/GrayCodeAI/reflect/internal/engine/lifecycle"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/memory"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/repomap"
+	"github.com/GrayCodeAI/reflect/internal/observability/logger"
+	"github.com/GrayCodeAI/reflect/internal/permissions"
+	"github.com/GrayCodeAI/reflect/internal/prompt"
+	"github.com/GrayCodeAI/reflect/internal/prompts"
+	reflectmodel "github.com/GrayCodeAI/reflect/internal/provider/routing"
+	"github.com/GrayCodeAI/reflect/internal/snapshot"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 func buildSystemPrompt() (string, error) {
@@ -74,7 +74,7 @@ func buildSystemPromptWithOptions(includeWorkspaceContext, includeRepoMap bool) 
 		modularPrompt = ""
 	}
 
-	base := prompt.System() + "\n\n" + rhoconfig.BuildStartupContextWithDirs(addDirs)
+	base := prompt.System() + "\n\n" + reflectconfig.BuildStartupContextWithDirs(addDirs)
 	if modularPrompt != "" {
 		base += "\n\n" + modularPrompt
 	}
@@ -124,7 +124,7 @@ func buildDeferredWorkspacePromptContext() string {
 		return ""
 	}
 	var sections []string
-	if deferred := strings.TrimSpace(rhoconfig.BuildDeferredContextWithDirs(addDirs)); deferred != "" {
+	if deferred := strings.TrimSpace(reflectconfig.BuildDeferredContextWithDirs(addDirs)); deferred != "" {
 		sections = append(sections, deferred)
 	}
 	if ws := prompts.GatherWorkspaceContext(cwd); ws != nil {
@@ -161,7 +161,7 @@ func injectRepoMap(base string) string {
 		return base
 	}
 
-	settings := rhoconfig.LoadSettings()
+	settings := reflectconfig.LoadSettings()
 	if settings.RepoMap == nil || !*settings.RepoMap {
 		return base
 	}
@@ -187,43 +187,43 @@ func injectRepoMap(base string) string {
 	return base + "\n\n# Repository Map\n" + formatted
 }
 
-func loadEffectiveSettings() (rhoconfig.Settings, error) {
-	return rhoconfig.LoadSettingsWithOverride(settingsFlag)
+func loadEffectiveSettings() (reflectconfig.Settings, error) {
+	return reflectconfig.LoadSettingsWithOverride(settingsFlag)
 }
 
-func resolveSelection(settings rhoconfig.Settings) rhoconfig.Selection {
-	return rhoconfig.EffectiveSelectionWithSettings(context.Background(), settings, rhoconfig.SelectionOptions{
+func resolveSelection(settings reflectconfig.Settings) reflectconfig.Selection {
+	return reflectconfig.EffectiveSelectionWithSettings(context.Background(), settings, reflectconfig.SelectionOptions{
 		ProviderOverride: firstNonEmptyTrimmed(provider, settings.Provider),
 		ModelOverride:    firstNonEmptyTrimmed(model, settings.Model),
 	})
 }
 
-func startupSelection(settings rhoconfig.Settings) rhoconfig.Selection {
+func startupSelection(settings reflectconfig.Settings) reflectconfig.Selection {
 	providerOverride := firstNonEmptyTrimmed(provider, settings.Provider)
 	modelOverride := firstNonEmptyTrimmed(model, settings.Model)
 
 	explicitProvider, explicitModel := explicitSelection(context.Background())
 
-	providerID := rhoconfig.ActiveProviderID(firstNonEmptyTrimmed(providerOverride, explicitProvider))
+	providerID := reflectconfig.ActiveProviderID(firstNonEmptyTrimmed(providerOverride, explicitProvider))
 	modelID := strings.TrimSpace(firstNonEmptyTrimmed(modelOverride, explicitModel))
 
 	if providerID == "" && modelID != "" {
-		providerID = rhoconfig.ActiveProviderID(rhoconfig.ProviderOfModelWithSettings(settings, modelID))
+		providerID = reflectconfig.ActiveProviderID(reflectconfig.ProviderOfModelWithSettings(settings, modelID))
 	}
 	if modelID == "" && providerID != "" {
-		modelID = strings.TrimSpace(rhoconfig.DefaultModelForProviderWithSettings(settings, providerID))
+		modelID = strings.TrimSpace(reflectconfig.DefaultModelForProviderWithSettings(settings, providerID))
 	}
 	if providerID == "" {
 		providerID = startupPlaceholderProvider
 	}
 
-	return rhoconfig.Selection{
+	return reflectconfig.Selection{
 		Provider: providerID,
 		Model:    modelID,
 	}
 }
 
-func effectiveModelAndProvider(settings rhoconfig.Settings) (string, string) {
+func effectiveModelAndProvider(settings reflectconfig.Settings) (string, string) {
 	selection := resolveSelection(settings)
 	if !selection.HasConfiguredDeployment {
 		return "", ""
@@ -231,7 +231,7 @@ func effectiveModelAndProvider(settings rhoconfig.Settings) (string, string) {
 	return selection.Model, selection.Provider
 }
 
-func newStartupRhoSession(selection rhoconfig.Selection, systemPrompt string, registry *tool.Registry) *engine.Session {
+func newStartupReflectSession(selection reflectconfig.Selection, systemPrompt string, registry *tool.Registry) *engine.Session {
 	providerID := strings.TrimSpace(selection.Provider)
 	if providerID == "" {
 		providerID = startupPlaceholderProvider
@@ -239,7 +239,7 @@ func newStartupRhoSession(selection rhoconfig.Selection, systemPrompt string, re
 	return engine.NewSession(providerID, strings.TrimSpace(selection.Model), systemPrompt, registry)
 }
 
-func newRhoSession(settings rhoconfig.Settings, effectiveProvider, effectiveModel, systemPrompt string, registry *tool.Registry) *engine.Session {
+func newReflectSession(settings reflectconfig.Settings, effectiveProvider, effectiveModel, systemPrompt string, registry *tool.Registry) *engine.Session {
 	selection := resolveSelection(settings)
 	if strings.TrimSpace(selection.Provider) == "" {
 		selection.Provider = effectiveProvider
@@ -247,15 +247,15 @@ func newRhoSession(settings rhoconfig.Settings, effectiveProvider, effectiveMode
 	if strings.TrimSpace(selection.Model) == "" {
 		selection.Model = effectiveModel
 	}
-	sess := engine.NewRhoSessionForSettings(context.Background(), settings, selection, selection.Provider, selection.Model, systemPrompt, registry)
+	sess := engine.NewReflectSessionForSettings(context.Background(), settings, selection, selection.Provider, selection.Model, systemPrompt, registry)
 	return sess
 }
 
-// newConfiguredRhoSession is the non-interactive command composition root.
+// newConfiguredReflectSession is the non-interactive command composition root.
 // Interactive chat intentionally keeps its lightweight startup and deferred
 // heavy configuration split; batch/daemon/ACP callers use this atomic path.
-func newConfiguredRhoSession(settings rhoconfig.Settings, effectiveProvider, effectiveModel, systemPrompt string, registry *tool.Registry, sessionLogger *logger.Logger, maxTurnsOverride ...int) (*engine.Session, error) {
-	sess := newRhoSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry)
+func newConfiguredReflectSession(settings reflectconfig.Settings, effectiveProvider, effectiveModel, systemPrompt string, registry *tool.Registry, sessionLogger *logger.Logger, maxTurnsOverride ...int) (*engine.Session, error) {
+	sess := newReflectSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry)
 	if sessionLogger != nil {
 		sess.SetLogger(sessionLogger)
 	}
@@ -265,11 +265,11 @@ func newConfiguredRhoSession(settings rhoconfig.Settings, effectiveProvider, eff
 	return sess, nil
 }
 
-// newConfiguredRhoSessionFactory is the shared composition seam for
+// newConfiguredReflectSessionFactory is the shared composition seam for
 // non-interactive protocol/server entry points. It owns registry creation and
 // settings-based model selection while allowing each protocol to provide its
 // own prompt and optional model override.
-func newConfiguredRhoSessionFactory(settings rhoconfig.Settings, sessionLogger *logger.Logger) func(string, string, ...int) (*engine.Session, error) {
+func newConfiguredReflectSessionFactory(settings reflectconfig.Settings, sessionLogger *logger.Logger) func(string, string, ...int) (*engine.Session, error) {
 	return func(systemPrompt, modelOverride string, maxTurnsOverride ...int) (*engine.Session, error) {
 		registry, err := defaultRegistry(settings)
 		if err != nil {
@@ -279,14 +279,14 @@ func newConfiguredRhoSessionFactory(settings rhoconfig.Settings, sessionLogger *
 		if strings.TrimSpace(modelOverride) != "" {
 			effectiveModel = modelOverride
 		}
-		return newConfiguredRhoSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, sessionLogger, maxTurnsOverride...)
+		return newConfiguredReflectSession(settings, effectiveProvider, effectiveModel, systemPrompt, registry, sessionLogger, maxTurnsOverride...)
 	}
 }
 
 // prepareInteractiveSessionStartup applies only the cheap TUI startup slice.
 // Transport rebuild and heavy memory setup remain deferred until the first
 // real chat request in bootstrapSessionForChat.
-func prepareInteractiveSessionStartup(sess *engine.Session, settings rhoconfig.Settings) error {
+func prepareInteractiveSessionStartup(sess *engine.Session, settings reflectconfig.Settings) error {
 	syncSessionFromPersistedSelection(sess)
 	sess.SetLogger(logger.New(io.Discard, logger.Error))
 	return configureSessionStartup(sess, settings)
@@ -301,7 +301,7 @@ func firstNonEmptyTrimmed(values ...string) string {
 	return ""
 }
 
-func configureSession(sess *engine.Session, settings rhoconfig.Settings, maxTurnsOverride ...int) error {
+func configureSession(sess *engine.Session, settings reflectconfig.Settings, maxTurnsOverride ...int) error {
 	if err := configureSessionStartup(sess, settings, maxTurnsOverride...); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func configureSession(sess *engine.Session, settings rhoconfig.Settings, maxTurn
 	return nil
 }
 
-func configureSessionStartup(sess *engine.Session, settings rhoconfig.Settings, maxTurnsOverride ...int) error {
+func configureSessionStartup(sess *engine.Session, settings reflectconfig.Settings, maxTurnsOverride ...int) error {
 	sess.WireAgentTool()
 	sess.SetAllowedDirs(addDirs)
 	projectDir, err := os.Getwd()
@@ -363,7 +363,7 @@ func configureSessionStartup(sess *engine.Session, settings rhoconfig.Settings, 
 	}
 
 	// Model cascade router: automatically routes tasks to optimal model tier
-	roles := rhomodel.DefaultRoles(sess.Model())
+	roles := reflectmodel.DefaultRoles(sess.Model())
 	if settings.ModelRoles != nil {
 		roles = *settings.ModelRoles
 	}
@@ -411,7 +411,7 @@ func configureSessionStartup(sess *engine.Session, settings rhoconfig.Settings, 
 	// provider-specific defaults (e.g. LongCat off).
 	modelID := strings.TrimSpace(sess.Model())
 	providerID := strings.TrimSpace(sess.Provider())
-	sess.SetThinkingEnabled(rhoconfig.ResolveThinkingForModel(settings, modelID, providerID))
+	sess.SetThinkingEnabled(reflectconfig.ResolveThinkingForModel(settings, modelID, providerID))
 
 	return nil
 }

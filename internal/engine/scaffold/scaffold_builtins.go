@@ -166,13 +166,13 @@ import (
 )
 
 func main() {
-	mux := http.NewServeMux()
+	relay := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", handler.Health)
-	mux.HandleFunc("GET /api/v1/items", handler.ListItems)
-	mux.HandleFunc("POST /api/v1/items", handler.CreateItem)
+	relay.HandleFunc("GET /health", handler.Health)
+	relay.HandleFunc("GET /api/v1/items", handler.ListItems)
+	relay.HandleFunc("POST /api/v1/items", handler.CreateItem)
 
-	wrapped := middleware.Logger(middleware.Recovery(mux))
+	wrapped := middleware.Logger(middleware.Recovery(relay))
 
 	addr := ":{{.Port}}"
 	fmt.Printf("Server starting on %s\n", addr)

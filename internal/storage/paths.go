@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	appName          = "rho"
-	legacyAppName    = "hawk"
-	envConfigDir     = "RHO_CONFIG_DIR"
-	envFluxConfigDir = "FLUX_CONFIG_DIR"
-	envStateDir      = "RHO_STATE_DIR"
-	envCacheDir      = "RHO_CACHE_DIR"
-	projectIDHashLen = 12
+	appName           = "reflect"
+	legacyAppName     = "hawk"
+	envConfigDir      = "REFLECT_CONFIG_DIR"
+	envRelayConfigDir = "RELAY_CONFIG_DIR"
+	envStateDir       = "REFLECT_STATE_DIR"
+	envCacheDir       = "REFLECT_CACHE_DIR"
+	projectIDHashLen  = 12
 )
 
 // legacyEnvDir reads a legacy HAWK_* override (e.g. HAWK_STATE_DIR) so an
@@ -24,20 +24,43 @@ func legacyEnvDir(legacyKey string) string {
 	return strings.TrimSpace(os.Getenv(legacyKey))
 }
 
-// resolveAppDir returns the current Rho app directory under root. Legacy
+// resolveAppDir returns the current Reflect app directory under root. Legacy
 // environment-variable overrides remain supported explicitly, but an
-// auto-detected Hawk directory must not silently become Rho's active state:
+// auto-detected Hawk directory must not silently become Reflect's active state:
 // it produces confusing paths and can be unwritable after the rebrand.
 func resolveAppDir(root string) string {
 	return filepath.Join(root, appName)
 }
 
-// ConfigDir returns the per-user configuration directory for Rho.
+// legacyAppDir returns the legacy ~/.decoder directory when the new ~/.reflect
+// directory does not yet exist, so existing installs keep resolving to their
+// data until an explicit migration runs. Returns "" when no legacy dir exists.
+func legacyAppDir(root string) string {
+	newDir := filepath.Join(root, appName)
+	if _, err := os.Stat(newDir); err == nil {
+		return ""
+	}
+	oldDir := filepath.Join(root, "decoder")
+	if info, err := os.Stat(oldDir); err == nil && info.IsDir() {
+		return oldDir
+	}
+	return ""
+}
+
+// ConfigDir returns the per-user configuration directory for Reflect.
 func ConfigDir() string {
 	if dir := cleanEnvDir(envConfigDir); dir != "" {
 		return dir
 	}
 	if dir := legacyEnvDir("HAWK_CONFIG_DIR"); dir != "" {
+		return dir
+	}
+	if dir := legacyEnvDir("DECODER_CONFIG_DIR"); dir != "" {
+		return dir
+	}
+	// Migration shim: reuse an existing ~/.decoder tree until the user
+	// migrates to ~/.reflect, so prior installs keep working.
+	if dir := legacyAppDir(mustUserConfigDir()); dir != "" {
 		return dir
 	}
 	return resolveAppDir(mustUserConfigDir())
@@ -51,8 +74,15 @@ func StateDir() string {
 	if dir := legacyEnvDir("HAWK_STATE_DIR"); dir != "" {
 		return dir
 	}
+	if dir := legacyEnvDir("DECODER_STATE_DIR"); dir != "" {
+		return dir
+	}
 	if dir := cleanEnvDir("XDG_STATE_HOME"); dir != "" {
 		return filepath.Join(dir, appName)
+	}
+	// Migration shim: reuse an existing ~/.decoder tree until the user migrates.
+	if base := legacyAppDir(mustUserConfigDir()); base != "" {
+		return filepath.Join(base, "state")
 	}
 	// State lives under the config root in both the current and legacy layout,
 	// so resolve the app dir once and append "state".
@@ -67,6 +97,13 @@ func CacheDir() string {
 	if dir := legacyEnvDir("HAWK_CACHE_DIR"); dir != "" {
 		return dir
 	}
+	if dir := legacyEnvDir("DECODER_CACHE_DIR"); dir != "" {
+		return dir
+	}
+	// Migration shim: reuse an existing ~/.decoder tree until the user migrates.
+	if base := legacyAppDir(mustUserCacheDir()); base != "" {
+		return base
+	}
 	return resolveAppDir(mustUserCacheDir())
 }
 
@@ -75,12 +112,12 @@ func SettingsPath() string {
 }
 
 func ProviderConfigPath() string {
-	// Flux owns provider routing state and resolves it from FLUX_CONFIG_DIR,
+	// Relay owns provider routing state and resolves it from RELAY_CONFIG_DIR,
 	// defaulting to its own directory under the user config root.
-	if dir := cleanEnvDir(envFluxConfigDir); dir != "" {
+	if dir := cleanEnvDir(envRelayConfigDir); dir != "" {
 		return filepath.Join(dir, "provider.json")
 	}
-	return filepath.Join(mustUserConfigDir(), "flux", "provider.json")
+	return filepath.Join(mustUserConfigDir(), "relay", "provider.json")
 }
 
 func SessionsDir() string {
@@ -149,8 +186,8 @@ func mustUserConfigDir() string {
 		// (e.g. unset HOME in a cron/daemon context). Fall back to a
 		// stable, writable location under the OS temp dir so the process
 		// still functions; the effective paths are also overridable via
-		// RHO_CONFIG_DIR / RHO_STATE_DIR / RHO_CACHE_DIR.
-		return filepath.Join(os.TempDir(), "rho-config")
+		// REFLECT_CONFIG_DIR / REFLECT_STATE_DIR / REFLECT_CACHE_DIR.
+		return filepath.Join(os.TempDir(), "reflect-config")
 	}
 	return dir
 }
@@ -158,7 +195,7 @@ func mustUserConfigDir() string {
 func mustUserCacheDir() string {
 	dir, err := os.UserCacheDir()
 	if err != nil || dir == "" {
-		return filepath.Join(os.TempDir(), "rho-cache")
+		return filepath.Join(os.TempDir(), "reflect-cache")
 	}
 	return dir
 }

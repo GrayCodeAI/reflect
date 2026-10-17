@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 )
 
 // approval_gate.go implements human-in-the-loop approval gates for high-risk

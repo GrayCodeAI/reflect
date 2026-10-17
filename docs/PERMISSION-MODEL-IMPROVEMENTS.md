@@ -1,6 +1,6 @@
-# Rho permission model
+# Reflect permission model
 
-Rho executes tools directly on the host. There is no Docker-backed execution
+Reflect executes tools directly on the host. There is no Docker-backed execution
 path and no product sandbox runtime. Safety comes from a layered, fail-closed
 policy pipeline, path guards, trust checks, tool-level hard stops, and explicit
 human approval.
@@ -47,11 +47,11 @@ auto-mode learner and never silently becomes a rule.
 Durable project rules require an explicit command:
 
 ```bash
-rho permissions list
-rho permissions add allow command 'git status'
-rho permissions add deny file '.env'
-rho permissions revoke <rule-id>
-rho permissions reset
+reflect permissions list
+reflect permissions add allow command 'git status'
+reflect permissions add deny file '.env'
+reflect permissions revoke <rule-id>
+reflect permissions reset
 ```
 
 The reset command asks for confirmation before mutating the rule store.
@@ -88,7 +88,7 @@ local rule cannot widen an administrator ceiling.
 
 ## Host-native boundaries
 
-Rho does not pretend that a host permission prompt is an operating-system
+Reflect does not pretend that a host permission prompt is an operating-system
 containment boundary. The following are separate defenses:
 
 - Path tools enforce project and protected-path rules.
@@ -99,8 +99,8 @@ containment boundary. The following are separate defenses:
 - Dry-run provides a deterministic preview mode for CI and review.
 
 If a task requires stronger process or filesystem containment than these host
-controls provide, run Rho inside an environment chosen by the operator. That
-deployment decision is intentionally outside Rho's product runtime.
+controls provide, run Reflect inside an environment chosen by the operator. That
+deployment decision is intentionally outside Reflect's product runtime.
 
 ## Verification
 
@@ -117,7 +117,7 @@ The actual binary should also be smoke-tested:
 
 ```bash
 make build
-bin/rho --help
-bin/rho permissions list --json
-bin/rho completion json
+bin/reflect --help
+bin/reflect permissions list --json
+bin/reflect completion json
 ```

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/mathutil"
+	"github.com/GrayCodeAI/reflect/internal/mathutil"
 )
 
 // ContextBudget allocates the model's context window across different content categories.

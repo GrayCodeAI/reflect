@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode"
 
-	cloud "github.com/GrayCodeAI/rho/internal/platform/cloud"
+	cloud "github.com/GrayCodeAI/reflect/internal/platform/cloud"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -29,12 +29,12 @@ var cloudCmd = &cobra.Command{Use: "cloud", Short: "Manage optional GrayCode Clo
 func newCloudConnectCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "connect",
-		Short: "Connect this Rho device to GrayCode Cloud with an existing device token",
-		Long: `Save an existing GrayCode Cloud device connection. Prefer "rho cloud login",
+		Short: "Connect this Reflect device to GrayCode Cloud with an existing device token",
+		Long: `Save an existing GrayCode Cloud device connection. Prefer "reflect cloud login",
 which needs no token. The device token is read with --token-stdin or from a
 hidden prompt, never from the command line:
 
-  rho cloud connect --device-id <id> --project-id <id> --token-stdin < token.txt`,
+  reflect cloud connect --device-id <id> --project-id <id> --token-stdin < token.txt`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			endpointFlag, _ := cmd.Flags().GetString("endpoint")
 			endpoint, err := cloud.ResolveEndpoint(endpointFlag)
@@ -88,11 +88,11 @@ func warnIfPlaintextTokenStore(cmd *cobra.Command) {
 	if !plaintext {
 		return
 	}
-	cmd.PrintErrln(auditTint("Warning: rho has no OS credential store integration on this platform, so the GrayCode Cloud device token was saved in the "+where+
+	cmd.PrintErrln(auditTint("Warning: reflect has no OS credential store integration on this platform, so the GrayCode Cloud device token was saved in the "+where+
 		". Any process running as your user, and any backup of that file, can read it. Keep the file private and revoke the device in GrayCode Cloud if this machine is shared or lost.", warnAmber))
 }
 
-// readDeviceToken returns the device token for `rho cloud connect` from, in
+// readDeviceToken returns the device token for `reflect cloud connect` from, in
 // order: --token-stdin, the deprecated --token flag, or a hidden prompt when
 // stdin is a terminal. The token never has to appear in argv, where it would
 // land in shell history and be visible to other users via ps.
@@ -123,7 +123,7 @@ func readDeviceToken(cmd *cobra.Command) (string, error) {
 		}
 		raw = string(data)
 	default:
-		return "", errors.New("a device token is required: pipe it with --token-stdin, or run in a terminal to be prompted (`rho cloud login` needs no token)")
+		return "", errors.New("a device token is required: pipe it with --token-stdin, or run in a terminal to be prompted (`reflect cloud login` needs no token)")
 	}
 	token := strings.TrimSpace(raw)
 	if token == "" {
@@ -167,7 +167,7 @@ http:// on localhost, 127.0.0.1 and [::1].`,
 			if err != nil {
 				return err
 			}
-			cmd.Printf("%s\n", auditTint("Open ", textPrimary)+auditTint(start.VerificationURI, infoSky)+auditTint(" and enter code ", textPrimary)+auditTint(start.UserCode, rhoColor))
+			cmd.Printf("%s\n", auditTint("Open ", textPrimary)+auditTint(start.VerificationURI, infoSky)+auditTint(" and enter code ", textPrimary)+auditTint(start.UserCode, reflectColor))
 			if err := openBrowser(approvalURL); err != nil {
 				cmd.Printf("%s\n", auditTint(fmt.Sprintf("Could not open the browser automatically: %v", err), textMuted))
 			}
@@ -208,7 +208,7 @@ http:// on localhost, 127.0.0.1 and [::1].`,
 		},
 	}
 	command.Flags().String("endpoint", "", cloudEndpointFlagHelp)
-	command.Flags().String("label", "", "Name for this Rho device")
+	command.Flags().String("label", "", "Name for this Reflect device")
 	return command
 }
 
@@ -218,7 +218,7 @@ func newCloudStatusCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, cfg, err := loadCloudClient()
 			if errors.Is(err, cloud.ErrNotConnected) {
-				cmd.Println(auditTint("GrayCode Cloud is not connected. Run `rho cloud login` to connect.", textMuted))
+				cmd.Println(auditTint("GrayCode Cloud is not connected. Run `reflect cloud login` to connect.", textMuted))
 				return nil
 			}
 			if err != nil {

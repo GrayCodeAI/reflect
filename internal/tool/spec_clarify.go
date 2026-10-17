@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/spec"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

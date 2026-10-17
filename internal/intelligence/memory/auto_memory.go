@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // AutoMemory manages automatic memory extraction and storage for a project.
@@ -16,7 +16,7 @@ type AutoMemory struct {
 	dir string
 }
 
-// NewAutoMemory creates a new AutoMemory rooted in Rho's project state.
+// NewAutoMemory creates a new AutoMemory rooted in Reflect's project state.
 func NewAutoMemory(projectDir string) *AutoMemory {
 	h := sha256.Sum256([]byte(projectDir))
 	hash := fmt.Sprintf("%x", h[:8])

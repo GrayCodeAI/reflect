@@ -1,40 +1,40 @@
-# MiniMax-AI → rho Adoption Plan
+# MiniMax-AI → reflect Adoption Plan
 
 Status: Implemented in working tree; sibling-repository PRs and skills curation remain follow-ups
 Date: 2026-08-21
 Scope: Adopt the high-value, verified concepts from MiniMax-AI's open-source
-repos into the Rho ecosystem (Rho plus independent repositories: Flux, Eagle,
+repos into the Reflect ecosystem (Reflect plus independent repositories: Relay, Eagle,
 Falcon, Kestrel, and Merlin).
 
 ## Findings summary
 
-Deep code review of 6 MiniMax-AI repos against Rho's existing sibling
+Deep code review of 6 MiniMax-AI repos against Reflect's existing sibling
 repositories and
 internals produced these adoptions, ordered by value:
 
 | # | MiniMax repo | Adopt into | Action |
 |---|---|---|---|
-| 1 | MiniMax-Provider-Verifier | sibling `flux` | Add provider-conformance metrics + wire the orphaned `verify` harness into CI |
+| 1 | MiniMax-Provider-Verifier | sibling `relay` | Add provider-conformance metrics + wire the orphaned `verify` harness into CI |
 | 2 | MiniMax/skills | `starling` | Curate high-quality skill content (content, not mechanism) |
-| 3 | MiniMax-Coding-Plan-MCP | rho / `falcon` | MCP v2 no-network test pattern + image-source normalization (patterns only) |
-| 4 | minimax_search | rho tooling | Jina page→Markdown browse extractor + evidence-extraction prompt (pattern) |
-| 5 | Mini-Agent | rho engine | Cooperative-cancellation-with-cleanup + token-aware lossy summarization (patterns) |
+| 3 | MiniMax-Coding-Plan-MCP | reflect / `falcon` | MCP v2 no-network test pattern + image-source normalization (patterns only) |
+| 4 | minimax_search | reflect tooling | Jina page→Markdown browse extractor + evidence-extraction prompt (pattern) |
+| 5 | Mini-Agent | reflect engine | Cooperative-cancellation-with-cleanup + token-aware lossy summarization (patterns) |
 | 6 | MiniMax-MCP / JS | — | Not adoptable (media generation, out of scope) |
 
-## 1. Flux provider-conformance metrics + CI wiring (highest value)
+## 1. Relay provider-conformance metrics + CI wiring (highest value)
 
-### Verified current state (flux repository)
+### Verified current state (relay repository)
 
-- `flux/verify/verify.go` — a complete behavioral conformance harness
+- `relay/verify/verify.go` — a complete behavioral conformance harness
   exists: `Case`/`CaseResult`/`Expectation`/`Report`, `Run()`, `scoreResponse()`,
   `ToolCallF1()`, `DiffBaseline()`, `Markdown()`.
-- `flux/verify/cases.go` — `CanonicalCases()` with 3 cases:
+- `relay/verify/cases.go` — `CanonicalCases()` with 3 cases:
   `basic-chat`, `deterministic-answer`, `tool-call`.
-- `flux/verify/metrics.go` — `ToolCallF1()` already implemented.
+- `relay/verify/metrics.go` — `ToolCallF1()` already implemented.
 - **Confirmed gap:** the `verify` package is referenced ONLY by its own tests.
   It is not wired into any CLI, Makefile target, CI job, or provider-registration
   gate. Only structural registry/parity tests are enforced.
-- flux already ships MiniMax providers (`minimax_token_plan`, `minimax_payg`)
+- relay already ships MiniMax providers (`minimax_token_plan`, `minimax_payg`)
   as OpenAI-compatible adapters with `ThinkingFormat: "minimax"`.
 - `client/structured.go` already has `ValidateStructuredOutput()` — a recursive
   JSON-schema validator (`validateValue`, `validateObject`, `validateArray`)
@@ -43,7 +43,7 @@ internals produced these adoptions, ordered by value:
 ### What to implement
 
 **A. Add a `SchemaValidate` helper (argument-level) — new file
-`flux/verify/schema.go`**
+`relay/verify/schema.go`**
 
 Add `SchemaValidate(args map[string]any, schema map[string]any) error` that
 checks tool-call arguments against the tool's `Parameters` JSON schema:
@@ -52,7 +52,7 @@ checks tool-call arguments against the tool's `Parameters` JSON schema:
 
 This is the `ToolCalls-Schema-Accuracy` dimension from MiniMax-Provider-Verifier.
 
-**B. Add `MatchRate` to `Report` — edit `flux/verify/verify.go`**
+**B. Add `MatchRate` to `Report` — edit `relay/verify/verify.go`**
 
 Compute the `ToolCalls-Match-Rate` (trigger-vs-stop correctness) alongside F1.
 Extend `CaseResult` already has `ExpectedTool`/`CalledAnyTool`/`CorrectTool`, so
@@ -63,9 +63,9 @@ tool_calls_match_rate = (TP + TN) / expected_tool_call_total_count
 mirroring MiniMax's confusion-matrix metric.
 
 **C. Add a `verify` CLI entrypoint — new file
-`flux/cmd/verify/main.go`**
+`relay/cmd/verify/main.go`**
 
-A small `go run`-able binary (or a `verify` subcommand if flux has a cmd/) that
+A small `go run`-able binary (or a `verify` subcommand if relay has a cmd/) that
 runs `verify.Run` against a provider endpoint (live or cassette) and exits
 non-zero on unmet thresholds:
 - `--model`, `--base-url`, `--api-key`, `--provider`
@@ -74,8 +74,8 @@ non-zero on unmet thresholds:
 
 This makes the orphaned harness operational and enables CI gating.
 
-**D. Add a Makefile target + CI job — edit `flux/Makefile` and
-`flux/.github/workflows/ci.yml`**
+**D. Add a Makefile target + CI job — edit `relay/Makefile` and
+`relay/.github/workflows/ci.yml`**
 
 - Makefile: `verify` target that runs the harness in cassette mode (no tokens)
   and `verify-live` for manual live runs.
@@ -83,27 +83,27 @@ This makes the orphaned harness operational and enables CI gating.
   on PRs, ensuring the harness is exercised and providers don't regress.
 
 ### Files
-- `flux/verify/schema.go` (new)
-- `flux/verify/schema_test.go` (new)
-- `flux/verify/verify.go` (add MatchRate)
-- `flux/verify/verify_test.go` (add tests)
-- `flux/cmd/verify/main.go` (new)
-- `flux/Makefile` (verify target)
-- `flux/.github/workflows/ci.yml` (verify job)
+- `relay/verify/schema.go` (new)
+- `relay/verify/schema_test.go` (new)
+- `relay/verify/verify.go` (add MatchRate)
+- `relay/verify/verify_test.go` (add tests)
+- `relay/cmd/verify/main.go` (new)
+- `relay/Makefile` (verify target)
+- `relay/.github/workflows/ci.yml` (verify job)
 
 ## 2. Curate MiniMax/skills content into starling
 
-### Verified current state (rho)
-- rho's skills system (`internal/plugin`) reads markdown+YAML-frontmatter skills
-  from dirs (`~/.rho/skills`, `.claude/skills`, `.zero/skills`, `skills`) with a
-  registry (`starling` repo, `rho skills search/install/list/remove`).
+### Verified current state (reflect)
+- reflect's skills system (`internal/plugin`) reads markdown+YAML-frontmatter skills
+  from dirs (`~/.reflect/skills`, `.claude/skills`, `.zero/skills`, `skills`) with a
+  registry (`starling` repo, `reflect skills search/install/list/remove`).
 - MiniMax/skills (13.4k★) has 18 high-quality skills in the same format
   (frontmatter `name`/`description`/`license`/`metadata`), especially
   `frontend-dev`, `fullstack-dev`, `shader-dev`, mobile guides, `vision-analysis`.
 
 ### What to implement
 - Port the best MiniMax skills into `GrayCodeAI/starling` (separate
-  repo), adapting frontmatter to rho's convention (`globs`, `alwaysApply`).
+  repo), adapting frontmatter to reflect's convention (`globs`, `alwaysApply`).
 - This is a content curation task in a separate repo; tracked here for
   completeness but implemented as a follow-up PR in `starling`.
 
@@ -113,10 +113,10 @@ This makes the orphaned harness operational and enables CI gating.
 
 ## 3. MCP v2 no-network test pattern + image-source normalization
 
-### Verified current state (rho)
+### Verified current state (reflect)
 - `internal/mcp` implements its own JSON-RPC client + server and does NOT use the
   shared `falcon` scaffolding (architectural divergence).
-- rho has `internal/attachment/image.go` for image decode, and `ScreenshotTool`
+- reflect has `internal/attachment/image.go` for image decode, and `ScreenshotTool`
   / `BrowserTool`. No image-source (URL/file/data-URL) normalization helper.
 - MiniMax-Coding-Plan-MCP shows: MCP v2 tool registration + no-network test
   harness (in-process `Client` + stdio `ClientSession` asserting exact payloads)
@@ -135,8 +135,8 @@ This makes the orphaned harness operational and enables CI gating.
 
 ## 4. Jina page→Markdown browse extractor
 
-### Verified current state (rho)
-- rho has `WebSearchTool` (6-provider cascade: Brave/SearXNG/DeepSeek/Exa/
+### Verified current state (reflect)
+- reflect has `WebSearchTool` (6-provider cascade: Brave/SearXNG/DeepSeek/Exa/
   Perplexity/DDG), `AgenticFetchTool`, `WebFetchTool`, `DownloadTool`,
   `engine/search/url_scraper.go`.
 - No lightweight "URL → Markdown" extractor (Jina Reader pattern).
@@ -155,14 +155,14 @@ This makes the orphaned harness operational and enables CI gating.
 
 ## 5. Agent-loop robustness patterns (reference)
 
-### Verified current state (rho)
-- rho's `Session.agentLoop` (`internal/engine/stream.go:133`) is a complete
+### Verified current state (reflect)
+- reflect's `Session.agentLoop` (`internal/engine/stream.go:133`) is a complete
   think→act→observe loop with memory, 70+ tools, sub-agents, multi-agent.
 - No cooperative-cancellation-with-history-cleanup, and long-session compaction
   uses truncation rather than "summarize between user turns".
 
 ### What to implement (small, low-risk)
-- Add `_cleanup_incomplete_messages` equivalent to rho's loop: on cancellation
+- Add `_cleanup_incomplete_messages` equivalent to reflect's loop: on cancellation
   at a safe checkpoint, trim the partial assistant message + orphaned tool
   results so message history stays valid.
 - Add a token-limit-driven lossy summarization option (keep user intents,
@@ -175,27 +175,27 @@ This makes the orphaned harness operational and enables CI gating.
 
 ## Out of scope (not adopted)
 - MiniMax-MCP / MiniMax-MCP-JS: media generation (TTS/image/video) — no
-  relevance to code intelligence; rho has no TTS and that is a product decision.
-- minimax_search's search layer: redundant (rho has more providers).
-- Mini-Agent's core loop: outclassed by rho.
+  relevance to code intelligence; reflect has no TTS and that is a product decision.
+- minimax_search's search layer: redundant (reflect has more providers).
+- Mini-Agent's core loop: outclassed by reflect.
 - The `verify` harness's live-token path: optional, off by default.
 
 ## Execution order
-1. Flux verify metrics + schema validation + tests (highest value)
-2. Flux verify CLI + Makefile + CI wiring
-3. rho image-source normalization helper + tests
-4. rho Jina browse extractor + tests
+1. Relay verify metrics + schema validation + tests (highest value)
+2. Relay verify CLI + Makefile + CI wiring
+3. reflect image-source normalization helper + tests
+4. reflect Jina browse extractor + tests
 5. Agent-loop cancellation/summarization patterns
 6. starling content curation (follow-up PR in separate repo)
 
 ## Implementation status
 
-- [x] Flux schema-accuracy validation and tool-call match-rate metrics.
-- [x] Flux verification CLI, deterministic Makefile target, and CI job.
-- [x] Rho image-source normalization for data URIs, URLs, local files, and raw base64.
-- [x] Rho Jina Reader page-to-Markdown client with opt-in configuration and tests.
-- [x] Rho cancellation cleanup for incomplete assistant tool-use/tool-result turns.
-- [x] Confirmed rho's existing `internal/engine/compact` already provides token-triggered
+- [x] Relay schema-accuracy validation and tool-call match-rate metrics.
+- [x] Relay verification CLI, deterministic Makefile target, and CI job.
+- [x] Reflect image-source normalization for data URIs, URLs, local files, and raw base64.
+- [x] Reflect Jina Reader page-to-Markdown client with opt-in configuration and tests.
+- [x] Reflect cancellation cleanup for incomplete assistant tool-use/tool-result turns.
+- [x] Confirmed reflect's existing `internal/engine/compact` already provides token-triggered
   compaction; no duplicate summarizer was added.
-- [ ] Publish the Flux repository changes through its own feature branch and PR.
+- [ ] Publish the Relay repository changes through its own feature branch and PR.
 - [ ] Curate MiniMax skills into `starling` through its own feature branch and PR.

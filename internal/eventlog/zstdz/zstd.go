@@ -171,20 +171,20 @@ func DecompressFrame(input []byte) ([]byte, error) {
 	return out, nil
 }
 
-// FrameDecoder decodes complete frames in source order. Each yielded buffer
+// FrameReflect decodes complete frames in source order. Each yielded buffer
 // remains valid only until the iterator advances. Ported from DSH's
-// ZstdFrameDecoder interface.
-type FrameDecoder interface {
+// ZstdFrameReflect interface.
+type FrameReflect interface {
 	Decode(source []byte, frames []FrameRange) <-chan []byte
 	Close()
 }
 
-// klauspostFrameDecoder is the default synchronous decoder using klauspost/compress.
-type klauspostFrameDecoder struct {
+// klauspostFrameReflect is the default synchronous reflect using klauspost/compress.
+type klauspostFrameReflect struct {
 	dec *zstd.Decoder
 }
 
-func (d *klauspostFrameDecoder) Decode(source []byte, frames []FrameRange) <-chan []byte {
+func (d *klauspostFrameReflect) Decode(source []byte, frames []FrameRange) <-chan []byte {
 	ch := make(chan []byte, len(frames))
 	go func() {
 		defer close(ch)
@@ -199,14 +199,14 @@ func (d *klauspostFrameDecoder) Decode(source []byte, frames []FrameRange) <-cha
 	return ch
 }
 
-func (d *klauspostFrameDecoder) Close() {
+func (d *klauspostFrameReflect) Close() {
 	d.dec.Close()
 }
 
-// NewFrameDecoder creates a synchronous multi-frame decoder.
-func NewFrameDecoder() FrameDecoder {
+// NewFrameReflect creates a synchronous multi-frame reflect.
+func NewFrameReflect() FrameReflect {
 	dec, _ := zstd.NewReader(nil)
-	return &klauspostFrameDecoder{dec: dec}
+	return &klauspostFrameReflect{dec: dec}
 }
 
 // DecompressPrefix recovers available plaintext from a structurally incomplete

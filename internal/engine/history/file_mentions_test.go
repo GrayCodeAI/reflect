@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // fileMentionsSetupTestProject creates a temporary directory with test files.
@@ -190,7 +190,7 @@ func TestInjectFileMentionContext_NewFiles(t *testing.T) {
 	d := NewFileMentionDetector(dir)
 
 	text := "You need to update `src/auth.go` and `pkg/middleware/rate.go`."
-	messages := []types.FluxMessage{} // no prior messages
+	messages := []types.RelayMessage{} // no prior messages
 
 	result := d.InjectFileMentionContext(text, messages)
 
@@ -207,7 +207,7 @@ func TestInjectFileMentionContext_AllAlreadyDiscussed(t *testing.T) {
 	d := NewFileMentionDetector(dir)
 
 	text := "You need to update `src/auth.go`."
-	messages := []types.FluxMessage{
+	messages := []types.RelayMessage{
 		{Role: "user", Content: "I'm working on src/auth.go"},
 	}
 

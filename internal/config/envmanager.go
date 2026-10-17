@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/env"
+	"github.com/GrayCodeAI/reflect/internal/env"
 )
 
 // EnvVar represents a single environment variable with metadata.

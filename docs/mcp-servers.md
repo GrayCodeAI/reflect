@@ -1,10 +1,10 @@
 # MCP Server Configuration
 
-rho supports connecting to external MCP (Model Context Protocol) servers to extend its capabilities with additional tools, resources, and prompts.
+reflect supports connecting to external MCP (Model Context Protocol) servers to extend its capabilities with additional tools, resources, and prompts.
 
 ## Configuration
 
-MCP servers are configured in `settings.json` (global: `~/.rho/settings.json`, project: `.rho/settings.json`).
+MCP servers are configured in `settings.json` (global: `~/.reflect/settings.json`, project: `.reflect/settings.json`).
 
 ```json
 {
@@ -42,7 +42,7 @@ My-Jogyo provides 12 MCP tools for scientific research workflows, including Pyth
 # Install My-Jogyo
 npm install -g my-jogyo
 
-# Add to rho settings
+# Add to reflect settings
 ```
 
 **settings.json:**
@@ -78,16 +78,16 @@ npm install -g my-jogyo
 
 ```bash
 # Add an MCP server
-rho mcp add <name> <command> [args...]
+reflect mcp add <name> <command> [args...]
 
 # List configured servers
-rho mcp list
+reflect mcp list
 
 # Remove a server
-rho mcp remove <name>
+reflect mcp remove <name>
 
 # Test a server connection
-rho mcp test <name>
+reflect mcp test <name>
 ```
 
 ## Troubleshooting
@@ -98,8 +98,8 @@ rho mcp test <name>
 - Run the command manually to check for errors
 
 **Tools not appearing:**
-- Restart rho after adding a new server
-- Check `rho mcp test <name>` for connection errors
+- Restart reflect after adding a new server
+- Check `reflect mcp test <name>` for connection errors
 - Verify the server's tools/list response is valid JSON-RPC
 
 **Timeout errors:**

@@ -29,7 +29,7 @@ const defaultSlackPath = "/v1/slack/events"
 const slackMaxSkew = 5 * time.Minute
 
 // SlackGateway implements the Slack Events API bridge. Unlike Telegram/Discord it
-// is webhook-driven: Start registers an HTTP handler on the daemon mux and returns
+// is webhook-driven: Start registers an HTTP handler on the daemon relay and returns
 // after blocking on ctx (so the gatewayManager lifecycle is uniform). Inbound
 // app_mention events are verified against the signing secret, forwarded to the
 // daemon, and answered as threaded replies.
@@ -72,7 +72,7 @@ func newSlackGateway(cfg SlackConfig, daemonAddr, apiKey string, s *Server) *Sla
 		now:        time.Now,
 	}
 	if s != nil {
-		s.mux.HandleFunc("POST "+path, g.handleEvents)
+		s.relay.HandleFunc("POST "+path, g.handleEvents)
 	}
 	return g
 }
@@ -81,7 +81,7 @@ func newSlackGateway(cfg SlackConfig, daemonAddr, apiKey string, s *Server) *Sla
 func (g *SlackGateway) Name() string { return "slack" }
 
 // setDaemonURL implements daemonURLSetter. Slack forwards to the daemon via
-// forwardToRho, so it needs the resolved address even though it replies via the
+// forwardToReflect, so it needs the resolved address even though it replies via the
 // Slack Web API.
 func (g *SlackGateway) setDaemonURL(url string) { g.daemonAddr = url }
 
@@ -167,7 +167,7 @@ func (g *SlackGateway) handleMention(ctx context.Context, ev slackEventInner) {
 
 	if isPair, ok := g.auth.tryPair(ev.User, text); isPair {
 		if ok {
-			g.reply(ctx, ev.Channel, threadTS, "Paired. You can now chat with rho.")
+			g.reply(ctx, ev.Channel, threadTS, "Paired. You can now chat with reflect.")
 		} else {
 			g.reply(ctx, ev.Channel, threadTS, "Pairing failed: invalid code.")
 		}
@@ -178,7 +178,7 @@ func (g *SlackGateway) handleMention(ctx context.Context, ev slackEventInner) {
 		return
 	}
 
-	reply, err := forwardToRho(ctx, g.client, g.daemonAddr, g.apiKey, text)
+	reply, err := forwardToReflect(ctx, g.client, g.daemonAddr, g.apiKey, text)
 	if err != nil {
 		reply = fmt.Sprintf("Error: %v", err)
 	}

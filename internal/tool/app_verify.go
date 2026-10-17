@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/appverify"
+	"github.com/GrayCodeAI/reflect/internal/appverify"
 )
 
 // AppVerifyTool implements the "prove it works" workflow: detect a recipe,
@@ -30,7 +30,7 @@ func (AppVerifyTool) Name() string      { return "AppVerify" }
 func (AppVerifyTool) RiskLevel() string { return "medium" }
 func (AppVerifyTool) Aliases() []string { return []string{"app-verify", "verify_app"} }
 func (AppVerifyTool) Description() string {
-	return "Detect how this project boots and prove it runs: infer an install/build/test/start recipe, persist it to .rho/verify/environment.json as the verification contract, and run a bounded boot smoke check with readiness polling. Use action=detect to inspect, action=manifest to write/update the contract, action=smoke to boot the app and verify readiness."
+	return "Detect how this project boots and prove it runs: infer an install/build/test/start recipe, persist it to .reflect/verify/environment.json as the verification contract, and run a bounded boot smoke check with readiness polling. Use action=detect to inspect, action=manifest to write/update the contract, action=smoke to boot the app and verify readiness."
 }
 
 // Schema returns the typed input schema. Parameters() delegates to it so the
@@ -39,7 +39,7 @@ func (AppVerifyTool) Schema() ToolSchema {
 	return ToolSchema{
 		Type: "object",
 		Properties: map[string]SchemaProperty{
-			"action":            {Type: "string", Enum: []interface{}{"detect", "manifest", "smoke"}, Description: "detect infers the recipe; manifest loads-or-detects and persists .rho/verify/environment.json; smoke boots the app using the recipe's start command and polls readiness."},
+			"action":            {Type: "string", Enum: []interface{}{"detect", "manifest", "smoke"}, Description: "detect infers the recipe; manifest loads-or-detects and persists .reflect/verify/environment.json; smoke boots the app using the recipe's start command and polls readiness."},
 			"path":              {Type: "string", Description: "Project directory (default: session working directory)."},
 			"readiness_seconds": {Type: "integer", Minimum: 1, Maximum: 300, Description: "Max seconds to wait for the app to become ready during smoke (default 60)."},
 		},

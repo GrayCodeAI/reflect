@@ -3,12 +3,12 @@ package cmd
 import (
 	"testing"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 func TestDefaultRegistryWiresLanguageServerManager(t *testing.T) {
-	registry, err := defaultRegistry(rhoconfig.Settings{})
+	registry, err := defaultRegistry(reflectconfig.Settings{})
 	if err != nil {
 		t.Fatal(err)
 	}

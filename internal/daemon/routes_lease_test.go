@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/testutil"
 )
 
 func httpDo(t *testing.T, method, url string) *http.Response {
@@ -24,12 +24,12 @@ func httpDo(t *testing.T, method, url string) *http.Response {
 }
 
 func TestAcquireAndReleaseLease(t *testing.T) {
-	t.Setenv("RHO_STATE_DIR", t.TempDir())
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	srv := New(Config{Port: 0, Host: testutil.LoopbackHost}, nil)
 	addr := startTestDaemon(t, srv)
 	defer srv.Stop(context.Background())
 
-	// Acquire a lease through the real mux (so path routing sets {id}).
+	// Acquire a lease through the real relay (so path routing sets {id}).
 	resp := httpDo(t, http.MethodPost, "http://"+addr+"/v1/sessions/lease-test/lease")
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

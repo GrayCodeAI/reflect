@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/intelligence/memory"
-	"github.com/GrayCodeAI/rho/internal/resilience/retry"
-	"github.com/GrayCodeAI/rho/internal/textutil"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/memory"
+	"github.com/GrayCodeAI/reflect/internal/resilience/retry"
+	"github.com/GrayCodeAI/reflect/internal/textutil"
 )
 
 // truncate shortens a string to maxLen characters, appending "..." if truncated.
@@ -75,8 +75,8 @@ func streamRetryDelay(err error, attempt int) time.Duration {
 }
 
 // parseRetryDelayHint extracts a delay hint from an error message, returning 0
-// when no hint is present (mirroring flux's parseRetryDelay, but kept local so
-// the engine package does not reach past the flux engine facade boundary).
+// when no hint is present (mirroring relay's parseRetryDelay, but kept local so
+// the engine package does not reach past the relay engine facade boundary).
 func parseRetryDelayHint(errMsg string) time.Duration {
 	m := retryDelayRe.FindStringSubmatch(errMsg)
 	if m == nil {

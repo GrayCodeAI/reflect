@@ -9,17 +9,17 @@ import (
 	"sync"
 	"time"
 
-	agentcontracts "github.com/GrayCodeAI/rho/internal/contracts/agent"
+	agentcontracts "github.com/GrayCodeAI/reflect/internal/contracts/agent"
 
-	"github.com/GrayCodeAI/rho/internal/lint"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/lint"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // AgentSpawnFn is the typed subagent entrypoint (Year 0 PACK-02).
 // Implementations must honor SpawnRequest fields after Normalize.
 type AgentSpawnFn func(ctx context.Context, req agentcontracts.SpawnRequest) (agentcontracts.SpawnResult, error)
 
-// Tool is the interface every rho tool implements.
+// Tool is the interface every reflect tool implements.
 type Tool interface {
 	Name() string
 	Description() string
@@ -36,7 +36,7 @@ type AliasedTool interface {
 // schema. It replaces the error-prone hand-written map[string]interface{}
 // JSON-schema literals that every tool used to embed in Parameters(). A
 // ToolSchema converts to the wire format via ToJSONSchema(), so the external
-// FluxTool.Parameters contract (map[string]interface{}) is unchanged.
+// RelayTool.Parameters contract (map[string]interface{}) is unchanged.
 //
 // Tools that don't implement SchemaProvider keep working exactly as before —
 // Parameters() is still the source of truth and validation stays permissive.
@@ -94,7 +94,7 @@ type SchemaProvider interface {
 }
 
 // ToJSONSchema converts the typed schema to the wire-format
-// map[string]interface{} expected by FluxTool.Parameters.
+// map[string]interface{} expected by RelayTool.Parameters.
 func (s ToolSchema) ToJSONSchema() map[string]interface{} {
 	props := make(map[string]interface{}, len(s.Properties))
 	for name, p := range s.Properties {
@@ -178,7 +178,7 @@ type RiskLevelProvider interface {
 	RiskLevel() string // "low", "medium", "high"
 }
 
-// UntrustedTool marks tools whose implementation is outside rho's built-in
+// UntrustedTool marks tools whose implementation is outside reflect's built-in
 // capability catalog. They remain executable, but the permission engine must
 // not infer safety from registry membership alone.
 type UntrustedTool interface {
@@ -361,7 +361,7 @@ type Registry struct {
 	mu      sync.RWMutex
 	tools   map[string]Tool
 	primary []Tool
-	// modelVisible, when non-nil, restricts FluxTools to the listed primary
+	// modelVisible, when non-nil, restricts RelayTools to the listed primary
 	// names (lazy model surface). Get/Execute still reach every registered tool.
 	modelVisible map[string]bool
 }
@@ -420,17 +420,17 @@ func (r *Registry) Filter(allow []string) *Registry {
 	return NewRegistry(filtered...)
 }
 
-// FluxTools converts model-visible tools to Rho runtime tool definitions.
+// RelayTools converts model-visible tools to Reflect runtime tool definitions.
 // When lazy model surface is enabled, only promoted/essential tools are listed.
-func (r *Registry) FluxTools() []types.FluxTool {
+func (r *Registry) RelayTools() []types.RelayTool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	out := make([]types.FluxTool, 0, len(r.primary))
+	out := make([]types.RelayTool, 0, len(r.primary))
 	for _, t := range r.primary {
 		if r.modelVisible != nil && !r.modelVisible[t.Name()] {
 			continue
 		}
-		out = append(out, types.FluxTool{
+		out = append(out, types.RelayTool{
 			Name:        t.Name(),
 			Description: t.Description(),
 			Parameters:  t.Parameters(),

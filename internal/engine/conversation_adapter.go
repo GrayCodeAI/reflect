@@ -28,8 +28,8 @@ type ConversationState struct {
 	Summary    string
 }
 
-// ConversationManager manages a conversation lifecycle, bridging flux's
-// conversation management into rho's chat session flow. It is safe for
+// ConversationManager manages a conversation lifecycle, bridging relay's
+// conversation management into reflect's chat session flow. It is safe for
 // concurrent use.
 type ConversationManager struct {
 	mu         sync.RWMutex

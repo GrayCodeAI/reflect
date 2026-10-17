@@ -131,14 +131,14 @@ func (f *installFixture) addRelease(version, goos, goarch string) string {
 	var archive []byte
 	var name string
 	if goos == "windows" {
-		name = fmt.Sprintf("rho_%s_%s_%s.zip", version, goos, goarch)
-		archive = makeZip(f.t, "rho.exe", "fake rho "+version)
+		name = fmt.Sprintf("reflect_%s_%s_%s.zip", version, goos, goarch)
+		archive = makeZip(f.t, "reflect.exe", "fake reflect "+version)
 	} else {
-		name = fmt.Sprintf("rho_%s_%s_%s.tar.gz", version, goos, goarch)
-		archive = makeTarGz(f.t, "rho", "#!/bin/sh\necho fake rho "+version+"\n")
+		name = fmt.Sprintf("reflect_%s_%s_%s.tar.gz", version, goos, goarch)
+		archive = makeTarGz(f.t, "reflect", "#!/bin/sh\necho fake reflect "+version+"\n")
 	}
 	sum := sha256.Sum256(archive)
-	checksums := fmt.Sprintf("%s  %s\n%s  rho_%s_source.tar.gz\n",
+	checksums := fmt.Sprintf("%s  %s\n%s  reflect_%s_source.tar.gz\n",
 		hex.EncodeToString(sum[:]), name, strings.Repeat("0", 64), version)
 	f.addAsset(tag, name, archive)
 	f.addAsset(tag, "checksums.txt", []byte(checksums))
@@ -148,7 +148,7 @@ func (f *installFixture) addRelease(version, goos, goarch string) string {
 
 func (f *installFixture) setLatest(tag string) {
 	f.t.Helper()
-	body := fmt.Sprintf("{\n  \"url\": \"https://api.github.com/repos/GrayCodeAI/rho/releases/1\",\n  \"tag_name\": %q,\n  \"name\": %q\n}\n", tag, tag)
+	body := fmt.Sprintf("{\n  \"url\": \"https://api.github.com/repos/GrayCodeAI/reflect/releases/1\",\n  \"tag_name\": %q,\n  \"name\": %q\n}\n", tag, tag)
 	if err := os.WriteFile(filepath.Join(f.releaseDir, "latest.json"), []byte(body), 0o644); err != nil {
 		f.t.Fatal(err)
 	}
@@ -188,16 +188,16 @@ func (f *installFixture) requireInstalled(res installResult, prefix, version str
 	if res.exitCode != 0 {
 		f.t.Fatalf("install.sh exit %d, want 0\n%s", res.exitCode, res.output())
 	}
-	versioned := filepath.Join(prefix, "bin", "rho-"+version)
+	versioned := filepath.Join(prefix, "bin", "reflect-"+version)
 	if _, err := os.Stat(versioned); err != nil {
 		f.t.Fatalf("versioned binary missing: %v\n%s", err, res.output())
 	}
-	link, err := os.Readlink(filepath.Join(prefix, "bin", "rho"))
+	link, err := os.Readlink(filepath.Join(prefix, "bin", "reflect"))
 	if err != nil {
-		f.t.Fatalf("rho symlink missing: %v", err)
+		f.t.Fatalf("reflect symlink missing: %v", err)
 	}
-	if link != "rho-"+version {
-		f.t.Fatalf("rho symlink points at %q, want %q", link, "rho-"+version)
+	if link != "reflect-"+version {
+		f.t.Fatalf("reflect symlink points at %q, want %q", link, "reflect-"+version)
 	}
 }
 
@@ -238,13 +238,13 @@ func TestInstallScriptWithoutCosignVerifiesChecksumAndWarns(t *testing.T) {
 func TestInstallScriptRequireCosignFailsClosed(t *testing.T) {
 	f := newInstallFixture(t)
 	f.addRelease(installTestVersion, "linux", "amd64")
-	f.env["RHO_REQUIRE_COSIGN"] = "1"
+	f.env["REFLECT_REQUIRE_COSIGN"] = "1"
 
 	res := f.run("--version", installTestVersion, "--prefix", f.prefix)
 	if res.exitCode == 0 {
-		t.Fatalf("install succeeded without cosign although RHO_REQUIRE_COSIGN=1\n%s", res.output())
+		t.Fatalf("install succeeded without cosign although REFLECT_REQUIRE_COSIGN=1\n%s", res.output())
 	}
-	if !strings.Contains(res.stderr, "RHO_REQUIRE_COSIGN=1 but cosign is not installed") {
+	if !strings.Contains(res.stderr, "REFLECT_REQUIRE_COSIGN=1 but cosign is not installed") {
 		t.Errorf("unexpected error:\n%s", res.stderr)
 	}
 	if _, err := os.Stat(filepath.Join(f.prefix, "bin")); !errors.Is(err, os.ErrNotExist) {
@@ -266,7 +266,7 @@ func TestInstallScriptCosignUsesExactReleaseIdentity(t *testing.T) {
 	}
 	args := strings.Split(strings.TrimSpace(string(data)), "\n")
 	want := map[string]string{
-		"--certificate-identity":    "https://github.com/GrayCodeAI/rho/.github/workflows/release.yml@refs/tags/v" + installTestVersion,
+		"--certificate-identity":    "https://github.com/GrayCodeAI/reflect/.github/workflows/release.yml@refs/tags/v" + installTestVersion,
 		"--certificate-oidc-issuer": "https://token.actions.githubusercontent.com",
 	}
 	if len(args) == 0 || args[0] != "verify-blob" {
@@ -318,8 +318,8 @@ func TestInstallScriptCosignFailuresAbort(t *testing.T) {
 		if res.exitCode == 0 || !strings.Contains(res.stderr, "cosign could not verify checksums.txt") {
 			t.Fatalf("want refusal for a bad signature, got exit %d\n%s", res.exitCode, res.output())
 		}
-		if _, err := os.Stat(filepath.Join(f.prefix, "bin", "rho")); !errors.Is(err, os.ErrNotExist) {
-			t.Errorf("rho installed despite a failed signature check (stat err=%v)", err)
+		if _, err := os.Stat(filepath.Join(f.prefix, "bin", "reflect")); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("reflect installed despite a failed signature check (stat err=%v)", err)
 		}
 	})
 }
@@ -328,7 +328,7 @@ func TestInstallScriptChecksumFailuresAbort(t *testing.T) {
 	t.Run("mismatch", func(t *testing.T) {
 		f := newInstallFixture(t)
 		name := f.addRelease(installTestVersion, "linux", "amd64")
-		f.addAsset("v"+installTestVersion, name, makeTarGz(t, "rho", "tampered"))
+		f.addAsset("v"+installTestVersion, name, makeTarGz(t, "reflect", "tampered"))
 		res := f.run("--version", installTestVersion, "--prefix", f.prefix)
 		if res.exitCode == 0 || !strings.Contains(res.stderr, "SHA-256 mismatch") {
 			t.Fatalf("want checksum mismatch failure, got exit %d\n%s", res.exitCode, res.output())
@@ -337,9 +337,9 @@ func TestInstallScriptChecksumFailuresAbort(t *testing.T) {
 	t.Run("no entry", func(t *testing.T) {
 		f := newInstallFixture(t)
 		f.addRelease(installTestVersion, "linux", "amd64")
-		f.addAsset("v"+installTestVersion, "checksums.txt", []byte(strings.Repeat("a", 64)+"  rho_0.3.0_linux_amd64Xtar.gz\n"))
+		f.addAsset("v"+installTestVersion, "checksums.txt", []byte(strings.Repeat("a", 64)+"  reflect_0.3.0_linux_amd64Xtar.gz\n"))
 		res := f.run("--version", installTestVersion, "--prefix", f.prefix)
-		if res.exitCode == 0 || !strings.Contains(res.stderr, "no entry for rho_0.3.0_linux_amd64.tar.gz") {
+		if res.exitCode == 0 || !strings.Contains(res.stderr, "no entry for reflect_0.3.0_linux_amd64.tar.gz") {
 			t.Fatalf("want missing-entry failure (no regex wildcard match), got exit %d\n%s", res.exitCode, res.output())
 		}
 	})
@@ -355,9 +355,17 @@ func TestInstallScriptResolvesLatestRelease(t *testing.T) {
 	res := f.run("--prefix", f.prefix)
 	f.requireInstalled(res, f.prefix, "0.3.1")
 	calls := strings.Join(f.curlCalls(), "\n")
-	if !strings.Contains(calls, "https://github.com/GrayCodeAI/rho/releases/download/v0.3.1/rho_0.3.1_darwin_arm64.tar.gz") {
+	if !strings.Contains(calls, "https://github.com/GrayCodeAI/reflect/releases/download/v0.3.1/reflect_0.3.1_darwin_arm64.tar.gz") {
 		t.Errorf("unexpected download URLs:\n%s", calls)
 	}
+}
+
+func TestInstallScriptAcceptsCanonicalVersion(t *testing.T) {
+	v := repoVersion(t)
+	f := newInstallFixture(t)
+	f.addRelease(v, "linux", "amd64")
+	res := f.run("--version", v, "--prefix", f.prefix)
+	f.requireInstalled(res, f.prefix, v)
 }
 
 func TestInstallScriptRefusesPreRenameReleases(t *testing.T) {
@@ -365,7 +373,7 @@ func TestInstallScriptRefusesPreRenameReleases(t *testing.T) {
 	f.setLatest("v0.2.0")
 
 	res := f.run("--prefix", f.prefix)
-	if res.exitCode == 0 || !strings.Contains(res.stderr, "v0.2.0 predates the rename to rho") {
+	if res.exitCode == 0 || !strings.Contains(res.stderr, "v0.2.0 predates the rename to reflect") {
 		t.Fatalf("want a clear refusal for the hawk-era v0.2.0, got exit %d\n%s", res.exitCode, res.output())
 	}
 	for _, call := range f.curlCalls() {
@@ -393,11 +401,11 @@ func TestInstallScriptFlagParsing(t *testing.T) {
 		})
 	}
 
-	t.Run("RHO_HOME and RHO_VERSION", func(t *testing.T) {
+	t.Run("REFLECT_HOME and REFLECT_VERSION", func(t *testing.T) {
 		f := newInstallFixture(t)
 		f.addRelease(installTestVersion, "linux", "amd64")
-		f.env["RHO_HOME"] = f.prefix
-		f.env["RHO_VERSION"] = "v" + installTestVersion
+		f.env["REFLECT_HOME"] = f.prefix
+		f.env["REFLECT_VERSION"] = "v" + installTestVersion
 		f.requireInstalled(f.run(), f.prefix, installTestVersion)
 	})
 
@@ -447,9 +455,9 @@ func TestInstallScriptRejectsBadInput(t *testing.T) {
 			return []string{"--version", installTestVersion, "--prefix", f.prefix}
 		}, "unsupported operating system: sunos"},
 		{"malformed repo override", func(f *installFixture) []string {
-			f.env["RHO_INSTALL_REPO"] = "evil/../../x y"
+			f.env["REFLECT_INSTALL_REPO"] = "evil/../../x y"
 			return []string{"--version", installTestVersion, "--prefix", f.prefix}
-		}, "RHO_INSTALL_REPO must look like owner/repo"},
+		}, "REFLECT_INSTALL_REPO must look like owner/repo"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -467,7 +475,7 @@ func TestInstallScriptRejectsBadInput(t *testing.T) {
 
 func TestInstallScriptForkIdentityFollowsRepo(t *testing.T) {
 	f := newInstallFixture(t)
-	f.env["RHO_INSTALL_REPO"] = "example/rho-fork"
+	f.env["REFLECT_INSTALL_REPO"] = "example/reflect-fork"
 	f.addRelease(installTestVersion, "linux", "arm64")
 	f.env["FAKE_UNAME_M"] = "aarch64"
 	f.withCosign(0)
@@ -478,10 +486,10 @@ func TestInstallScriptForkIdentityFollowsRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "https://github.com/example/rho-fork/.github/workflows/release.yml@refs/tags/v0.3.0\n") {
-		t.Errorf("cosign identity does not follow RHO_INSTALL_REPO:\n%s", data)
+	if !strings.Contains(string(data), "https://github.com/example/reflect-fork/.github/workflows/release.yml@refs/tags/v0.3.0\n") {
+		t.Errorf("cosign identity does not follow REFLECT_INSTALL_REPO:\n%s", data)
 	}
-	if !strings.Contains(strings.Join(f.curlCalls(), "\n"), "https://github.com/example/rho-fork/releases/download/v0.3.0/") {
+	if !strings.Contains(strings.Join(f.curlCalls(), "\n"), "https://github.com/example/reflect-fork/releases/download/v0.3.0/") {
 		t.Errorf("downloads did not use the fork: %q", f.curlCalls())
 	}
 }
@@ -499,7 +507,7 @@ func TestInstallScriptWindowsArchive(t *testing.T) {
 	if res.exitCode != 0 {
 		t.Fatalf("install.sh exit %d\n%s", res.exitCode, res.output())
 	}
-	for _, name := range []string{"rho-" + installTestVersion + ".exe", "rho.exe"} {
+	for _, name := range []string{"reflect-" + installTestVersion + ".exe", "reflect.exe"} {
 		if _, err := os.Stat(filepath.Join(f.prefix, "bin", name)); err != nil {
 			t.Errorf("%s not installed: %v", name, err)
 		}

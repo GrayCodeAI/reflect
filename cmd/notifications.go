@@ -15,7 +15,7 @@ func notifyCompletion(duration time.Duration) {
 		return
 	}
 
-	msg := "Rho query completed"
+	msg := "Reflect query completed"
 
 	switch runtime.GOOS {
 	case "darwin":
@@ -23,10 +23,10 @@ func notifyCompletion(duration time.Duration) {
 		_ = exec.CommandContext(
 			context.Background(),
 			"osascript", "-e",
-			`display notification "`+msg+`" with title "Rho"`,
+			`display notification "`+msg+`" with title "Reflect"`,
 		).Start()
 	case "linux":
 		// Linux: use notify-send if available
-		_ = exec.CommandContext(context.Background(), "notify-send", "Rho", msg).Start()
+		_ = exec.CommandContext(context.Background(), "notify-send", "Reflect", msg).Start()
 	}
 }

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/mcp"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	"github.com/GrayCodeAI/reflect/internal/mcp"
+	"github.com/GrayCodeAI/reflect/internal/testutil"
 )
 
 // fakeTokenBackend is an in-memory stand-in for the OS keychain — tests in
@@ -50,11 +50,11 @@ func resetAuthManager(t *testing.T) {
 func newTestOAuthServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	var srv *httptest.Server
-	mux := http.NewServeMux()
-	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
+	relay := http.NewServeMux()
+	relay.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
-	mux.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(mcp.AuthServerMetadata{
 			Issuer:                srv.URL,
 			AuthorizationEndpoint: srv.URL + "/authorize",
@@ -62,11 +62,11 @@ func newTestOAuthServer(t *testing.T) *httptest.Server {
 			RegistrationEndpoint:  srv.URL + "/register",
 		})
 	})
-	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"client_id": "dcr-client-id"})
 	})
-	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"access_token":  "access-" + r.FormValue("code"),
@@ -74,7 +74,7 @@ func newTestOAuthServer(t *testing.T) *httptest.Server {
 			"expires_in":    3600,
 		})
 	})
-	srv = testutil.NewLoopbackHTTPServer(t, mux)
+	srv = testutil.NewLoopbackHTTPServer(t, relay)
 	t.Cleanup(srv.Close)
 	return srv
 }
@@ -166,24 +166,24 @@ func TestMcpAuthTool_ExplicitClientID_SkipsRegistration(t *testing.T) {
 	defer restore()
 
 	registrationCalled := false
-	mux := http.NewServeMux()
-	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
+	relay := http.NewServeMux()
+	relay.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
 	var srv *httptest.Server
-	mux.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(mcp.AuthServerMetadata{
 			AuthorizationEndpoint: srv.URL + "/authorize",
 			TokenEndpoint:         srv.URL + "/token",
 			RegistrationEndpoint:  srv.URL + "/register",
 		})
 	})
-	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		registrationCalled = true
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"client_id": "should-not-be-used"})
 	})
-	srv = testutil.NewLoopbackHTTPServer(t, mux)
+	srv = testutil.NewLoopbackHTTPServer(t, relay)
 	defer srv.Close()
 
 	input, _ := json.Marshal(map[string]string{
@@ -214,19 +214,19 @@ func TestMcpAuthTool_NoRegistrationEndpointAndNoClientID_Errors(t *testing.T) {
 	restore := mcp.SetTokenBackendForTesting(newFakeTokenBackend())
 	defer restore()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
+	relay := http.NewServeMux()
+	relay.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
 	var srv *httptest.Server
-	mux.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
+	relay.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(mcp.AuthServerMetadata{
 			AuthorizationEndpoint: srv.URL + "/authorize",
 			TokenEndpoint:         srv.URL + "/token",
 			// No RegistrationEndpoint.
 		})
 	})
-	srv = testutil.NewLoopbackHTTPServer(t, mux)
+	srv = testutil.NewLoopbackHTTPServer(t, relay)
 	defer srv.Close()
 
 	input, _ := json.Marshal(map[string]string{

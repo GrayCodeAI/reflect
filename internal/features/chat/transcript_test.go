@@ -9,7 +9,7 @@ func TestPlainTranscriptOmitsPresentationMessages(t *testing.T) {
 		{Role: "assistant", Content: "world"},
 		{Role: "usage", Content: "tokens"},
 	}, "partial")
-	want := "You: hello\n\nrho: world\n\nrho: partial"
+	want := "You: hello\n\nreflect: world\n\nreflect: partial"
 	if got != want {
 		t.Fatalf("PlainTranscript() = %q, want %q", got, want)
 	}

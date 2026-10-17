@@ -1,0 +1,47 @@
+# Reflect Delivery Context
+#
+# Copy to .github/workflows/reflect-delivery-context.yml. This workflow assumes
+# `reflect` is available on PATH (install it using your team's normal release
+# mechanism before this reporting step).
+#
+# Create a dedicated, revocable Reflect Cloud device token for CI. Do not reuse a
+# developer's local device token. Store all three values as repository secrets.
+name: Reflect Delivery Context
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  report-delivery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Install Reflect here using the release package your organization pins.
+      # The remaining steps are intentionally independent of the installer.
+      - name: Connect CI device to Reflect Cloud
+        run: |
+          reflect cloud connect \
+            --endpoint "$REFLECT_CLOUD_URL" \
+            --device-id "$REFLECT_CLOUD_DEVICE_ID" \
+            --project-id "$REFLECT_CLOUD_PROJECT_ID" \
+            --token "$REFLECT_CLOUD_DEVICE_TOKEN"
+        env:
+          REFLECT_CLOUD_URL: ${{ secrets.REFLECT_CLOUD_URL }}
+          REFLECT_CLOUD_DEVICE_ID: ${{ secrets.REFLECT_CLOUD_DEVICE_ID }}
+          REFLECT_CLOUD_PROJECT_ID: ${{ secrets.REFLECT_CLOUD_PROJECT_ID }}
+          REFLECT_CLOUD_DEVICE_TOKEN: ${{ secrets.REFLECT_CLOUD_DEVICE_TOKEN }}
+
+      - name: Report successful CI run
+        if: ${{ success() }}
+        run: reflect cloud context --ci-status succeeded
+
+      - name: Report failed CI run
+        if: ${{ failure() }}
+        run: reflect cloud context --ci-status failed

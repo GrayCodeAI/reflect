@@ -2,40 +2,40 @@ package env
 
 import "testing"
 
-func TestGetenvRhoPrefersCurrentName(t *testing.T) {
-	t.Setenv("RHO_STATE_DIR", "/current")
+func TestGetenvReflectPrefersCurrentName(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", "/current")
 	t.Setenv("HAWK_STATE_DIR", "/legacy")
-	if got := GetenvRho("STATE_DIR"); got != "/current" {
-		t.Fatalf("GetenvRho = %q, want /current", got)
+	if got := GetenvReflect("STATE_DIR"); got != "/current" {
+		t.Fatalf("GetenvReflect = %q, want /current", got)
 	}
 }
 
-func TestGetenvRhoFallsBackToLegacy(t *testing.T) {
-	t.Setenv("RHO_STATE_DIR", "")
+func TestGetenvReflectFallsBackToLegacy(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", "")
 	t.Setenv("HAWK_STATE_DIR", "/legacy")
-	if got := GetenvRho("STATE_DIR"); got != "/legacy" {
-		t.Fatalf("GetenvRho = %q, want /legacy", got)
+	if got := GetenvReflect("STATE_DIR"); got != "/legacy" {
+		t.Fatalf("GetenvReflect = %q, want /legacy", got)
 	}
 }
 
-func TestGetenvRhoEmptyWhenUnset(t *testing.T) {
-	t.Setenv("RHO_STATE_DIR", "")
+func TestGetenvReflectEmptyWhenUnset(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", "")
 	t.Setenv("HAWK_STATE_DIR", "")
-	if got := GetenvRho("STATE_DIR"); got != "" {
-		t.Fatalf("GetenvRho = %q, want empty", got)
+	if got := GetenvReflect("STATE_DIR"); got != "" {
+		t.Fatalf("GetenvReflect = %q, want empty", got)
 	}
 }
 
-func TestLookupRhoReportsPresence(t *testing.T) {
-	t.Setenv("RHO_FEATURE", "")
+func TestLookupReflectReportsPresence(t *testing.T) {
+	t.Setenv("REFLECT_FEATURE", "")
 	t.Setenv("HAWK_FEATURE", "1")
-	v, ok := LookupRho("FEATURE")
+	v, ok := LookupReflect("FEATURE")
 	if !ok || v != "1" {
-		t.Fatalf("LookupRho = (%q, %v), want (1, true)", v, ok)
+		t.Fatalf("LookupReflect = (%q, %v), want (1, true)", v, ok)
 	}
 
 	t.Setenv("HAWK_FEATURE", "")
-	if _, ok := LookupRho("FEATURE"); ok {
-		t.Fatal("LookupRho reported presence for an unset variable")
+	if _, ok := LookupReflect("FEATURE"); ok {
+		t.Fatal("LookupReflect reported presence for an unset variable")
 	}
 }

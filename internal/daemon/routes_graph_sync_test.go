@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	graphcontracts "github.com/GrayCodeAI/rho/internal/contracts/graph"
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	graphcontracts "github.com/GrayCodeAI/reflect/internal/contracts/graph"
+	"github.com/GrayCodeAI/reflect/internal/executiongraph"
+	"github.com/GrayCodeAI/reflect/internal/testutil"
 )
 
 func newGraphSyncTestServer(t *testing.T) string {

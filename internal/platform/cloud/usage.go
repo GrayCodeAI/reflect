@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// CapabilityRho is the canonical usage capability rho reports. GrayCode Cloud
+// CapabilityReflect is the canonical usage capability reflect reports. GrayCode Cloud
 // also accepts "graycode", but only as a legacy alias for pre-rename clients.
-const CapabilityRho = "rho"
+const CapabilityReflect = "reflect"
 
 // Bounds of the POST /v1/usage schema.
 const (
@@ -25,7 +25,7 @@ const (
 var usageStatuses = []string{"completed", "failed", "cancelled"}
 
 // RecordUsage uploads one usage event after clamping it into the /v1/usage
-// schema. It serves the automatic, fail-open path (`rho exec`): callers must
+// schema. It serves the automatic, fail-open path (`reflect exec`): callers must
 // never let the returned error change local execution. The error exists so a
 // caller can surface a server rejection (*APIError) rather than lose it.
 func (c *Client) RecordUsage(ctx context.Context, event UsageEvent) error {
@@ -52,11 +52,11 @@ func (c *Client) RecordUsage(ctx context.Context, event UsageEvent) error {
 }
 
 // normalized clamps e into the /v1/usage schema: the capability defaults to
-// rho, counters are clamped to their bounds, free text is cut to 100 UTF-16
+// reflect, counters are clamped to their bounds, free text is cut to 100 UTF-16
 // code units, an unknown status is dropped, and a missing timestamp is set.
 func (e UsageEvent) normalized(now time.Time) UsageEvent {
 	if e.Capability == "" {
-		e.Capability = CapabilityRho
+		e.Capability = CapabilityReflect
 	}
 	e.DurationMS = clamp(e.DurationMS, 0, MaxUsageDurationMS)
 	for _, counter := range []*int{

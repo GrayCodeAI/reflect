@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/mattn/go-runewidth"
 
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 const compactProgressBarWidth = 40
@@ -216,6 +216,11 @@ func (m *chatModel) finishManualCompact(msg compactDoneMsg) (chatModel, tea.Cmd)
 	}
 	if m.sessionID != "" {
 		line += "\nTranscript: " + sessionExportPath(m.sessionID) + " (/export)"
+	}
+	if m.session != nil {
+		if lb, err := m.session.LoadLifeboat(); err == nil && strings.TrimSpace(lb.ActiveTask) != "" {
+			line += "\nLifeboat: " + lb.ActiveTask
+		}
 	}
 	m.messages = append(m.messages, displayMsg{role: "system", content: line})
 	m.invalidateConnStatus()

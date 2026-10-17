@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestRelevancePruneStrategy_ShouldTrigger(t *testing.T) {
@@ -21,11 +21,11 @@ func TestRelevancePruneStrategy_ShouldTrigger(t *testing.T) {
 func TestRelevancePruneStrategy_Compact(t *testing.T) {
 	sess := NewSessionWithClient(NewMockClientForTest(), "test", "test-model", "", nil, false)
 	// A long transcript; last user message is the task context.
-	var msgs []types.FluxMessage
+	var msgs []types.RelayMessage
 	for i := 0; i < 60; i++ {
-		msgs = append(msgs, types.FluxMessage{Role: "user", Content: "unrelated filler content that has no shared keywords"})
+		msgs = append(msgs, types.RelayMessage{Role: "user", Content: "unrelated filler content that has no shared keywords"})
 	}
-	msgs = append(msgs, types.FluxMessage{Role: "user", Content: "refactor the payment module and update all tests"})
+	msgs = append(msgs, types.RelayMessage{Role: "user", Content: "refactor the payment module and update all tests"})
 	sess.Persistence().SetRawMessages(msgs)
 
 	s := &RelevancePruneStrategy{TargetTokens: 200}
@@ -54,7 +54,7 @@ func TestRelevancePruneStrategy_Compact(t *testing.T) {
 }
 
 func TestToPruneMessagesAdapter(t *testing.T) {
-	msgs := []types.FluxMessage{
+	msgs := []types.RelayMessage{
 		{Role: "user", Content: "hi"},
 		{Role: "assistant", Content: "ok", ToolUse: []types.ToolCall{{Name: "Bash"}}},
 		{Role: "user", Content: "err", ToolResults: []types.ToolResult{{IsError: true}}},

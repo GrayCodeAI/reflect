@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/circuitbreaker"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/circuitbreaker"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // AutoCompactor orchestrates compaction with circuit breaker protection.
@@ -177,7 +177,7 @@ type SmartCompactStrategy struct{}
 
 func (s *SmartCompactStrategy) Name() string { return "smart" }
 
-func (s *SmartCompactStrategy) ShouldTrigger(msgs []types.FluxMessage, tokenCount, threshold int) bool {
+func (s *SmartCompactStrategy) ShouldTrigger(msgs []types.RelayMessage, tokenCount, threshold int) bool {
 	return tokenCount >= threshold && len(msgs) > 20
 }
 
@@ -200,7 +200,7 @@ type TruncateStrategy struct{}
 
 func (s *TruncateStrategy) Name() string { return "truncate" }
 
-func (s *TruncateStrategy) ShouldTrigger(_ []types.FluxMessage, tokenCount, threshold int) bool {
+func (s *TruncateStrategy) ShouldTrigger(_ []types.RelayMessage, tokenCount, threshold int) bool {
 	return tokenCount >= threshold
 }
 

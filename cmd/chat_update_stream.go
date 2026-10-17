@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/session"
 )
 
 // Stream-event handlers are kept separate from the main input router. They
@@ -167,7 +167,7 @@ func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	}
 	ClearTabProgress()
 	if m.backgrounded && !wasCancelled && hadOutput {
-		sendTerminalNotification("rho", "Agent turn complete")
+		sendTerminalNotification("reflect", "Agent turn complete")
 	}
 	m.backgrounded = false
 	m.notifiedComplete = false

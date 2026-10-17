@@ -38,7 +38,7 @@ func (f *fakeTokenStore) Set(account, token string) error {
 func useFakeTokenStore(t *testing.T) (*fakeTokenStore, string) {
 	t.Helper()
 	dir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", dir)
+	t.Setenv("REFLECT_CONFIG_DIR", dir)
 	store := &fakeTokenStore{tokens: map[string]string{}}
 	original := newTokenStore
 	t.Cleanup(func() { newTokenStore = original })

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/spec"
 )
 
 type SpecPlanVariationsTool struct{}

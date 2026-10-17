@@ -1,0 +1,60 @@
+[Unit]
+Description=Reflect daemon (local HTTP API for the Reflect coding agent)
+Documentation=https://github.com/GrayCodeAI/reflect/blob/main/docs/troubleshooting-guide.md#systemd-issues
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Runs as a dedicated system user. Create it once:
+#   sudo useradd --system --home-dir /var/lib/reflect --shell /usr/sbin/nologin reflect
+User=reflect
+Group=reflect
+
+# All reflect data lives in directories systemd creates and chowns to User=:
+#   /var/lib/reflect/config  settings (REFLECT_CONFIG_DIR)
+#   /var/lib/reflect/state   sessions, security log, run/daemon.log (REFLECT_STATE_DIR)
+#   /var/cache/reflect       disposable cache (REFLECT_CACHE_DIR)
+# HOME points at /var/lib/reflect so anything else resolved from the home
+# directory (for example Relay's provider config under ~/.config/relay) lands
+# there too. Home directories stay hidden by ProtectHome=true below.
+StateDirectory=reflect
+StateDirectoryMode=0750
+CacheDirectory=reflect
+WorkingDirectory=/var/lib/reflect
+Environment=HOME=/var/lib/reflect
+Environment=REFLECT_CONFIG_DIR=/var/lib/reflect/config
+Environment=REFLECT_STATE_DIR=/var/lib/reflect/state
+Environment=REFLECT_CACHE_DIR=/var/cache/reflect
+Environment=REFLECT_ENABLE_TELEMETRY=0
+Environment=REFLECT_DAEMON_MAX_CONCURRENT=4
+
+# Optional, root-owned, mode 0600: REFLECT_DAEMON_API_KEY=<key> and any other
+# settings. The daemon reads the key from its environment, so it never appears
+# on the command line (visible in `ps`). Without a key the daemon generates one.
+EnvironmentFile=-/etc/reflect/daemon.env
+
+# Point this at your reflect binary (install.sh installs to ~/.reflect/bin/reflect; copy
+# that file to /usr/local/bin/reflect for a system service).
+ExecStart=/usr/local/bin/reflect daemon start --host 127.0.0.1 --port 4590 --log-level INFO
+# To serve other hosts, prefer a TLS-terminating reverse proxy, or run
+#   reflect daemon start --host 0.0.0.0 --port 4590 --tls-cert /etc/reflect/tls.crt --tls-key /etc/reflect/tls.key
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+# Hardening. The file system is read-only except the directories above and a
+# private /tmp. Grant access to project checkouts the agent may edit with, e.g.:
+#   ReadWritePaths=/srv/projects
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+# Resource limits.
+LimitNOFILE=65536
+MemoryMax=4G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

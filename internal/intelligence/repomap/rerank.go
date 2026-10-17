@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/GrayCodeAI/rho/internal/scoring"
+	"github.com/GrayCodeAI/reflect/internal/scoring"
 )
 
 // RerankResult pairs a search result with a re-ranking score.

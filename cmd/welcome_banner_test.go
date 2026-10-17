@@ -8,7 +8,7 @@ import (
 )
 
 func TestWelcomeToBanner_TOAligned(t *testing.T) {
-	to := composeRhoBlockLines("TO")
+	to := composeReflectBlockLines("TO")
 	if len(to) != 5 {
 		t.Fatalf("expected 5 rows, got %d", len(to))
 	}
@@ -48,10 +48,10 @@ func TestWelcomeToPhraseLinesContainSingleRowPhrase(t *testing.T) {
 	}
 }
 
-func TestWelcomeWordLines_SameWGlyphAsRHO(t *testing.T) {
-	w := strings.TrimRight(rhoBlockGlyphs['W'][0], " ")
+func TestWelcomeWordLines_SameWGlyphAsREFLECT(t *testing.T) {
+	w := strings.TrimRight(reflectBlockGlyphs['W'][0], " ")
 	if !strings.HasPrefix(welcomeWordLines[0], w) {
-		t.Fatalf("W row should start with rho logo glyph:\nwelcome: %q\nrho W:  %q",
+		t.Fatalf("W row should start with reflect logo glyph:\nwelcome: %q\nreflect W:  %q",
 			welcomeWordLines[0], w)
 	}
 }

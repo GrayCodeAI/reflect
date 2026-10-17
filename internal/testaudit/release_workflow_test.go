@@ -16,7 +16,7 @@ import (
 )
 
 // Release pipeline invariants: the files that together produce, sign and
-// install a rho release must agree with each other. See docs/RELEASING.md.
+// install a reflect release must agree with each other. See docs/RELEASING.md.
 
 func TestGoreleaserConfigShipsVerifiableArchives(t *testing.T) {
 	var cfg struct {
@@ -58,18 +58,18 @@ func TestGoreleaserConfigShipsVerifiableArchives(t *testing.T) {
 		}
 	}
 
-	if cfg.ProjectName != "rho" {
-		t.Errorf("project_name = %q, want rho (install.sh downloads rho_<version>_<os>_<arch>)", cfg.ProjectName)
+	if cfg.ProjectName != "reflect" {
+		t.Errorf("project_name = %q, want reflect (install.sh downloads reflect_<version>_<os>_<arch>)", cfg.ProjectName)
 	}
-	if len(cfg.Builds) != 1 || cfg.Builds[0].Main != "./cmd/rho" || cfg.Builds[0].Binary != "rho" {
-		t.Fatalf("want exactly one build of ./cmd/rho named rho, got %+v", cfg.Builds)
+	if len(cfg.Builds) != 1 || cfg.Builds[0].Main != "./cmd/reflect" || cfg.Builds[0].Binary != "reflect" {
+		t.Fatalf("want exactly one build of ./cmd/reflect named reflect, got %+v", cfg.Builds)
 	}
 	b := cfg.Builds[0]
 	if strings.Join(b.Goos, ",") != "linux,darwin,windows" || strings.Join(b.Goarch, ",") != "amd64,arm64" || len(b.Ignore) != 0 {
 		t.Errorf("builds must cover linux/darwin/windows × amd64/arm64 with no ignores (README promises all six), got goos=%v goarch=%v ignore=%v", b.Goos, b.Goarch, b.Ignore)
 	}
 	if len(cfg.Archives) != 1 || strings.TrimSpace(cfg.Archives[0].NameTemplate) != "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}" {
-		t.Errorf("archive name_template changed; install.sh and .github/actions/rho depend on rho_<version>_<os>_<arch>: %+v", cfg.Archives)
+		t.Errorf("archive name_template changed; install.sh and .github/actions/reflect depend on reflect_<version>_<os>_<arch>: %+v", cfg.Archives)
 	}
 	if cfg.Checksum.NameTemplate != "checksums.txt" {
 		t.Errorf("checksum name = %q, want checksums.txt", cfg.Checksum.NameTemplate)
@@ -158,7 +158,7 @@ func TestReleaseWorkflowToolingAndPermissions(t *testing.T) {
 		t.Errorf("goreleaser args = %q, want --release-notes from the CHANGELOG section", args)
 	}
 	for _, step := range job.Steps {
-		if strings.Contains(step.Uses, "checkout-flux") {
+		if strings.Contains(step.Uses, "checkout-relay") {
 			t.Error("release.yml must build from go.mod/go.sum, not sibling checkouts")
 		}
 		if strings.Contains(step.Run, "-D dist") || strings.Contains(step.Run, "--dir dist") {
@@ -207,7 +207,7 @@ func TestReleaseTagGuard(t *testing.T) {
 			return -1, ""
 		}
 	}
-	const good = "# Changelog\n\n## [Unreleased]\n\n## [0.3.0] — 2026-09-30\n\n### Added\n- first rho release\n\n## [hawk 0.2.0] — 2026-07-13\n\n- old\n"
+	const good = "# Changelog\n\n## [Unreleased]\n\n## [0.3.0] — 2026-09-30\n\n### Added\n- first reflect release\n\n## [hawk 0.2.0] — 2026-07-13\n\n- old\n"
 
 	t.Run("matching tag writes notes", func(t *testing.T) {
 		notes := filepath.Join(t.TempDir(), "notes.md")
@@ -219,7 +219,7 @@ func TestReleaseTagGuard(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(string(got), "- first rho release") || strings.Contains(string(got), "hawk") {
+		if !strings.Contains(string(got), "- first reflect release") || strings.Contains(string(got), "hawk") {
 			t.Errorf("notes should hold only the 0.3.0 section, got:\n%s", got)
 		}
 	})

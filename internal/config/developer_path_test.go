@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func TestEvaluateDeveloperPath_FreshInstall(t *testing.T) {

@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
-// IsolateStorage configures isolated HOME and Rho config/state/cache dirs for tests.
+// IsolateStorage configures isolated HOME and Reflect config/state/cache dirs for tests.
 func IsolateStorage(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
@@ -20,11 +20,11 @@ func IsolateStorage(t *testing.T) string {
 // isolated storage without overriding explicit caller configuration. The
 // returned cleanup restores the environment and removes the temporary root.
 func InstallHermeticStorage() (func(), error) {
-	root, err := os.MkdirTemp("", "rho-test-storage-")
+	root, err := os.MkdirTemp("", "reflect-test-storage-")
 	if err != nil {
 		return nil, err
 	}
-	keys := []string{"HOME", "RHO_CONFIG_DIR", "RHO_STATE_DIR", "RHO_CACHE_DIR", "FLUX_CONFIG_DIR"}
+	keys := []string{"HOME", "REFLECT_CONFIG_DIR", "REFLECT_STATE_DIR", "REFLECT_CACHE_DIR", "RELAY_CONFIG_DIR"}
 	previous := make(map[string]string, len(keys))
 	wasSet := make(map[string]bool, len(keys))
 	for _, key := range keys {
@@ -37,10 +37,10 @@ func InstallHermeticStorage() (func(), error) {
 		return nil, err
 	}
 	for key, suffix := range map[string]string{
-		"RHO_CONFIG_DIR":  "config",
-		"RHO_STATE_DIR":   "state",
-		"RHO_CACHE_DIR":   "cache",
-		"FLUX_CONFIG_DIR": "flux-config",
+		"REFLECT_CONFIG_DIR": "config",
+		"REFLECT_STATE_DIR":  "state",
+		"REFLECT_CACHE_DIR":  "cache",
+		"RELAY_CONFIG_DIR":   "relay-config",
 	} {
 		if _, ok := os.LookupEnv(key); !ok {
 			if err := os.Setenv(key, filepath.Join(root, suffix)); err != nil {
@@ -61,7 +61,7 @@ func InstallHermeticStorage() (func(), error) {
 	}, nil
 }
 
-// IsolateStorageIn configures isolated HOME and Rho config/state/cache dirs rooted at root.
+// IsolateStorageIn configures isolated HOME and Reflect config/state/cache dirs rooted at root.
 func IsolateStorageIn(t *testing.T, root string) {
 	t.Helper()
 	t.Setenv("HOME", root)

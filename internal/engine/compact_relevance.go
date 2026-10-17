@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/relevanceprune"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/relevanceprune"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // RelevancePruneStrategy prunes context by relevance: it scores older messages
@@ -27,7 +27,7 @@ type RelevancePruneStrategy struct {
 
 func (s *RelevancePruneStrategy) Name() string { return "relevance" }
 
-func (s *RelevancePruneStrategy) ShouldTrigger(msgs []types.FluxMessage, tokenCount, threshold int) bool {
+func (s *RelevancePruneStrategy) ShouldTrigger(msgs []types.RelayMessage, tokenCount, threshold int) bool {
 	return tokenCount >= threshold && len(msgs) >= 20
 }
 
@@ -47,7 +47,7 @@ func (s *RelevancePruneStrategy) Compact(ctx context.Context, sess *Session) (*c
 		},
 	)
 
-	out := toFluxMessages(pruned)
+	out := toRelayMessages(pruned)
 	sess.Persistence().SetMessages(out)
 	tokensAfter := token.EstimateTokens(sess.Persistence().RawMessages())
 	return &compact.CompactResult{
@@ -59,7 +59,7 @@ func (s *RelevancePruneStrategy) Compact(ctx context.Context, sess *Session) (*c
 }
 
 // toPruneMessages adapts raw session messages to the relevance-prune shape.
-func toPruneMessages(raw []types.FluxMessage, now time.Time) []relevanceprune.Message {
+func toPruneMessages(raw []types.RelayMessage, now time.Time) []relevanceprune.Message {
 	out := make([]relevanceprune.Message, len(raw))
 	for i, m := range raw {
 		out[i] = relevanceprune.Message{
@@ -73,15 +73,15 @@ func toPruneMessages(raw []types.FluxMessage, now time.Time) []relevanceprune.Me
 	return out
 }
 
-func toFluxMessages(msgs []relevanceprune.Message) []types.FluxMessage {
-	out := make([]types.FluxMessage, len(msgs))
+func toRelayMessages(msgs []relevanceprune.Message) []types.RelayMessage {
+	out := make([]types.RelayMessage, len(msgs))
 	for i, m := range msgs {
-		out[i] = types.FluxMessage{Role: m.Role, Content: m.Content}
+		out[i] = types.RelayMessage{Role: m.Role, Content: m.Content}
 	}
 	return out
 }
 
-func hasErrorResult(m types.FluxMessage) bool {
+func hasErrorResult(m types.RelayMessage) bool {
 	for _, tr := range m.ToolResults {
 		if tr.IsError {
 			return true
@@ -90,7 +90,7 @@ func hasErrorResult(m types.FluxMessage) bool {
 	return false
 }
 
-func lastUserText(raw []types.FluxMessage) string {
+func lastUserText(raw []types.RelayMessage) string {
 	for i := len(raw) - 1; i >= 0; i-- {
 		if raw[i].Role == "user" {
 			return raw[i].Content

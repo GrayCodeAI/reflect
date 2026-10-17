@@ -3,7 +3,7 @@ package compact
 import (
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 type MicroCompactConfig struct {
@@ -25,7 +25,7 @@ type resultInfo struct {
 	toolName string
 }
 
-func MicrocompactMessages(msgs []types.FluxMessage, cfg MicroCompactConfig) []types.FluxMessage {
+func MicrocompactMessages(msgs []types.RelayMessage, cfg MicroCompactConfig) []types.RelayMessage {
 	var compactableResults []resultInfo
 	for i, m := range msgs {
 		if len(m.ToolResults) == 0 {
@@ -47,7 +47,7 @@ func MicrocompactMessages(msgs []types.FluxMessage, cfg MicroCompactConfig) []ty
 		clearSet[compactableResults[i].index] = true
 	}
 
-	result := make([]types.FluxMessage, len(msgs))
+	result := make([]types.RelayMessage, len(msgs))
 	copy(result, msgs)
 	for idx := range clearSet {
 		oldResults := result[idx].ToolResults
@@ -59,7 +59,7 @@ func MicrocompactMessages(msgs []types.FluxMessage, cfg MicroCompactConfig) []ty
 				IsError:   tr.IsError,
 			}
 		}
-		result[idx] = types.FluxMessage{
+		result[idx] = types.RelayMessage{
 			Role:        result[idx].Role,
 			ToolResults: newResults,
 		}
@@ -68,7 +68,7 @@ func MicrocompactMessages(msgs []types.FluxMessage, cfg MicroCompactConfig) []ty
 	return result
 }
 
-func ToolNameForResult(m types.FluxMessage, msgs []types.FluxMessage) string {
+func ToolNameForResult(m types.RelayMessage, msgs []types.RelayMessage) string {
 	if len(m.ToolResults) == 0 {
 		return ""
 	}
@@ -83,7 +83,7 @@ func ToolNameForResult(m types.FluxMessage, msgs []types.FluxMessage) string {
 	return ""
 }
 
-func HasTimeGap(msgs []types.FluxMessage, threshold time.Duration) bool {
+func HasTimeGap(msgs []types.RelayMessage, threshold time.Duration) bool {
 	lastTextIdx := -1
 	for i := len(msgs) - 1; i >= 0; i-- {
 		if HasTextContent(msgs[i]) && msgs[i].Role == "assistant" {

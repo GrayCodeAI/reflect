@@ -1,0 +1,34 @@
+{
+    "name": "@graycodeai/reflect",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Bring Reflect into your terminal",
+    "license": "MIT",
+    "os": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "cpu": [
+        "arm64",
+        "x64"
+    ],
+    "scripts": {
+        "assemble": "node scripts/assemble-platform-packages.js",
+        "postinstall": "node bin/postinstall.js"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "optionalDependencies": {
+        "@graycodeai/reflect-darwin-arm64": "0.0.1",
+        "@graycodeai/reflect-darwin-x64": "0.0.1",
+        "@graycodeai/reflect-linux-arm64": "0.0.1",
+        "@graycodeai/reflect-linux-x64": "0.0.1",
+        "@graycodeai/reflect-win32-arm64": "0.0.1",
+        "@graycodeai/reflect-win32-x64": "0.0.1"
+    }
+}

@@ -7,19 +7,19 @@ import (
 	"testing"
 )
 
-func TestSessionPathDoesNotCreateProjectRho(t *testing.T) {
+func TestSessionPathDoesNotCreateProjectReflect(t *testing.T) {
 	project := t.TempDir()
 	state := filepath.Join(t.TempDir(), "state")
-	t.Setenv("RHO_STATE_DIR", state)
+	t.Setenv("REFLECT_STATE_DIR", state)
 
 	path := SessionPath(project, "abc123")
-	if strings.Contains(path, filepath.Join(project, ".rho")) {
-		t.Fatalf("SessionPath leaked project .rho: %q", path)
+	if strings.Contains(path, filepath.Join(project, ".reflect")) {
+		t.Fatalf("SessionPath leaked project .reflect: %q", path)
 	}
 	if !strings.HasPrefix(path, state) {
 		t.Fatalf("SessionPath = %q, want under %q", path, state)
 	}
-	if _, err := os.Stat(filepath.Join(project, ".rho")); !os.IsNotExist(err) {
-		t.Fatalf("SessionPath created project .rho, stat err=%v", err)
+	if _, err := os.Stat(filepath.Join(project, ".reflect")); !os.IsNotExist(err) {
+		t.Fatalf("SessionPath created project .reflect, stat err=%v", err)
 	}
 }

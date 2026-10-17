@@ -10,9 +10,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // handleSkillsCommand handles the /skills command and all its subcommands.

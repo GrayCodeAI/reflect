@@ -6,8 +6,8 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// rhoBlockGlyphs — fixed 8-column ██ font used by the welcome gate banners.
-var rhoBlockGlyphs = map[rune][5]string{
+// reflectBlockGlyphs — fixed 8-column ██ font used by the welcome gate banners.
+var reflectBlockGlyphs = map[rune][5]string{
 	'H': {"██   ██ ", "██   ██ ", "███████ ", "██   ██ ", "██   ██ "},
 	'A': {"  ███   ", " █████  ", "███████ ", "██   ██ ", "██   ██ "},
 	'W': {"██   ██ ", "██   ██ ", "██ █ ██ ", "███ ███ ", "██   ██ "},
@@ -20,40 +20,20 @@ var rhoBlockGlyphs = map[rune][5]string{
 	'T': {"████████", "   ██   ", "   ██   ", "   ██   ", "   ██   "},
 }
 
-/* legacyRhoLogoArtLines is retained only as a migration reference.
-var legacyRhoLogoArtLines = []string{
-	"|    ___    | |    ___    |   (\\              /)   |       \\",
-	"|   |   |   | |   |   |   |    \\      \\/      /    |   |\\   \\",
-	"|___|   |___| |___|   |___|     \\____/\\/\\____/     |___| \\___\\",
-	"                                    |0\\/0|",
-	"                                     \\/\\/",
-	"                                      \\/",
-}
-*/
-
-// rhoLogoArtLines is the canonical portable ASCII RHO wordmark.
-var rhoLogoArtLines = []string{
-	" ____  _   _  ___ ",
-	"|  _ \\| | | |/ _ \\ ",
-	"| |_) | |_| | | | |",
-	"|  _ <|  _  | |_| |",
-	"|_| \\_\\_| |_|\\___/",
-}
-
 const (
-	rhoBlockCellW     = 8
-	rhoBlockLetterGap = 1
-	rhoBlockWordGap   = 4
+	reflectBlockCellW     = 8
+	reflectBlockLetterGap = 1
+	reflectBlockWordGap   = 4
 )
 
 // welcomeWordLines — "WELCOME" block (row-aligned, fixed grid).
-var welcomeWordLines = composeRhoBlockLines("WELCOME")
+var welcomeWordLines = composeReflectBlockLines("WELCOME")
 
 // welcomeToWordLines — "TO" block, centered under WELCOME on the gate.
-var welcomeToWordLines = composeRhoBlockLines("TO")
+var welcomeToWordLines = composeReflectBlockLines("TO")
 
 // welcomeToPhraseLines — "WELCOME TO" block for wide welcome gates.
-var welcomeToPhraseLines = composeRhoBlockLines("WELCOME TO")
+var welcomeToPhraseLines = composeReflectBlockLines("WELCOME TO")
 
 // welcomeToBannerMinWidth is the visible width for the WELCOME block.
 const welcomeToBannerMinWidth = 61
@@ -61,24 +41,24 @@ const welcomeToBannerMinWidth = 61
 // welcomeToPhraseMinWidth is the visible width for the combined "WELCOME TO" block.
 var welcomeToPhraseMinWidth = blockLinesWidth(welcomeToPhraseLines)
 
-func composeRhoBlockLines(text string) []string {
+func composeReflectBlockLines(text string) []string {
 	rows := make([]string, 5)
 	words := strings.Fields(text)
 	for wi, word := range words {
 		for ci, ch := range word {
-			glyph, ok := rhoBlockGlyphs[ch]
+			glyph, ok := reflectBlockGlyphs[ch]
 			if !ok {
 				continue
 			}
 			for i := range rows {
 				if rows[i] != "" {
 					if ci == 0 && wi > 0 {
-						rows[i] += strings.Repeat(" ", rhoBlockWordGap)
+						rows[i] += strings.Repeat(" ", reflectBlockWordGap)
 					} else {
-						rows[i] += strings.Repeat(" ", rhoBlockLetterGap)
+						rows[i] += strings.Repeat(" ", reflectBlockLetterGap)
 					}
 				}
-				cell := padBlockCell(glyph[i], rhoBlockCellW)
+				cell := padBlockCell(glyph[i], reflectBlockCellW)
 				rows[i] += cell
 			}
 		}
@@ -104,4 +84,39 @@ func padBlockCell(s string, w int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", w-runewidth.StringWidth(s))
+}
+
+// reflectRobotArtLines renders a friendly gold robot with a centered antenna and teal eyes.
+// Half blocks preserve square pixels across four terminal rows.
+func reflectRobotArtLines() []string {
+	pixels := [...]string{
+		"00011000",
+		"00111100",
+		"01200210",
+		"01200210",
+		"01111110",
+		"10111101",
+		"10011001",
+		"00100100",
+	}
+	rows := make([]string, 0, len(pixels)/2)
+	for y := 0; y < len(pixels); y += 2 {
+		var row strings.Builder
+		for x := range pixels[y] {
+			switch {
+			case pixels[y][x] == '2' && pixels[y+1][x] == '2':
+				row.WriteString(ansiTeal + "██" + ansiOrange)
+			case pixels[y][x] == '1' && pixels[y+1][x] == '1':
+				row.WriteString("██")
+			case pixels[y][x] == '1':
+				row.WriteString("▀▀")
+			case pixels[y+1][x] == '1':
+				row.WriteString("▄▄")
+			default:
+				row.WriteString("  ")
+			}
+		}
+		rows = append(rows, row.String())
+	}
+	return rows
 }

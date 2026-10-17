@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
 func (m chatModel) openConfigPanel() (chatModel, tea.Cmd) {
@@ -69,7 +69,7 @@ func catalogPricesAreStale(opts []configModelOption) bool {
 }
 
 func providerHasLiveFetcher(providerID string) bool {
-	return rhoconfig.GatewaySupportsLiveDiscovery(providerID)
+	return reflectconfig.GatewaySupportsLiveDiscovery(providerID)
 }
 
 func (m chatModel) returnToOllamaURLAfterError(err error) (chatModel, tea.Cmd) {
@@ -80,7 +80,7 @@ func (m chatModel) returnToOllamaURLAfterError(err error) (chatModel, tea.Cmd) {
 		url = configDefaultOllamaURL
 	}
 	if err != nil {
-		m.configNotice = rhoconfig.FormatConfigProviderError(configProviderOllama, err)
+		m.configNotice = reflectconfig.FormatConfigProviderError(configProviderOllama, err)
 	}
 	return m.startConfigOllamaURLWithValue(url)
 }

@@ -2,7 +2,7 @@ package mcp
 
 // OAuth support for connecting to auth-gated remote MCP servers.
 //
-// rho has zero MCP SDK dependency (see mcp.go/http.go/ws.go's hand-rolled
+// reflect has zero MCP SDK dependency (see mcp.go/http.go/ws.go's hand-rolled
 // JSON-RPC) — this stays consistent with that and hand-rolls OAuth too,
 // rather than adopting a third-party client library.
 //
@@ -143,7 +143,7 @@ func RegisterClient(ctx context.Context, registrationEndpoint, redirectURI strin
 		TokenEndpointAuthMethod: "none",
 		GrantTypes:              []string{"authorization_code", "refresh_token"},
 		ResponseTypes:           []string{"code"},
-		ClientName:              "rho",
+		ClientName:              "reflect",
 	})
 	if err != nil {
 		return "", err
@@ -209,7 +209,7 @@ type CallbackResult struct {
 // call shutdown() once (after receiving a result, or on timeout) to
 // release the listener.
 func StartLoopbackCallback(ctx context.Context, timeout time.Duration) (redirectURI string, resultCh <-chan CallbackResult, shutdown func(), err error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -221,8 +221,8 @@ func StartLoopbackCallback(ctx context.Context, timeout time.Duration) (redirect
 
 	results := make(chan CallbackResult, 1)
 	var once sync.Once
-	mux := http.NewServeMux()
-	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	relay := http.NewServeMux()
+	relay.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		result := CallbackResult{Code: q.Get("code"), State: q.Get("state")}
 		if errParam := q.Get("error"); errParam != "" {
@@ -236,7 +236,7 @@ func StartLoopbackCallback(ctx context.Context, timeout time.Duration) (redirect
 			_, _ = w.Write([]byte("<html><body>Authorization failed. You can close this tab.</body></html>"))
 		} else {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body>Authorized. You can close this tab and return to rho.</body></html>"))
+			_, _ = w.Write([]byte("<html><body>Authorized. You can close this tab and return to reflect.</body></html>"))
 		}
 		once.Do(func() {
 			select {
@@ -248,7 +248,7 @@ func StartLoopbackCallback(ctx context.Context, timeout time.Duration) (redirect
 	// Loopback-only, context-bounded OAuth callback server: it serves a single
 	// localhost redirect and tears itself down via ctx/timeout, so the Slowloris
 	// window does not apply.
-	httpServer := &http.Server{Handler: mux} // #nosec G112 -- loopback, self-terminating
+	httpServer := &http.Server{Handler: relay} // #nosec G112 -- loopback, self-terminating
 
 	go func() { _ = httpServer.Serve(listener) }()
 

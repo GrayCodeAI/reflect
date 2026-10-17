@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	feature "github.com/GrayCodeAI/rho/internal/features"
+	feature "github.com/GrayCodeAI/reflect/internal/features"
 )
 
 // requestIDKey is the context key for the request ID.
@@ -214,12 +214,12 @@ func redactURLPath(path string) string {
 	return path
 }
 
-// installMiddleware wraps the server's mux with the standard middleware
+// installMiddleware wraps the server's relay with the standard middleware
 // stack: request IDs → security headers (if enabled) → CORS (if enabled) →
 // request logging. This is called after routes() to ensure all routes are
 // registered.
 func (s *Server) installMiddleware() {
-	handler := http.Handler(s.mux)
+	handler := http.Handler(s.relay)
 	handler = s.requestIDMiddleware(handler)
 	if feature.Enabled(feature.SecurityHeaders) {
 		handler = s.securityHeadersMiddleware(handler)

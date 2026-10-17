@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 
-	contracts "github.com/GrayCodeAI/rho/internal/contracts/policy"
+	contracts "github.com/GrayCodeAI/reflect/internal/contracts/policy"
 )
 
 func TestPermissionPromptTimeoutClearsStaleState(t *testing.T) {
@@ -236,7 +236,7 @@ func TestClearInteractivePromptsFailsClosedImmediately(t *testing.T) {
 	m.credentialQueue = []credentialAskMsg{{response: make(chan tool.CredentialResponse, 1)}}
 	m.permReq = &safety.PermissionRequest{Response: permissionResponse}
 
-	m.clearInteractivePrompts("rho is exiting")
+	m.clearInteractivePrompts("reflect is exiting")
 
 	if m.askReq != nil || m.credentialReq != nil || m.permReq != nil || len(m.askQueue) != 0 || len(m.credentialQueue) != 0 {
 		t.Fatal("interactive prompts were not fully cleared")
@@ -248,7 +248,7 @@ func TestClearInteractivePromptsFailsClosedImmediately(t *testing.T) {
 	}
 	select {
 	case response := <-credentialResponse:
-		if response.Approved || response.Reason != "rho is exiting" {
+		if response.Approved || response.Reason != "reflect is exiting" {
 			t.Fatalf("unexpected credential shutdown response: %+v", response)
 		}
 	default:

@@ -1,5 +1,5 @@
 {
-  "description": "Shared GrayCode Cloud graph attribute policy. cloudSafe=true means the key may be uploaded as-is; false means rho must hash it behind <key>_sha256 and the cloud rejects it verbatim. Keep identical to the GrayCode Cloud worker fixture.",
+  "description": "Shared GrayCode Cloud graph attribute policy. cloudSafe=true means the key may be uploaded as-is; false means reflect must hash it behind <key>_sha256 and the cloud rejects it verbatim. Keep identical to the GrayCode Cloud worker fixture.",
   "cases": [
     { "key": "entity_type", "cloudSafe": true },
     { "key": "tool_name", "cloudSafe": true },

@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// repoRoot returns the rho repo root directory.
+// repoRoot returns the reflect repo root directory.
 // It walks up from the test file's location to find go.mod.
 func repoRoot(t *testing.T) string {
 	t.Helper()
@@ -49,10 +49,10 @@ var getEnvExemptions = map[string]bool{
 	"config/deployment":          true, // config package
 	"config/deployments_ui":      true, // config package
 	"auth/auth.go":               true, // HOME for token file path
-	"terminal_context.go":        true, // TMUX, STY, TERM_PROGRAM for terminal detection
+	"terminal_context.go":        true, // TRELAY, STY, TERM_PROGRAM for terminal detection
 	"prompts/loader.go":          true, // SHELL for prompt context
-	"health/diagnostics.go":      true, // SHELL, RHO_MODEL for health checks
-	"tool/safety.go":             true, // RHO_CONFIG_DIR for security checks
+	"health/diagnostics.go":      true, // SHELL, REFLECT_MODEL for health checks
+	"tool/safety.go":             true, // REFLECT_CONFIG_DIR for security checks
 	"tool/treesitter.go":         true, // HOME for grammar dir (uses os.UserHomeDir)
 	"tool/web_search_brave.go":   true, // BRAVE_SEARCH_API_KEY
 	"tool/web_search_searxng.go": true, // SEARXNG_URL
@@ -183,9 +183,9 @@ func TestNoDirectOsGetenvInInternal(t *testing.T) {
 	t.Logf("Total os.Getenv violations in internal/: %d (logged as tech debt)", violationCount)
 }
 
-// TestNoDirectLowerFluxImports verifies production Rho code uses only
-// Flux's stable engine facade. Tests may import lower packages for fixtures.
-func TestNoDirectLowerFluxImports(t *testing.T) {
+// TestNoDirectLowerRelayImports verifies production Reflect code uses only
+// Relay's stable engine facade. Tests may import lower packages for fixtures.
+func TestNoDirectLowerRelayImports(t *testing.T) {
 	root := repoRoot(t)
 	paths := []string{
 		filepath.Join(root, "internal"),
@@ -201,30 +201,30 @@ func TestNoDirectLowerFluxImports(t *testing.T) {
 			}
 			for _, imp := range pf.File.Imports {
 				path := strings.Trim(imp.Path.Value, `"`)
-				if !strings.HasPrefix(path, "github.com/GrayCodeAI/flux/") ||
-					path == "github.com/GrayCodeAI/flux/engine" ||
-					strings.HasPrefix(path, "github.com/GrayCodeAI/flux/engine/") {
+				if !strings.HasPrefix(path, "github.com/GrayCodeAI/relay/") ||
+					path == "github.com/GrayCodeAI/relay/engine" ||
+					strings.HasPrefix(path, "github.com/GrayCodeAI/relay/engine/") {
 					continue
 				}
-				// Rho uses the full vendored Flux API surface for provider,
+				// Reflect uses the full vendored Relay API surface for provider,
 				// graph, and tooling contracts that the engine facade does not
 				// re-export.
 				switch path {
-				case "github.com/GrayCodeAI/flux/llm",
-					"github.com/GrayCodeAI/flux/graph",
-					"github.com/GrayCodeAI/flux/tools":
+				case "github.com/GrayCodeAI/relay/llm",
+					"github.com/GrayCodeAI/relay/graph",
+					"github.com/GrayCodeAI/relay/tools":
 					continue
 				}
 				pos := pf.FSet.Position(imp.Pos())
-				t.Fatalf("forbidden lower-level Flux import %q at %s:%d; use github.com/GrayCodeAI/flux/engine", path, rel, pos.Line)
+				t.Fatalf("forbidden lower-level Relay import %q at %s:%d; use github.com/GrayCodeAI/relay/engine", path, rel, pos.Line)
 			}
 		}
 	}
 }
 
-// TestNoLazyProviderConstructionInRho verifies Rho does not construct lazy
-// provider transports directly. Provider/model transport resolution belongs in Flux.
-func TestNoLazyProviderConstructionInRho(t *testing.T) {
+// TestNoLazyProviderConstructionInReflect verifies Reflect does not construct lazy
+// provider transports directly. Provider/model transport resolution belongs in Relay.
+func TestNoLazyProviderConstructionInReflect(t *testing.T) {
 	root := repoRoot(t)
 	paths := []string{
 		filepath.Join(root, "internal"),
@@ -248,7 +248,7 @@ func TestNoLazyProviderConstructionInRho(t *testing.T) {
 					return true
 				}
 				pos := pf.FSet.Position(call.Pos())
-				t.Fatalf("forbidden flux lazy provider construction at %s:%d; use the flux/engine facade", rel, pos.Line)
+				t.Fatalf("forbidden relay lazy provider construction at %s:%d; use the relay/engine facade", rel, pos.Line)
 				return true
 			})
 		}

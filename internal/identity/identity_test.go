@@ -142,32 +142,32 @@ func TestFileFormat(t *testing.T) {
 
 func TestHomeDirEnvOverride(t *testing.T) {
 	freshHome(t)
-	t.Setenv("RHO_HOME", "")
+	t.Setenv("REFLECT_HOME", "")
 	home, err := HomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Without RHO_HOME the resolved home ends in /.rho.
-	if !strings.HasSuffix(home, ".rho") {
-		t.Fatalf("HomeDir() = %q, want ~/.rho default", home)
+	// Without REFLECT_HOME the resolved home ends in /.reflect.
+	if !strings.HasSuffix(home, ".reflect") {
+		t.Fatalf("HomeDir() = %q, want ~/.reflect default", home)
 	}
 }
 
-func TestHomeDirUsesRHOHomeEnv(t *testing.T) {
+func TestHomeDirUsesREFLECTHomeEnv(t *testing.T) {
 	freshHome(t)
-	t.Setenv("RHO_HOME", "/tmp/rho-home-test")
+	t.Setenv("REFLECT_HOME", "/tmp/reflect-home-test")
 	home, err := HomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if home != "/tmp/rho-home-test" {
-		t.Fatalf("HomeDir() = %q, want RHO_HOME value", home)
+	if home != "/tmp/reflect-home-test" {
+		t.Fatalf("HomeDir() = %q, want REFLECT_HOME value", home)
 	}
 }
 
 func TestSetHomeDirOverrideWins(t *testing.T) {
 	home := freshHome(t)
-	t.Setenv("RHO_HOME", "/tmp/ignored-home")
+	t.Setenv("REFLECT_HOME", "/tmp/ignored-home")
 	SetHomeDir(home)
 	got, err := HomeDir()
 	if err != nil {

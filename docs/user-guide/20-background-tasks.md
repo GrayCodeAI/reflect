@@ -1,6 +1,6 @@
 # Background Tasks and Monitoring
 
-Rho runs long-lived processes without blocking the conversation. This covers background commands, `/loop`, and the `monitor` tool.
+Reflect runs long-lived processes without blocking the conversation. This covers background commands, `/loop`, and the `monitor` tool.
 
 ---
 

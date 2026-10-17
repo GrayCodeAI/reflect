@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	"golang.org/x/term"
 
@@ -27,23 +27,23 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
-	"github.com/GrayCodeAI/rho/internal/bridge/sessioncapture"
-	"github.com/GrayCodeAI/rho/internal/codegraph"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	chatfeature "github.com/GrayCodeAI/rho/internal/features/chat"
-	sessionfeature "github.com/GrayCodeAI/rho/internal/features/session"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	"github.com/GrayCodeAI/rho/internal/features/taste"
-	"github.com/GrayCodeAI/rho/internal/intelligence/repomap"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/startup"
-	rhostorage "github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/system/staleness"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/tui"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/bridge/sessioncapture"
+	"github.com/GrayCodeAI/reflect/internal/codegraph"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	chatfeature "github.com/GrayCodeAI/reflect/internal/features/chat"
+	sessionfeature "github.com/GrayCodeAI/reflect/internal/features/session"
+	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
+	"github.com/GrayCodeAI/reflect/internal/features/taste"
+	"github.com/GrayCodeAI/reflect/internal/intelligence/repomap"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/startup"
+	reflectstorage "github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/system/staleness"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/tui"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // Types, styles, and model struct are in chat_model.go
@@ -52,7 +52,7 @@ import (
 // Tool-registry construction (essential/optional tools) is in chat_tools.go
 // The Bubble Tea event loop (Update, applyPromptArrowKey) is in chat_update.go
 
-const workInputPlaceholder = `Ask Rho to inspect, edit, or run something... (Shift+Enter for newline, ? for help)`
+const workInputPlaceholder = `Ask Reflect to inspect, edit, or run something... (Shift+Enter for newline, ? for help)`
 
 func genID() string {
 	b := make([]byte, 8)
@@ -73,7 +73,7 @@ func prepareSession(sess *engine.Session) (string, *session.Session, error) {
 	}
 	if sessionIDFlag != "" && (resumeID != "" || continueFlag) {
 		// --session-id is ignored when --resume or --continue is also given.
-		fmt.Fprintf(os.Stderr, "%s\n", auditTint("rho: --session-id ignored during resume/continue", textMuted))
+		fmt.Fprintf(os.Stderr, "%s\n", auditTint("reflect: --session-id ignored during resume/continue", textMuted))
 	}
 	if resumeID == "" && !continueFlag {
 		return id, nil, nil
@@ -107,7 +107,7 @@ func prepareSession(sess *engine.Session) (string, *session.Session, error) {
 	return saved.ID, saved, nil
 }
 
-func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhoconfig.Settings, registry *tool.Registry) (chatModel, error) {
+func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings reflectconfig.Settings, registry *tool.Registry) (chatModel, error) {
 	startup.MarkPhase("newChatModel:total")
 
 	startup.MarkPhase("newChatModel:ui-init")
@@ -127,15 +127,15 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 			CursorLine:  lipgloss.NewStyle(),
 			Base:        lipgloss.NewStyle().Foreground(textPrimary),
 			Placeholder: lipgloss.NewStyle().Foreground(textPlaceholder),
-			Prompt:      lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt:      lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 		},
 		Blurred: textarea.StyleState{
 			Base:        lipgloss.NewStyle().Foreground(textPlaceholder),
 			Placeholder: lipgloss.NewStyle().Foreground(textPlaceholder),
-			Prompt:      lipgloss.NewStyle().Foreground(rhoColor).Bold(true),
+			Prompt:      lipgloss.NewStyle().Foreground(reflectColor).Bold(true),
 		},
 		Cursor: textarea.CursorStyle{
-			Color: rhoColor,
+			Color: reflectColor,
 		},
 	})
 	ta.Prompt = icons.ChevronRight() + " "
@@ -147,8 +147,8 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	ci.EchoMode = textinput.EchoNormal
 
 	sp := spinner.New()
-	sp.Spinner = spinner.Spinner{Frames: rhoSpinnerFrames, FPS: rhoSpinnerFrameInterval}
-	sp.Style = lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	sp.Spinner = spinner.Spinner{Frames: reflectSpinnerFrames, FPS: reflectSpinnerFrameInterval}
+	sp.Style = lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 	startup.EndPhase("newChatModel:ui-init")
 
 	startup.MarkPhase("newChatModel:effectiveModelAndProvider")
@@ -159,9 +159,9 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	startup.MarkPhase("newChatModel:defaultRegistry")
 	startup.EndPhase("newChatModel:defaultRegistry")
 
-	startup.MarkPhase("newChatModel:newRhoSession")
-	sess := newStartupRhoSession(selection, systemPrompt, registry)
-	startup.EndPhase("newChatModel:newRhoSession")
+	startup.MarkPhase("newChatModel:newReflectSession")
+	sess := newStartupReflectSession(selection, systemPrompt, registry)
+	startup.EndPhase("newChatModel:newReflectSession")
 
 	startup.MarkPhase("newChatModel:configureSession")
 	if cfgErr := prepareInteractiveSessionStartup(sess, settings); cfgErr != nil {
@@ -185,7 +185,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 
 	// Initialize conversation DAG for branching support
 	startup.MarkPhase("newChatModel:dag")
-	graphPath := filepath.Join(rhostorage.SessionsDir(), "conversations", sid+".json")
+	graphPath := filepath.Join(reflectstorage.SessionsDir(), "conversations", sid+".json")
 	if graph, err := session.OpenConversationGraph(graphPath, sid); err == nil {
 		sess.SetConversationGraph(graph)
 	}
@@ -204,7 +204,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	now := time.Now()
 	// Create a cancel function for background goroutines that gets called on quit.
 	_, bgCancel := context.WithCancel(context.Background())
-	m := chatModel{input: ta, configInput: ci, spinner: sp, viewport: vp, session: sess, registry: registry, settings: settings, ref: ref, sessionID: sid, partial: &strings.Builder{}, spinnerVerb: spinnerVerbs[rand.Intn(len(spinnerVerbs))], width: initWidth, height: initHeight, history: chatfeature.NewHistory(nil, chatfeature.DefaultHistoryLimit), autoScroll: true, streamFollow: true, uiFocus: focusPrompt, startedAt: now, sessionStartedAt: now, activeSkills: make(map[string]plugin.SmartSkill), toolResultExpanded: make(map[int]bool), bgCancel: bgCancel, mascotEnabled: rhoMascotEnabled()} // #nosec G404 -- non-cryptographic use: non-cryptographic spinner selection
+	m := chatModel{input: ta, configInput: ci, spinner: sp, viewport: vp, session: sess, registry: registry, settings: settings, ref: ref, sessionID: sid, partial: &strings.Builder{}, spinnerVerb: spinnerVerbs[rand.Intn(len(spinnerVerbs))], width: initWidth, height: initHeight, history: chatfeature.NewHistory(nil, chatfeature.DefaultHistoryLimit), autoScroll: true, streamFollow: true, uiFocus: focusPrompt, startedAt: now, sessionStartedAt: now, activeSkills: make(map[string]plugin.SmartSkill), toolResultExpanded: make(map[int]bool), bgCancel: bgCancel, mascotEnabled: reflectMascotEnabled()} // #nosec G404 -- non-cryptographic use: non-cryptographic spinner selection
 	applyLiveModelMetadata(sess, effectiveProvider, effectiveModel)
 
 	startup.MarkPhase("newChatModel:commandPalette")
@@ -245,7 +245,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	m.contextualHelp = NewContextualHelp()
 	m.modeManager = shellmode.NewModeManager()
 	m.modeManager.LoadPersistedMode()
-	m.brailleSpinner = NewBrailleSpinner(SpinnerRho, "")
+	m.brailleSpinner = NewBrailleSpinner(SpinnerReflect, "")
 	m.brailleSpinner.SetLabel(m.spinnerVerb)
 	startup.EndPhase("newChatModel:lacy-features")
 
@@ -288,8 +288,8 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	// Prefetch live models for the active provider so footer ctx/pricing stay current.
 	go func() {
 		providerName := effectiveProvider
-		entries, _ := rhoconfig.ListEngineModels(context.Background(), providerName, false)
-		opts := configModelOptionsFromFlux(entries)
+		entries, _ := reflectconfig.ListEngineModels(context.Background(), providerName, false)
+		opts := configModelOptionsFromRelay(entries)
 		if len(opts) > 0 {
 			modelCacheMu.Lock()
 			modelCache[providerName] = opts
@@ -315,7 +315,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	m.welcomeCache = buildWelcomeMessageWithSnapshotAndMascot(sess, sid, registry, saved, settings, 0, connectedMCPCount(registry), 0, initWidth, initHeight, quickSnapshot, "", m.mascotEnabled)
 	m.messages = append(m.messages, displayMsg{role: "welcome", content: m.welcomeCache})
 	// First-session control-plane tip (skip when resuming history or when quiet env var is set).
-	if saved == nil && os.Getenv("RHO_QUIET_START") == "" && os.Getenv("RHO_SUPPRESS_HINTS") == "" && os.Getenv("RHO_QUIET") == "" {
+	if saved == nil && os.Getenv("REFLECT_QUIET_START") == "" && os.Getenv("REFLECT_SUPPRESS_HINTS") == "" && os.Getenv("REFLECT_QUIET") == "" {
 		m.messages = append(m.messages, displayMsg{role: "system", content: controlPlaneOnboardingHint(sess)})
 	}
 	startup.EndPhase("newChatModel:welcome")
@@ -388,7 +388,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	// the initial UI.
 	go func(currentSessionID string) {
 		if recovered := session.CheckForRecovery(); len(recovered) > 0 {
-			walDir := rhostorage.SessionsDir()
+			walDir := reflectstorage.SessionsDir()
 			for _, rid := range recovered {
 				if rid == currentSessionID {
 					continue // current session WAL
@@ -404,7 +404,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings rhocon
 	// Warm footer data and the model catalog after the first frame.
 	go func(model chatModel) {
 		startup.MarkPhase("newChatModel:ui-cache-warm")
-		rhoconfig.RefreshConfigCredSnapshot(context.Background())
+		reflectconfig.RefreshConfigCredSnapshot(context.Background())
 		// Network reachability runs off the startup critical path: an offline
 		// machine stalls here (background) instead of before first paint.
 		if msg := checkNetworkReachability(model.settings); msg != "" {
@@ -532,18 +532,18 @@ func (m *chatModel) refreshInputPlaceholder() {
 	}
 	switch work {
 	case engine.WorkModePlan:
-		m.input.Placeholder = "Design architecture or draft plan...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "Describe what you want to plan…"
 	case engine.WorkModeReview:
-		m.input.Placeholder = "Audit diffs, security, or PRs...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "What would you like reviewed?"
 	default:
-		m.input.Placeholder = "Build, refactor, or run commands...  ·  /select copy  ·  ? help"
+		m.input.Placeholder = "What would you like to build?"
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
 	cmds := []tea.Cmd{initTerminalMouseCmd(m.mouseEnabled()), promptKeepAliveCmd(), eyeBlinkTickCmd()}
 	if m.mascotEnabled {
-		cmds = append(cmds, emitRhoMascotCmd())
+		cmds = append(cmds, emitReflectMascotCmd())
 	}
 	if gw, _ := m.sessionGatewayModel(); strings.TrimSpace(gw) != "" {
 		cmds = append(cmds, fetchModelsAsync(gw))
@@ -610,7 +610,7 @@ func runChat() error {
 
 	// One-time, gated codebase analysis for projects with no context file.
 	// Runs in the background and never blocks startup; fully opt-out via
-	// RHO_DISABLE_AUTO_INIT. No-op for projects that already have context.
+	// REFLECT_DISABLE_AUTO_INIT. No-op for projects that already have context.
 	maybeAutoInit(context.Background())
 
 	ref := &progRef{}
@@ -619,7 +619,7 @@ func runChat() error {
 		err  error
 	}
 	type startupSettingsResult struct {
-		settings rhoconfig.Settings
+		settings reflectconfig.Settings
 		err      error
 	}
 	type startupRegistryResult struct {
@@ -683,7 +683,7 @@ func runChat() error {
 		m.waiting = true
 	}
 
-	// Suppress library log output (e.g. flux retry warnings) from corrupting the TUI.
+	// Suppress library log output (e.g. relay retry warnings) from corrupting the TUI.
 	// Must be set BEFORE tea.NewProgram so no initialization logs leak through.
 	log.SetOutput(io.Discard)
 
@@ -747,10 +747,10 @@ func runChat() error {
 		// frame and any terminal-persistent mascot so shutdown has one clean,
 		// predictable final state.
 		fmt.Print("\x1b[2J\x1b[H")
-		fmt.Println("Thank you for using Rho!")
+		fmt.Println("Thank you for using Reflect!")
 		return nil
 	}
-	rhoC := ansiOrange
+	reflectC := ansiOrange
 	rst := ansiReset
 
 	fmt.Print(fm.welcomeCache)
@@ -758,10 +758,10 @@ func runChat() error {
 	for _, msg := range fm.messages {
 		switch msg.role {
 		case "user":
-			fmt.Println(rhoC + "█" + rst + "  " + msg.content)
+			fmt.Println(reflectC + "█" + rst + "  " + msg.content)
 			fmt.Println()
 		case "assistant":
-			fmt.Println(rhoC + icons.Robot() + " " + rst + msg.content)
+			fmt.Println(reflectC + icons.Robot() + " " + rst + msg.content)
 			fmt.Println()
 		case "system":
 			fmt.Println(dimStyle.Render("●  " + msg.content))
@@ -793,12 +793,12 @@ func runChat() error {
 	border := strings.Repeat("─", viewWidth)
 	borderStyle := lipgloss.NewStyle().Foreground(borderDim)
 	fmt.Println(borderStyle.Render(border))
-	fmt.Println(lipgloss.NewStyle().Foreground(rhoColor).Bold(true).Render(">") + " ")
+	fmt.Println(lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Render(">") + " ")
 	fmt.Println(borderStyle.Render(border))
 	fmt.Println(dimStyle.Render("? for help"))
 
 	if fm.sessionID != "" {
-		fmt.Println(dimStyle.Render(fmt.Sprintf("To resume this session, run: rho --resume %s", fm.sessionID)))
+		fmt.Println(dimStyle.Render(fmt.Sprintf("To resume this session, run: reflect --resume %s", fm.sessionID)))
 	}
 	return nil
 }

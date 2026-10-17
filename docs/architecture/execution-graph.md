@@ -1,9 +1,9 @@
-# Rho Execution Graph
+# Reflect Execution Graph
 
 ## Status
 
 The first read-only execution-graph projection is implemented. It does not
-replace Rho's scheduler or move runtime ownership into a graph database.
+replace Reflect's scheduler or move runtime ownership into a graph database.
 
 ```text
 runtime owners
@@ -14,7 +14,7 @@ runtime owners
   verification bridges
   graph observation journal
   Embedded token-pipeline runtime projection
-  Flux operations projection
+  Relay operations projection
         |
         v
 internal/executiongraph
@@ -22,18 +22,18 @@ internal/executiongraph
         v
 eagle/graph
         |
-        +--> rho graph export
+        +--> reflect graph export
         |
         +--> authenticated daemon session graph API
         |
-        +--> privacy-normalized, explicit Rho Cloud sync
+        +--> privacy-normalized, explicit Reflect Cloud sync
 ```
 
 ## Ownership
 
 | Data | Source of truth | Graph behavior |
 |---|---|---|
-| Rho sessions and messages | `internal/session` | Read-only projection |
+| Reflect sessions and messages | `internal/session` | Read-only projection |
 | Structured tasks and dependencies | `internal/tool` task store | Read-only projection |
 | Agent, shell, and monitor tasks | `internal/taskruntime` | Read-only projection |
 | Permission verdicts | permission subsystem | Automatically summarized after tool permission and approval gates |
@@ -41,14 +41,14 @@ eagle/graph
 | Context compression operations | `internal/token` | Compression statistics are automatically captured during persisted-session context compaction |
 | Response redaction quality | `internal/token` | Aggregate secret matches are automatically captured after persisted-session response redaction |
 | Token usage and budget decisions | `internal/token` | Deduplicated provider usage updates the tracker; usage and next-turn budget decisions are automatically captured |
-| Model routing and generation usage | Flux | Route and normalized usage operations are automatically captured after each persisted-session model turn |
+| Model routing and generation usage | Relay | Route and normalized usage operations are automatically captured after each persisted-session model turn |
 | Observation history | `internal/graphjournal` | Append-only, privacy-safe runtime evidence |
 
 The graph package never mutates these owners and never schedules work.
 
 ## Validated scheduling view
 
-Rho's structured task store now validates its blocking dependency graph before
+Reflect's structured task store now validates its blocking dependency graph before
 answering `TaskList {"action":"ready"}`. The validator:
 
 - caps the view at 1,000 tasks and 10,000 unique blocking edges;
@@ -59,7 +59,7 @@ answering `TaskList {"action":"ready"}`. The validator:
 - fails closed when legacy callers request ready work from an invalid graph.
 
 This is graph-driven readiness selection with an opt-in execution bridge. The
-default agent/tool loop remains authoritative, but `rho mission --from-tasks`
+default agent/tool loop remains authoritative, but `reflect mission --from-tasks`
 can now consume the validated waves, execute each wave with bounded parallel
 workers, and persist a deterministic join record before any later wave starts.
 If a wave fails, later waves remain pending rather than being speculatively
@@ -84,15 +84,15 @@ Graph-driven execution keeps the existing operational controls:
 
 Nodes:
 
-- `rho/session/<id>` — persisted Rho session;
-- `rho/task-request/<session>/<n>` — user task request, content represented by
+- `reflect/session/<id>` — persisted Reflect session;
+- `reflect/task-request/<session>/<n>` — user task request, content represented by
   SHA-256 only;
-- `rho/task/<id>` — structured task;
-- `rho/runtime-task/<id>` — background agent, shell, or monitor task;
-- `rho/tool-call/<session>/<tool-use-id>` — tool invocation metadata;
-- `rho/policy/<id>` — permission verdict;
-- `rho/verification/<id>` — neutral verification result;
-- `flux/route/<digest>` and `flux/generation/<digest>` — model route and
+- `reflect/task/<id>` — structured task;
+- `reflect/runtime-task/<id>` — background agent, shell, or monitor task;
+- `reflect/tool-call/<session>/<tool-use-id>` — tool invocation metadata;
+- `reflect/policy/<id>` — permission verdict;
+- `reflect/verification/<id>` — neutral verification result;
+- `relay/route/<digest>` and `relay/generation/<digest>` — model route and
   normalized generation operations.
 
 Edges:
@@ -120,15 +120,15 @@ The export deliberately excludes:
 Where correlation is useful, sensitive values are represented by SHA-256
 digests. Every node declares `data_classification=metadata_only`.
 
-Rho writes runtime observations to a per-session append-only JSONL journal.
-The journal is stored with mode `0600` under Rho's state directory and contains
+Reflect writes runtime observations to a per-session append-only JSONL journal.
+The journal is stored with mode `0600` under Reflect's state directory and contains
 only verdict metadata, aggregate verification counts, and SHA-256 digests. A
 journal failure is logged and never changes a permission, approval, or tool
 result.
 
 Mission-mode graph execution persists a separate `mission-graph.json` artifact
 beside `mission.json` in the mission directory. The artifact uses the same
-portable `rho.graph/v1` envelope, but it is mission-scoped rather than
+portable `reflect.graph/v1` envelope, but it is mission-scoped rather than
 session-scoped: mission node, feature nodes, and wave-join operations nodes are
 rewritten after each mission run or wave join using only metadata and SHA-256
 digests.
@@ -136,7 +136,7 @@ digests.
 ## CLI
 
 ```bash
-rho graph export [session-id]
+reflect graph export [session-id]
   --repository <scope>
 ```
 
@@ -155,18 +155,18 @@ GET /v1/sessions/{id}/graph
 
 The endpoint uses the daemon's normal Bearer or `X-API-Key` authentication,
 validates session and repository inputs before projection, and
-returns the typed `rho.graph/v1` envelope. The handler owns transport concerns
-only; the Rho composition root injects the existing graph builder, so CLI,
+returns the typed `reflect.graph/v1` envelope. The handler owns transport concerns
+only; the Reflect composition root injects the existing graph builder, so CLI,
 Cloud sync, and HTTP projections share one construction path.
 
 The Go, Python sync/async, and TypeScript SDK clients expose this endpoint and
 validate the returned graph topology before returning it to callers.
 
-After connecting a project with `rho cloud login` or `rho cloud connect`, a
+After connecting a project with `reflect cloud login` or `reflect cloud connect`, a
 completed session snapshot can be uploaded explicitly:
 
 ```bash
-rho cloud graph sync [session-id]
+reflect cloud graph sync [session-id]
   --repository <scope>
 ```
 
@@ -175,18 +175,18 @@ keys to `*_sha256`, enforces the 250-node/500-edge/500-event/900-total-fact and
 1 MiB limits, and derives the sync ID from the prepared graph. Repeating the
 same completed snapshot is therefore idempotent. Upload errors are reported to
 the explicit command, but cloud availability never affects local execution.
-Rho does not upload prompt bodies, response bodies, tool arguments, tool
+Reflect does not upload prompt bodies, response bodies, tool arguments, tool
 results, or other large artifacts.
 
 Mission-scoped graph artifacts can use the same explicit path without being
-pretended to be a Rho session:
+pretended to be a Reflect session:
 
 ```bash
-rho graph export --mission-dir <mission-directory>
-rho cloud graph sync --mission-dir <mission-directory>
+reflect graph export --mission-dir <mission-directory>
+reflect cloud graph sync --mission-dir <mission-directory>
 ```
 
-The CLI reads only `mission-graph.json`, validates its `rho.graph/v1` schema
+The CLI reads only `mission-graph.json`, validates its `reflect.graph/v1` schema
 and all edge/event references, then applies the same privacy normalization and
 Cloud limits. Mission graphs intentionally omit `sessionId`; they are durable
 mission facts, not Cloud session telemetry.
@@ -202,15 +202,15 @@ The central tool-execution seam automatically records:
 - secret matches removed from persisted-session responses;
 - token usage summaries and budget decisions emitted from the central,
   deduplicated provider-accounting seam;
-- Flux model route and usage reported for persisted-session turns.
+- Relay model route and usage reported for persisted-session turns.
 
 Mission execution now also persists a portable graph artifact for local mission
-runs. Plain `rho mission` runs emit mission and feature execution nodes; the
-graph-driven `rho mission --from-tasks` path additionally emits operations
+runs. Plain `reflect mission` runs emit mission and feature execution nodes; the
+graph-driven `reflect mission --from-tasks` path additionally emits operations
 nodes for each deterministic wave join, including bounded completion, failure,
 and blocked-downstream counts.
 
 The embedded token-pipeline tracker contributes hourly, daily, session, and cost
-limits to the pre-turn guard. Existing Rho cost accounting and limits remain
+limits to the pre-turn guard. Existing Reflect cost accounting and limits remain
 authoritative and are updated first; the tracker observes the same deduplicated
 request usage and provides the additional token-window decision.

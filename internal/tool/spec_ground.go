@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/spec"
 )
 
 type SpecGroundTool struct{}
@@ -66,7 +66,7 @@ func (SpecGroundTool) Execute(ctx context.Context, input json.RawMessage) (strin
 
 	dir, err := specDir(ctx)
 	if err != nil {
-		dir = filepath.Join(cwd, ".rho", "specs")
+		dir = filepath.Join(cwd, ".reflect", "specs")
 	}
 
 	var b strings.Builder

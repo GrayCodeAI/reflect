@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/mathutil"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/mathutil"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // UsageGuideline represents a lesson learned from problem-solving experience.
@@ -41,7 +41,7 @@ func NewEvolvingMemory() *EvolvingMemory {
 		path: filepath.Join(storage.StateDir(), "memory", "guidelines.json"),
 	}
 	if err := em.Load(); err != nil {
-		fmt.Fprintf(os.Stderr, "rho: warning: could not load evolving memory: %v\n", err)
+		fmt.Fprintf(os.Stderr, "reflect: warning: could not load evolving memory: %v\n", err)
 	}
 	return em
 }

@@ -97,7 +97,7 @@ func detectGoFramework(dir string) string {
 		{"github.com/gin-gonic/gin", "gin"},
 		{"github.com/labstack/echo", "echo"},
 		{"github.com/gofiber/fiber", "fiber"},
-		{"github.com/gorilla/mux", "gorilla"},
+		{"github.com/gorilla/relay", "gorilla"},
 		{"github.com/julienschmidt/httprouter", "httprouter"},
 		{"github.com/valyala/fasthttp", "fasthttp"},
 	}

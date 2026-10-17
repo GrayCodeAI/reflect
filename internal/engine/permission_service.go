@@ -12,14 +12,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/governance"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
-	"github.com/GrayCodeAI/rho/internal/permissions/turnrecovery"
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/eventlog"
+	"github.com/GrayCodeAI/reflect/internal/ext"
+	"github.com/GrayCodeAI/reflect/internal/governance"
+	"github.com/GrayCodeAI/reflect/internal/observability/logger"
+	"github.com/GrayCodeAI/reflect/internal/permissions"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
+	"github.com/GrayCodeAI/reflect/internal/permissions/turnrecovery"
+	"github.com/GrayCodeAI/reflect/internal/spec"
 )
 
 // PermissionService is the Session's view of the safety/approval layer.
@@ -61,6 +62,10 @@ type PermissionService struct {
 	// by that id. When nil (the default) nothing changes; when set, callers
 	// can RememberExact/RevokeExact/ListExact.
 	exact *permissions.StableRuleStore
+	// extChain, when configured, is the unified extension gate consulted
+	// before the native permission engine. A nil chain preserves the
+	// historical behaviour exactly (no-op).
+	extChain *ext.Chain
 }
 
 // PermissionView is the immutable presentation view used by status and
@@ -207,6 +212,29 @@ func (s *PermissionService) CheckTool(ctx context.Context, info safety.ToolCallI
 	if s == nil {
 		return false, "permission service is unavailable"
 	}
+	s.mu.RLock()
+	chain := s.extChain
+	s.mu.RUnlock()
+	if chain != nil {
+		decision, args, reason, err := chain.RunBeforeTool(ctx, &ext.ToolCallRequest{
+			ToolName:  info.Name,
+			Arguments: info.Args,
+			RawInput:  info.ID,
+		})
+		if err != nil {
+			return false, fmt.Sprintf("extension policy error: %v", err)
+		}
+		if decision == ext.DecisionDeny {
+			msg := "blocked by extension policy"
+			if reason != "" {
+				msg = reason
+			}
+			return false, msg
+		}
+		if decision == ext.DecisionModify && args != nil {
+			info.Args = args
+		}
+	}
 	// Evaluate a stable copy just like the structured and preview APIs. This
 	// keeps autonomy, spec, dry-run, and hard-ceiling updates from racing with
 	// an in-flight execution check while leaving the prompt callback and audit
@@ -234,6 +262,18 @@ func (s *PermissionService) CheckToolDecision(ctx context.Context, info safety.T
 		return unavailablePermissionDecision()
 	}
 	return perm.CheckToolDecision(ctx, info)
+}
+
+// SetExtChain installs (or removes, when nil) the unified extension gate
+// consulted before the native permission engine. Nil preserves the historical
+// behaviour exactly.
+func (s *PermissionService) SetExtChain(chain *ext.Chain) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.extChain = chain
 }
 
 // EvaluateTool returns allow, ask, or deny without blocking on the UI.

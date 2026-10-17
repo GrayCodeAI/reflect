@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // GenerateTitle derives a concise, descriptive title for the session.
@@ -82,7 +82,7 @@ func (s *Session) generateTitleLLM(ctx context.Context) (string, error) {
 	}
 
 	// Fast streaming call for title generation
-	reqMsgs := []types.FluxMessage{
+	reqMsgs := []types.RelayMessage{
 		{
 			Role:    "user",
 			Content: titlePrompt,

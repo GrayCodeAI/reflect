@@ -376,7 +376,7 @@ func TestGenerateShareLinkDeterministic(t *testing.T) {
 		t.Errorf("Share links not deterministic: %q != %q", link1, link2)
 	}
 
-	if !strings.HasPrefix(link1, "rho://share/") {
+	if !strings.HasPrefix(link1, "reflect://share/") {
 		t.Errorf("Share link has wrong prefix: %q", link1)
 	}
 

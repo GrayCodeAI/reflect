@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/mcp"
+	"github.com/GrayCodeAI/reflect/internal/mcp"
 )
 
 // mcpClient is the minimal surface MCPTool needs from a connected MCP
@@ -26,7 +26,7 @@ var connectedMCPServers = struct {
 	servers map[string]mcpClient
 }{servers: make(map[string]mcpClient)}
 
-// MCPTool wraps an MCP server tool as a rho tool.
+// MCPTool wraps an MCP server tool as a reflect tool.
 type MCPTool struct {
 	server      mcpClient
 	serverName  string
@@ -119,7 +119,7 @@ func normalizeNameForMCP(name string) string {
 	return string(out)
 }
 
-// LoadMCPTools connects to an MCP server over stdio and returns rho tools
+// LoadMCPTools connects to an MCP server over stdio and returns reflect tools
 // for all its tools.
 func LoadMCPTools(ctx context.Context, name, command string, args ...string) ([]Tool, error) {
 	server, err := mcp.Connect(ctx, name, command, args...)
@@ -140,7 +140,7 @@ func LoadMCPTools(ctx context.Context, name, command string, args ...string) ([]
 }
 
 // LoadRemoteMCPTools connects to an MCP server over http, sse, or websocket
-// and returns rho tools for all its tools. headers is merged onto every
+// and returns reflect tools for all its tools. headers is merged onto every
 // outgoing request/handshake by the transport (e.g. a static API key, or an
 // auto-injected OAuth bearer token — see internal/mcp/oauth.go).
 func LoadRemoteMCPTools(

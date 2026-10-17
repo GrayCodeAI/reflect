@@ -141,7 +141,7 @@ require (
 go 1.21
 
 require (
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/relay v1.8.0
 )
 `,
 			expected: "gorilla",

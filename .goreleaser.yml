@@ -1,5 +1,5 @@
-# GoReleaser config for rho (the terminal AI coding agent).
-# Derived from .shared-templates/.goreleaser.yml.tmpl; rho-specific deltas are
+# GoReleaser config for reflect (the terminal AI coding agent).
+# Derived from .shared-templates/.goreleaser.yml.tmpl; reflect-specific deltas are
 # commented inline. Run by .github/workflows/release.yml on a v* tag; see
 # docs/RELEASING.md for the release process.
 #
@@ -8,7 +8,7 @@
 #   goreleaser release --snapshot --clean --skip=publish,sign
 
 version: 2
-project_name: rho
+project_name: reflect
 
 # ---------------------------------------------------------------------------
 # Pre-build hooks — verify module checksums before building anything.
@@ -23,9 +23,9 @@ before:
 # rather than the build host's clock.
 # ---------------------------------------------------------------------------
 builds:
-  - id: rho
-    main: ./cmd/rho
-    binary: rho
+  - id: reflect
+    main: ./cmd/reflect
+    binary: reflect
     env:
       - CGO_ENABLED=0
       # Build strictly from go.mod/go.sum, never from a developer go.work.
@@ -48,7 +48,7 @@ builds:
 
 # ---------------------------------------------------------------------------
 # Archives — tar.gz on Unix, zip on Windows. Names are
-# rho_<version>_<os>_<arch>.<ext>; install.sh and .github/actions/rho depend
+# reflect_<version>_<os>_<arch>.<ext>; install.sh and .github/actions/reflect depend
 # on this exact shape.
 # ---------------------------------------------------------------------------
 archives:
@@ -94,7 +94,7 @@ checksum:
 # uploaded with the release as checksums.txt.sigstore.json. Verify with:
 #
 #   cosign verify-blob --bundle checksums.txt.sigstore.json \
-#     --certificate-identity "https://github.com/GrayCodeAI/rho/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
+#     --certificate-identity "https://github.com/GrayCodeAI/reflect/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
 #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
 #     checksums.txt
 # ---------------------------------------------------------------------------
@@ -164,9 +164,9 @@ release:
   prerelease: auto
   name_template: "v{{ .Version }}"
   header: |
-    ## rho v{{ .Version }}
+    ## reflect v{{ .Version }}
 
-    Rho is the terminal AI coding agent from GrayCode (pre-1.0).
+    Reflect is the terminal AI coding agent from GrayCode (pre-1.0).
   footer: |
 
     ### Verify this release
@@ -176,10 +176,10 @@ release:
 
     ```sh
     cosign verify-blob --bundle checksums.txt.sigstore.json \
-      --certificate-identity "https://github.com/GrayCodeAI/rho/.github/workflows/release.yml@refs/tags/{{ .Tag }}" \
+      --certificate-identity "https://github.com/GrayCodeAI/reflect/.github/workflows/release.yml@refs/tags/{{ .Tag }}" \
       --certificate-oidc-issuer https://token.actions.githubusercontent.com \
       checksums.txt
     sha256sum --ignore-missing -c checksums.txt
     ```
 
-    {{ if .PreviousTag }}**Full changelog:** https://github.com/GrayCodeAI/rho/compare/{{ .PreviousTag }}...{{ .Tag }}{{ end }}
+    {{ if .PreviousTag }}**Full changelog:** https://github.com/GrayCodeAI/reflect/compare/{{ .PreviousTag }}...{{ .Tag }}{{ end }}

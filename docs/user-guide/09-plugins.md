@@ -20,12 +20,12 @@ For example, a `team-tools` plugin might include a deploy skill, a code-review a
 
 ## Plugin Locations
 
-Rho discovers plugins from these locations, in priority order:
+Reflect discovers plugins from these locations, in priority order:
 
 | Location | Scope | Trust Required |
 |----------|-------|----------------|
-| `.rho/plugins/` | Project | Yes |
-| `~/.rho/plugins/` | User | No |
+| `.reflect/plugins/` | Project | Yes |
+| `~/.reflect/plugins/` | User | No |
 | `--plugin-dir` | Process | No |
 
 When two plugins share a name, the higher-priority location wins.
@@ -38,21 +38,21 @@ Manage plugins from the command line:
 
 ```bash
 # List installed plugins
-rho plugins list
+reflect plugins list
 
 # Install a plugin
-rho plugins install user/repo
-rho plugins install user/repo@v1.0
-rho plugins install /path/to/local/plugin
+reflect plugins install user/repo
+reflect plugins install user/repo@v1.0
+reflect plugins install /path/to/local/plugin
 
 # Install with trust (required for project plugins)
-rho plugins install user/repo --trust
+reflect plugins install user/repo --trust
 
 # Uninstall a plugin
-rho plugins uninstall my-plugin
+reflect plugins uninstall my-plugin
 
 # Update plugins
-rho plugins update
+reflect plugins update
 ```
 
 ---
@@ -63,15 +63,15 @@ Browse and install plugins from the community marketplace:
 
 ```bash
 # Search marketplace
-rho plugins search go
+reflect plugins search go
 
 # Install from marketplace
-rho plugins install go-review --trust
+reflect plugins install go-review --trust
 ```
 
 ### Adding Marketplace Sources
 
-Configure additional marketplaces in `~/.rho/settings.json`:
+Configure additional marketplaces in `~/.reflect/settings.json`:
 
 ```json
 {
@@ -90,13 +90,13 @@ Configure additional marketplaces in `~/.rho/settings.json`:
 
 ## Trust Model
 
-- **User plugins** (`~/.rho/plugins/`) — Trusted automatically
-- **Project plugins** (`.rho/plugins/`) — Require explicit trust before activation
+- **User plugins** (`~/.reflect/plugins/`) — Trusted automatically
+- **Project plugins** (`.reflect/plugins/`) — Require explicit trust before activation
 
 Trust is required because plugins can execute code via hooks and MCP servers. To trust a plugin:
 
 ```bash
-rho plugins install <source> --trust
+reflect plugins install <source> --trust
 ```
 
 ---

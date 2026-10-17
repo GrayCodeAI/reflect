@@ -1,5 +1,5 @@
 // api_scanner.go discovers HTTP endpoints in a project
-// by detecting the framework (Chi, net/http, Gin, Echo, Gorilla mux, or
+// by detecting the framework (Chi, net/http, Gin, Echo, Gorilla relay, or
 // Fiber) and extracting route declarations into an APIMap. FormatAPIMap
 // renders the routes as text; GenerateOpenAPI produces a 3.x OpenAPI
 // document for the same set.
@@ -204,12 +204,12 @@ func ScanChi(content, file string) []APIEndpoint {
 
 // ScanNetHTTP extracts endpoints from net/http standard library registrations.
 // Patterns: http.HandleFunc("/path", handler), http.Handle("/path", handler),
-// mux.HandleFunc("/path", handler), mux.Handle("/path", handler)
+// relay.HandleFunc("/path", handler), relay.Handle("/path", handler)
 func ScanNetHTTP(content, file string) []APIEndpoint {
 	var endpoints []APIEndpoint
 
 	// http.HandleFunc("/path", handler) or http.Handle("/path", handler)
-	// Also mux.HandleFunc, mux.Handle, serveMux.HandleFunc, etc.
+	// Also relay.HandleFunc, relay.Handle, serveRelay.HandleFunc, etc.
 	pattern := regexp.MustCompile(`(?m)(\w+)\.(HandleFunc|Handle)\(\s*"([^"]+)"\s*,\s*([^)]+)\)`)
 	matches := pattern.FindAllStringSubmatchIndex(content, -1)
 
@@ -227,7 +227,7 @@ func ScanNetHTTP(content, file string) []APIEndpoint {
 		})
 	}
 
-	// http.HandleFunc with method pattern in Go 1.22+: mux.HandleFunc("GET /path", handler)
+	// http.HandleFunc with method pattern in Go 1.22+: relay.HandleFunc("GET /path", handler)
 	methodPathPattern := regexp.MustCompile(`(?m)(\w+)\.(HandleFunc|Handle)\(\s*"(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+([^"]+)"\s*,\s*([^)]+)\)`)
 	methodMatches := methodPathPattern.FindAllStringSubmatchIndex(content, -1)
 
@@ -341,12 +341,12 @@ func ScanEcho(content, file string) []APIEndpoint {
 	return endpoints
 }
 
-// ScanGorilla extracts endpoints from gorilla/mux registrations.
+// ScanGorilla extracts endpoints from gorilla/relay registrations.
 // Patterns: r.HandleFunc("/path", handler).Methods("GET")
 func ScanGorilla(content, file string) []APIEndpoint {
 	var endpoints []APIEndpoint
 
-	if !strings.Contains(content, "gorilla/mux") && !strings.Contains(content, `"mux"`) {
+	if !strings.Contains(content, "gorilla/relay") && !strings.Contains(content, `"relay"`) {
 		// Quick check if it might be gorilla based on patterns
 		if !strings.Contains(content, ".Methods(") {
 			return nil
@@ -446,7 +446,7 @@ func DetectFramework(dir string) string {
 		"github.com/go-chi/chi":    "chi",
 		"github.com/gin-gonic/gin": "gin",
 		"github.com/labstack/echo": "echo",
-		"github.com/gorilla/mux":   "gorilla",
+		"github.com/gorilla/relay": "gorilla",
 		"github.com/gofiber/fiber": "fiber",
 	}
 

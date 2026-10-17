@@ -97,10 +97,10 @@ func TestSummarizeModifiedFile(t *testing.T) {
 +++ b/handler/api.go
 @@ -5,6 +5,8 @@ import "net/http"
 
- func SetupRoutes(mux *http.ServeMux) {
-+	mux.Handle("/api/", AuthMiddleware(apiHandler))
-+	mux.Handle("/health", healthHandler)
--	mux.Handle("/api/", apiHandler)
+ func SetupRoutes(relay *http.ServeMux) {
++	relay.Handle("/api/", AuthMiddleware(apiHandler))
++	relay.Handle("/health", healthHandler)
+-	relay.Handle("/api/", apiHandler)
  }
 `
 	ds := NewDiffSummarizer()
@@ -171,8 +171,8 @@ diff --git a/src/handler/api.go b/src/handler/api.go
 +++ b/src/handler/api.go
 @@ -10,3 +10,5 @@ func SetupRoutes() {
 +	wrapped := AuthMiddleware(handler)
-+	mux.Handle("/api/", wrapped)
--	mux.Handle("/api/", handler)
++	relay.Handle("/api/", wrapped)
+-	relay.Handle("/api/", handler)
 diff --git a/src/auth/token_test.go b/src/auth/token_test.go
 new file mode 100644
 --- /dev/null
@@ -633,10 +633,10 @@ new file mode 100644
 diff --git a/src/handler/api.go b/src/handler/api.go
 --- a/src/handler/api.go
 +++ b/src/handler/api.go
-@@ -8,3 +8,5 @@ func SetupRoutes(mux *http.ServeMux) {
+@@ -8,3 +8,5 @@ func SetupRoutes(relay *http.ServeMux) {
 +	wrapped := AuthMiddleware(apiHandler)
-+	mux.Handle("/api/", wrapped)
--	mux.Handle("/api/", apiHandler)
++	relay.Handle("/api/", wrapped)
+-	relay.Handle("/api/", apiHandler)
 diff --git a/src/auth/token_test.go b/src/auth/token_test.go
 new file mode 100644
 --- /dev/null

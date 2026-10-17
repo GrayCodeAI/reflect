@@ -118,13 +118,13 @@ func TestInstallRejectsCriticalSecurityIssue(t *testing.T) {
 }
 
 func TestPluginHookEnvKeySanitizesAndPrefixes(t *testing.T) {
-	if got := pluginHookEnvKey("path=evil"); got != "RHO_PATH_EVIL" {
+	if got := pluginHookEnvKey("path=evil"); got != "REFLECT_PATH_EVIL" {
 		t.Fatalf("pluginHookEnvKey(path=evil) = %q", got)
 	}
-	if got := pluginHookEnvKey("tool name"); got != "RHO_TOOL_NAME" {
+	if got := pluginHookEnvKey("tool name"); got != "REFLECT_TOOL_NAME" {
 		t.Fatalf("pluginHookEnvKey(tool name) = %q", got)
 	}
-	if got := pluginHookEnvKey(""); got != "RHO_DATA" {
+	if got := pluginHookEnvKey(""); got != "REFLECT_DATA" {
 		t.Fatalf("pluginHookEnvKey(empty) = %q", got)
 	}
 }

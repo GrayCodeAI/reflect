@@ -103,21 +103,21 @@ func TestFormatTasks(t *testing.T) {
 			Title:    "Resolve merge conflict in src/auth.go",
 			Priority: 1,
 			Category: "fix",
-			Command:  `rho exec "resolve the merge conflict"`,
+			Command:  `reflect exec "resolve the merge conflict"`,
 		},
 		{
 			ID:       "t2",
 			Title:    "Fix failing TestValidateToken",
 			Priority: 2,
 			Category: "test",
-			Command:  `rho exec "fix the failing test"`,
+			Command:  `reflect exec "fix the failing test"`,
 		},
 		{
 			ID:       "t3",
 			Title:    "Document exported function ParseConfig",
 			Priority: 4,
 			Category: "docs",
-			Command:  `rho exec "add godoc to ParseConfig"`,
+			Command:  `reflect exec "add godoc to ParseConfig"`,
 		},
 	}
 
@@ -142,7 +142,7 @@ func TestFormatTasks(t *testing.T) {
 	if !strings.Contains(result, "[docs]") {
 		t.Fatal("expected docs category")
 	}
-	if !strings.Contains(result, "Run: rho exec") {
+	if !strings.Contains(result, "Run: reflect exec") {
 		t.Fatal("expected Run: command")
 	}
 	// Red circle for priority 1
@@ -338,7 +338,7 @@ func TestSuggestedTaskStruct(t *testing.T) {
 		Category:    "fix",
 		Source:      "test",
 		Actionable:  true,
-		Command:     `rho exec "fix the bug"`,
+		Command:     `reflect exec "fix the bug"`,
 	}
 
 	if task.ID != "abc123" {

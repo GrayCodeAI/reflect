@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
+	"github.com/GrayCodeAI/reflect/internal/engine/cost"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestStreamUsageLedgerRecordsDoneOnlyUsage(t *testing.T) {
 	var ledger streamUsageLedger
-	terminal := &types.FluxUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20}
+	terminal := &types.RelayUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20}
 
 	if !ledger.shouldRecord(terminal, true) {
 		t.Fatal("done-only usage was dropped")
@@ -20,7 +20,7 @@ func TestStreamUsageLedgerRecordsDoneOnlyUsage(t *testing.T) {
 
 func TestStreamUsageLedgerDoesNotDoubleCountRepeatedDoneUsage(t *testing.T) {
 	var ledger streamUsageLedger
-	usage := &types.FluxUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20, CacheReadTokens: 4}
+	usage := &types.RelayUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20, CacheReadTokens: 4}
 
 	if !ledger.shouldRecord(usage, false) {
 		t.Fatal("usage event was dropped")
@@ -32,8 +32,8 @@ func TestStreamUsageLedgerDoesNotDoubleCountRepeatedDoneUsage(t *testing.T) {
 
 func TestStreamUsageLedgerPreservesDistinctContinuationUsage(t *testing.T) {
 	var ledger streamUsageLedger
-	first := &types.FluxUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20}
-	second := &types.FluxUsage{PromptTokens: 20, CompletionTokens: 5, TotalTokens: 25}
+	first := &types.RelayUsage{PromptTokens: 13, CompletionTokens: 7, TotalTokens: 20}
+	second := &types.RelayUsage{PromptTokens: 20, CompletionTokens: 5, TotalTokens: 25}
 
 	if !ledger.shouldRecord(first, false) || !ledger.shouldRecord(second, false) {
 		t.Fatal("distinct continuation usage was dropped")

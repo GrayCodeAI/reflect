@@ -92,7 +92,7 @@ func c() {}
 	_ = callees
 }
 
-func TestCallGraph_Neighborhood(t *testing.T) {
+func TestCallGraph_Neighboreflectod(t *testing.T) {
 	dir := t.TempDir()
 	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "main.go"), []byte(`package main
@@ -103,6 +103,6 @@ func y() {}
 `), 0o644)
 
 	cg, _ := BuildCallGraph(dir)
-	neighbors := cg.Neighborhood("x", 1)
+	neighbors := cg.Neighboreflectod("x", 1)
 	_ = neighbors
 }

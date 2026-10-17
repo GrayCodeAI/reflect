@@ -4,18 +4,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/securitylog"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/securitylog"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestSessionRecordsSecurityDenial(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", dir)
+	t.Setenv("REFLECT_STATE_DIR", dir)
 
 	s := &Session{life: NewLifecycleService(nil)}
 	s.recordSecurityDenial(types.ToolCall{Name: "Bash", ID: "tc1"}, "permission", "denied by policy ceiling")
 
-	// DefaultDir honors RHO_STATE_DIR set in this test.
+	// DefaultDir honors REFLECT_STATE_DIR set in this test.
 	logDir := securitylog.DefaultDir()
 	events, err := securitylog.Entries(logDir)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestSessionSecurityDenialIsNilSafe(t *testing.T) {
 
 func TestDefaultDirHonorsStateDir(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", dir)
+	t.Setenv("REFLECT_STATE_DIR", dir)
 	expected := filepath.Join(dir, "securitylog")
 	if got := securitylog.DefaultDir(); got != expected {
 		t.Fatalf("expected %q, got %q", expected, got)

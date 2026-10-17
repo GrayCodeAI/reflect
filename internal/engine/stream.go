@@ -8,26 +8,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/engine/cost"
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/cost"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/control"
+	"github.com/GrayCodeAI/reflect/internal/engine/control"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
-	"github.com/GrayCodeAI/rho/internal/smartrouting"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect/internal/smartrouting"
+	"github.com/GrayCodeAI/reflect/internal/types"
 
-	"github.com/GrayCodeAI/rho/internal/engine/branching"
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/hooks"
-	"github.com/GrayCodeAI/rho/internal/observability/oteltrace"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/prompt"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/engine/branching"
+	"github.com/GrayCodeAI/reflect/internal/eventlog"
+	"github.com/GrayCodeAI/reflect/internal/hooks"
+	"github.com/GrayCodeAI/reflect/internal/observability/oteltrace"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/prompt"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // turnContext carries the per-turn, pre-compute values that buildTurnOptions
@@ -131,7 +131,7 @@ func (s *Session) buildTurnOptions(tc turnContext) types.ChatOptions {
 			s.Tools().Registry().PromoteForIntent(lastUserMsg)
 		}
 		if !smallTalk {
-			opts.Tools = s.Tools().Registry().FluxTools()
+			opts.Tools = s.Tools().Registry().RelayTools()
 		}
 	}
 	return opts
@@ -298,7 +298,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 				// Cache hit: short-circuit the LLM call
 				if preResult.CacheHit && preResult.CachedResponse != "" {
 					emit(StreamEvent{Type: "content", Content: preResult.CachedResponse})
-					s.Persistence().AppendAssistantJournaled(types.FluxMessage{Role: "assistant", Content: preResult.CachedResponse})
+					s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: preResult.CachedResponse})
 					emit(StreamEvent{Type: "done"})
 					return
 				}
@@ -457,8 +457,8 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		// Issue the LLM call via the ChatService. The service handles
 		// rate limit, retry, and emergency compact internally; the
 		// api.requests counter is incremented inside ChatService.Stream.
-		// Rho records product-level latency; provider health and circuit
-		// breaking are owned by Flux's routed transport.
+		// Reflect records product-level latency; provider health and circuit
+		// breaking are owned by Relay's routed transport.
 		apiStart := time.Now()
 		managesResilience := clientManagesResilience(s.ChatLLM().Client())
 		result, err := s.ChatLLM().Stream(ctx, s.Persistence().RawMessages(), opts)
@@ -481,14 +481,14 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		var textContent strings.Builder
 		var toolCalls []types.ToolCall
 		var stopReason string
-		var lastUsage *types.FluxUsage
+		var lastUsage *types.RelayUsage
 		var usageLedger streamUsageLedger
 		resolvedProvider := strings.TrimSpace(s.ChatLLM().Provider())
 		resolvedModel := strings.TrimSpace(activeModel)
 
-		// Compatibility clients retain Rho's historical stream retry and
-		// reasoning-only recovery. Flux facade clients already normalize and
-		// recover provider streams, so Rho must consume their result exactly once.
+		// Compatibility clients retain Reflect's historical stream retry and
+		// reasoning-only recovery. Relay facade clients already normalize and
+		// recover provider streams, so Reflect must consume their result exactly once.
 		const maxStreamRetries = 2
 		var streamErr error
 		var sawThinking bool
@@ -670,7 +670,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			completionEst := estimateStreamCompletionTokens(textContent.String(), toolCalls)
 			if inputTokens > 0 || completionEst > 0 {
 				s.recordStreamUsage(ch, inputTokens, completionEst, resolvedProvider, resolvedModel, taskType, apiStart)
-				lastUsage = &types.FluxUsage{
+				lastUsage = &types.RelayUsage{
 					PromptTokens:     inputTokens,
 					CompletionTokens: completionEst,
 				}
@@ -689,7 +689,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			if j := s.Persistence().Journal(); j != nil {
 				j.AppendRequestContext(resolvedProvider, resolvedModel, s.ContextWindowSize())
 			}
-			s.recordFluxOperationObservation(
+			s.recordRelayOperationObservation(
 				resolvedProvider,
 				resolvedModel,
 				stopReason,
@@ -751,14 +751,14 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			oteltrace.EndSpanWithError(loopSpan, nil)
 		}
 
-		// Compatibility-only max_tokens recovery. Flux's engine facade owns
-		// continuation and exposes one normalized stream to Rho. Legacy clients
+		// Compatibility-only max_tokens recovery. Relay's engine facade owns
+		// continuation and exposes one normalized stream to Reflect. Legacy clients
 		// retain the historical synthetic turn so injected integrations do not
 		// change behavior while they migrate to the facade.
 		if !managesResilience && stopReason == "max_tokens" && len(toolCalls) == 0 && recoveryCount < maxRecoveryRetries {
 			recoveryCount++
-			s.Persistence().AppendAssistantJournaled(types.FluxMessage{Role: "assistant", Content: textContent.String()})
-			s.Persistence().AppendUserJournaled(types.FluxMessage{Role: "user", Content: "Continue from where you left off."})
+			s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String()})
+			s.Persistence().AppendUserJournaled(types.RelayMessage{Role: "user", Content: "Continue from where you left off."})
 			continue
 		}
 
@@ -781,7 +781,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 				}
 			}
 			if textContent.Len() > 0 {
-				s.Persistence().AppendAssistantJournaled(types.FluxMessage{Role: "assistant", Content: textContent.String()})
+				s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String()})
 				// Auto-remember corrections and learnings. Best-effort
 				// fire-and-forget, bounded so a hung backend cannot leak.
 				if s.MemorySvc().Memory() != nil && shouldRemember(textContent.String()) {
@@ -938,7 +938,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		if assistContent == "" && len(toolCalls) > 0 {
 			assistContent = " " // non-empty to satisfy APIs that reject empty content
 		}
-		s.Persistence().AppendAssistantJournaled(types.FluxMessage{
+		s.Persistence().AppendAssistantJournaled(types.RelayMessage{
 			Role:    "assistant",
 			Content: assistContent,
 			ToolUse: toolCalls,
@@ -955,7 +955,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			// Network-facing tool output is untrusted: wrap it with an explicit
 			// boundary so prompt-injection text is treated as data.
 			resultContent = wrapExternalToolResult(r.tc.Name, resultContent)
-			msg := types.FluxMessage{
+			msg := types.RelayMessage{
 				Role:    "user",
 				Content: resultContent,
 				ToolResults: []types.ToolResult{{
@@ -977,7 +977,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		steerCount := 0
 		if s.Persistence().Steering() != nil && s.Persistence().Steering().HasPending() {
 			for _, steer := range s.Persistence().Steering().Drain() {
-				s.Persistence().AppendUserJournaled(types.FluxMessage{
+				s.Persistence().AppendUserJournaled(types.RelayMessage{
 					Role:    "user",
 					Content: "[User guidance during execution]: " + steer.Content,
 				})
@@ -1083,7 +1083,7 @@ var smallTalkPhrases = []string{
 // executed a tool. Once tools are in play, later turns keep the full prompt
 // and tool surface even if they read like small talk ("thanks"), so the
 // follow-up context is not lost.
-func sessionHasToolUse(msgs []types.FluxMessage) bool {
+func sessionHasToolUse(msgs []types.RelayMessage) bool {
 	for _, m := range msgs {
 		if len(m.ToolResults) > 0 {
 			return true

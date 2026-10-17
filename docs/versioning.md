@@ -12,34 +12,19 @@ repository that follows this layout. Adopted 2026-05-14.
 
 ## Pattern by repo type
 
-### Go binaries (`rho`)
+### Go binaries (`reflect`)
 
 - `VERSION` at the repo root.
-- A version package (`internal/version` for binaries, or `main` itself) declares
-  three settable variables defaulting to `"dev"` / `"none"` / `"unknown"`:
-  ```go
-  var (
-      Version = "dev"   // overridden by ldflags at release time
-      Commit  = "none"
-      Date    = "unknown"
-  )
-  ```
-- The `Makefile` reads `VERSION` and injects all three via ldflags:
-  ```make
-  VERSION := $(shell cat VERSION 2>/dev/null | tr -d '[:space:]' || echo "dev")
-  COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
-  DATE    := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
-  LDFLAGS := -s -w \
-      -X main.Version=$(VERSION) \
-      -X main.Commit=$(COMMIT) \
-      -X main.BuildDate=$(DATE)
-  ```
+- The root `reflect` package embeds `VERSION` at compile time. The CLI, daemon,
+  MCP client and telemetry defaults read this value. A standalone binary does
+  not search the filesystem for version files.
+- The `Makefile` reads `VERSION` and injects it alongside commit and build date.
 - `goreleaser` injects from the git tag at release time. The release workflow
   refuses a tag that is not exactly `v` + `VERSION`
   (`scripts/check-release-tag.sh`), so the two cannot disagree.
 - This is the Kubernetes / Helm / gh-cli pattern.
 
-### Go libraries (`flux`)
+### Go libraries (`relay`)
 
 - `VERSION` at the repo root.
 - A `version.go` file co-located with `VERSION` uses `//go:embed` to read it at
@@ -91,7 +76,7 @@ func init() {
   pattern = "^(?P<version>[^\\s]+)"
 
   [tool.hatch.build.targets.wheel]
-  force-include = { "VERSION" = "rho/VERSION" }
+  force-include = { "VERSION" = "reflect/VERSION" }
   ```
 - `_version.py` reads the same `VERSION` file at runtime via `pathlib`, so
   `__version__` matches the package metadata both in source checkouts and in
@@ -111,7 +96,7 @@ func init() {
 Versions are bumped by hand in a release PR: edit `VERSION`, turn the
 `## [Unreleased]` section of `CHANGELOG.md` into `## [X.Y.Z] — YYYY-MM-DD`,
 merge, then push the `vX.Y.Z` tag. There is no release-please or other bot.
-For rho the full procedure, tag protection and verification steps are in
+For reflect the full procedure, tag protection and verification steps are in
 [RELEASING.md](RELEASING.md).
 
 ## Cross-repo compatibility
@@ -119,3 +104,11 @@ For rho the full procedure, tag protection and verification steps are in
 Versions are independent per repo. A future `compatibility-matrix.json` (at
 the eco root) will record which combinations are tested together (similar to
 the AWS SDK / Hashicorp release matrices).
+
+### Generated distribution metadata
+
+Edit only the root `VERSION`, then run `make version-sync`. The generator stamps
+OpenAPI metadata, npm packages and optional dependency pins, SDK manifests,
+and Relay's lower-layer Go version default. These checked-in outputs are generated
+copies, not independent settings. `make version-check` and both CI/release
+workflows fail on drift. Each repository remains independently buildable.

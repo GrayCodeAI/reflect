@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestSynthesizeSubAgent(t *testing.T) {
 	t.Run("tools disabled and prompt appended", func(t *testing.T) {
 		mock := &synthesisMockClient{response: "Here is my summary of findings."}
-		conversation := []types.FluxMessage{
+		conversation := []types.RelayMessage{
 			{Role: "user", Content: "Find all Go files with errors"},
 			{Role: "assistant", Content: "I'll search for Go files."},
 		}
@@ -42,7 +42,7 @@ func TestSynthesizeSubAgent(t *testing.T) {
 	})
 
 	t.Run("nil client returns error", func(t *testing.T) {
-		_, err := SynthesizeSubAgent(context.Background(), nil, "model", []types.FluxMessage{{Role: "user", Content: "test"}})
+		_, err := SynthesizeSubAgent(context.Background(), nil, "model", []types.RelayMessage{{Role: "user", Content: "test"}})
 		if err == nil {
 			t.Fatal("expected error for nil client")
 		}
@@ -50,14 +50,14 @@ func TestSynthesizeSubAgent(t *testing.T) {
 
 	t.Run("provider error propagated", func(t *testing.T) {
 		mock := &synthesisMockClient{err: errors.New("provider unavailable")}
-		_, err := SynthesizeSubAgent(context.Background(), mock, "model", []types.FluxMessage{{Role: "user", Content: "test"}})
+		_, err := SynthesizeSubAgent(context.Background(), mock, "model", []types.RelayMessage{{Role: "user", Content: "test"}})
 		if err == nil {
 			t.Fatal("expected error from provider")
 		}
 	})
 
 	t.Run("empty response returns error", func(t *testing.T) {
-		_, err := SynthesizeSubAgent(context.Background(), &synthesisMockClient{}, "model", []types.FluxMessage{{Role: "user", Content: "test"}})
+		_, err := SynthesizeSubAgent(context.Background(), &synthesisMockClient{}, "model", []types.RelayMessage{{Role: "user", Content: "test"}})
 		if err == nil {
 			t.Fatal("expected error for empty response")
 		}
@@ -68,16 +68,16 @@ type synthesisMockClient struct {
 	response string
 	err      error
 	calls    int
-	messages []types.FluxMessage
+	messages []types.RelayMessage
 	options  types.ChatOptions
 }
 
-func (m *synthesisMockClient) Chat(_ context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (m *synthesisMockClient) Chat(_ context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error) {
 	m.calls++
-	m.messages = append([]types.FluxMessage(nil), messages...)
+	m.messages = append([]types.RelayMessage(nil), messages...)
 	m.options = opts
 	if m.err != nil {
 		return nil, m.err
 	}
-	return &types.FluxResponse{Content: m.response, FinishReason: "end_turn"}, nil
+	return &types.RelayResponse{Content: m.response, FinishReason: "end_turn"}, nil
 }

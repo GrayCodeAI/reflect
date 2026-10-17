@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Indexer manages incremental full-text indexing of sessions.

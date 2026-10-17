@@ -3,7 +3,7 @@ package cmd
 import (
 	"sync/atomic"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 // credentialGate holds the current host-side credential gate callback. It is

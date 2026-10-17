@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/toolsafety"
+	"github.com/GrayCodeAI/reflect/internal/toolsafety"
 )
 
 // URLScraper detects URLs in conversation text and fetches/extracts their content.
@@ -43,7 +43,7 @@ func NewURLScraper() *URLScraper {
 		Enabled:   true,
 		MaxSize:   1 << 20, // 1MB
 		Timeout:   15 * time.Second,
-		UserAgent: "rho/1.0",
+		UserAgent: "reflect/1.0",
 		Cache:     make(map[string]*ScrapeResult),
 	}
 }

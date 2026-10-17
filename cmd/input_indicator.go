@@ -3,8 +3,8 @@ package cmd
 import (
 	lipgloss "charm.land/lipgloss/v2"
 
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // InputClass represents the classification of user input.
@@ -31,7 +31,7 @@ func inputIndicatorAgentStyle() lipgloss.Style {
 }
 
 func inputIndicatorSlashStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	return lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 }
 
 func inputIndicatorNeutralStyle() lipgloss.Style {

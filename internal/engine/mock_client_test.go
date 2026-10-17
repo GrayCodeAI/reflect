@@ -4,35 +4,35 @@ import (
 	"context"
 	"sync"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // mockClient implements ChatClient for testing without real LLM calls.
 type mockClient struct {
 	mu        sync.Mutex
-	responses []*types.FluxResponse
+	responses []*types.RelayResponse
 	idx       int
 	calls     []mockCall
 }
 
 type mockCall struct {
 	method   string
-	messages []types.FluxMessage
+	messages []types.RelayMessage
 }
 
-func newMockClient(responses ...*types.FluxResponse) *mockClient {
+func newMockClient(responses ...*types.RelayResponse) *mockClient {
 	return &mockClient{responses: responses}
 }
 
-func mockTextResponse(text string) *types.FluxResponse {
-	return &types.FluxResponse{
+func mockTextResponse(text string) *types.RelayResponse {
+	return &types.RelayResponse{
 		Content:      text,
 		FinishReason: "end_turn",
-		Usage:        &types.FluxUsage{PromptTokens: 50, CompletionTokens: 20, TotalTokens: 70},
+		Usage:        &types.RelayUsage{PromptTokens: 50, CompletionTokens: 20, TotalTokens: 70},
 	}
 }
 
-func (m *mockClient) Chat(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (m *mockClient) Chat(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -46,13 +46,13 @@ func (m *mockClient) Chat(ctx context.Context, messages []types.FluxMessage, opt
 	return resp, nil
 }
 
-func (m *mockClient) StreamChatContinue(ctx context.Context, messages []types.FluxMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error) {
+func (m *mockClient) StreamChatContinue(ctx context.Context, messages []types.RelayMessage, opts types.ChatOptions, cfg types.ContinuationConfig) (*types.StreamResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.calls = append(m.calls, mockCall{method: "StreamChatContinue", messages: messages})
 
-	ch := make(chan types.FluxStreamEvent, 10)
+	ch := make(chan types.RelayStreamEvent, 10)
 
 	var content string
 	var finishReason string
@@ -66,11 +66,11 @@ func (m *mockClient) StreamChatContinue(ctx context.Context, messages []types.Fl
 		finishReason = "end_turn"
 	}
 
-	ch <- types.FluxStreamEvent{Type: "content", Content: content}
-	ch <- types.FluxStreamEvent{
+	ch <- types.RelayStreamEvent{Type: "content", Content: content}
+	ch <- types.RelayStreamEvent{
 		Type:       "done",
 		StopReason: finishReason,
-		Usage:      &types.FluxUsage{PromptTokens: 50, CompletionTokens: 20, TotalTokens: 70},
+		Usage:      &types.RelayUsage{PromptTokens: 50, CompletionTokens: 20, TotalTokens: 70},
 	}
 	close(ch)
 

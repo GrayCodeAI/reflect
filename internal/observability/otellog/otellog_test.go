@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -179,12 +180,12 @@ func TestFullModeEmitsRecord(t *testing.T) {
 	if r.Severity() != log.SeverityWarn || r.SeverityText() != "WARN" {
 		t.Fatalf("severity = %d/%q, want WARN", r.Severity(), r.SeverityText())
 	}
-	if r.Body().Kind() != log.KindMap {
-		t.Fatalf("body kind = %v, want map", r.Body().Kind())
+	if r.Body().Type() != attribute.MAP {
+		t.Fatalf("body kind = %v, want map", r.Body().Type())
 	}
 	var gotSeq int64
 	var gotActive bool
-	r.WalkAttributes(func(kv log.KeyValue) bool {
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
 		switch kv.Key {
 		case "session.id":
 			if kv.Value.AsString() != "sess-1" {
@@ -223,7 +224,7 @@ func TestOpsChannelAndSeverity(t *testing.T) {
 		t.Fatalf("body = %q, want boom", got[0].Body().AsString())
 	}
 	// Channel routing: ops records live under the ops instrumentation scope.
-	if scope := got[0].InstrumentationScope().Name; scope != "github.com/GrayCodeAI/rho/internal/observability/otellog/ops" {
+	if scope := got[0].InstrumentationScope().Name; scope != "github.com/GrayCodeAI/reflect/internal/observability/otellog/ops" {
 		t.Fatalf("scope = %q, want .../ops", scope)
 	}
 }
@@ -242,7 +243,7 @@ func TestLedgerScopeRouting(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("exported %d records, want 1", len(got))
 	}
-	if scope := got[0].InstrumentationScope().Name; scope != "github.com/GrayCodeAI/rho/internal/observability/otellog" {
+	if scope := got[0].InstrumentationScope().Name; scope != "github.com/GrayCodeAI/reflect/internal/observability/otellog" {
 		t.Fatalf("scope = %q, want the ledger scope", scope)
 	}
 }
@@ -314,23 +315,23 @@ func TestAnyToValue(t *testing.T) {
 		t.Errorf("float64 = %v", got.AsFloat64())
 	}
 	sl := anyToValue([]any{"a", int64(1)})
-	if sl.Kind() != log.KindSlice || sl.AsSlice()[1].AsInt64() != 1 {
+	if sl.Type() != attribute.SLICE || sl.AsSlice()[1].AsInt64() != 1 {
 		t.Errorf("slice = %+v", sl)
 	}
 	mp := anyToValue(map[string]any{"nested": map[string]any{"k": "v"}, "n": int64(2)})
-	if mp.Kind() != log.KindMap {
-		t.Fatalf("map kind = %v", mp.Kind())
+	if mp.Type() != attribute.MAP {
+		t.Fatalf("map kind = %v", mp.Type())
 	}
 	seen := map[string]bool{}
 	for _, kv := range mp.AsMap() {
-		seen[kv.Key] = true
+		seen[string(kv.Key)] = true
 	}
 	if !seen["nested"] || !seen["n"] {
 		t.Errorf("map keys = %v", seen)
 	}
 	// Unsupported kind falls back to JSON text.
-	if got := anyToValue(struct{ A int }{A: 1}); got.Kind() != log.KindString || got.AsString() != `{"A":1}` {
-		t.Errorf("struct fallback = %v %q", got.Kind(), got.AsString())
+	if got := anyToValue(struct{ A int }{A: 1}); got.Type() != attribute.STRING || got.AsString() != `{"A":1}` {
+		t.Errorf("struct fallback = %v %q", got.Type(), got.AsString())
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 var (
@@ -21,8 +21,8 @@ var (
 
 var reviewFixCmd = &cobra.Command{
 	Use:   "fix [id...]",
-	Short: "Auto-fix review findings using rho exec",
-	Long: `Feeds review findings to rho's engine which applies fixes and commits.
+	Short: "Auto-fix review findings using reflect exec",
+	Long: `Feeds review findings to reflect's engine which applies fixes and commits.
 Without arguments, fixes all open reviews. Specify IDs to fix specific ones.`,
 	RunE: runReviewFix,
 }
@@ -82,7 +82,7 @@ func fixReview(store *ReviewStore, r *ReviewRecord) error {
 
 	prompt := buildFixPrompt(r)
 
-	// Invoke rho exec with the fix prompt.
+	// Invoke reflect exec with the fix prompt.
 	execArgs := []string{"exec", "--auto", "full"}
 	if reviewFixWorktree {
 		execArgs = append(execArgs, "--worktree")
@@ -92,18 +92,18 @@ func fixReview(store *ReviewStore, r *ReviewRecord) error {
 	}
 	execArgs = append(execArgs, prompt)
 
-	rhoBin, err := os.Executable()
+	reflectBin, err := os.Executable()
 	if err != nil {
-		rhoBin = "rho"
+		reflectBin = "reflect"
 	}
 
-	cmd := exec.CommandContext(context.Background(), rhoBin, execArgs...) // #nosec G204 -- rhoBin resolved via os.Executable() or literal 'rho'; args are internal flags
+	cmd := exec.CommandContext(context.Background(), reflectBin, execArgs...) // #nosec G204 -- reflectBin resolved via os.Executable() or literal 'reflect'; args are internal flags
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("rho exec: %w", err)
+		return fmt.Errorf("reflect exec: %w", err)
 	}
 
 	// Mark as fixed.

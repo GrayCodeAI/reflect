@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/mathutil"
-	"github.com/GrayCodeAI/rho/internal/safewrite"
+	"github.com/GrayCodeAI/reflect/internal/mathutil"
+	"github.com/GrayCodeAI/reflect/internal/safewrite"
 )
 
 // Insight represents a learned insight from a previous session.

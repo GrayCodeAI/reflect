@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // splitTurnCompact handles the edge case where a single turn's messages
@@ -25,7 +25,7 @@ import (
 // average token count of the tail, with a 2000-token floor to avoid false
 // positives. A single message exceeding this budget is treated as an
 // oversized turn.
-func turnTokenBudget(tail []types.FluxMessage) int {
+func turnTokenBudget(tail []types.RelayMessage) int {
 	if len(tail) == 0 {
 		return 0
 	}
@@ -135,7 +135,7 @@ func (s *Session) splitTurnCompact(ctx context.Context) {
 	// Reconstruct messages: summary + tail from oversized turn onward
 	// Keep the second half of the oversized message + everything after
 	// (its first half is covered by phase2Summary above).
-	remaining := append([]types.FluxMessage(nil), raw[splitPoint:]...)
+	remaining := append([]types.RelayMessage(nil), raw[splitPoint:]...)
 	if len(remaining) > 0 {
 		first := remaining[0]
 		first.Content = secondHalfRunes(first.Content)
@@ -145,8 +145,8 @@ func (s *Session) splitTurnCompact(ctx context.Context) {
 		remaining[0] = first
 	}
 
-	keep := make([]types.FluxMessage, 0, len(remaining)+2)
-	keep = append(keep, types.FluxMessage{
+	keep := make([]types.RelayMessage, 0, len(remaining)+2)
+	keep = append(keep, types.RelayMessage{
 		Role:    "user",
 		Content: combined.String() + "\n\n[Continue from the recent messages below.]",
 	})
@@ -154,7 +154,7 @@ func (s *Session) splitTurnCompact(ctx context.Context) {
 	// message; adjacent assistant messages are rejected by OpenAI-compat
 	// providers.
 	if len(remaining) == 0 || remaining[0].Role != "assistant" {
-		keep = append(keep, types.FluxMessage{
+		keep = append(keep, types.RelayMessage{
 			Role:    "assistant",
 			Content: "Understood. I have the context from the summary above. Continuing.",
 		})
@@ -174,12 +174,12 @@ func secondHalfRunes(s string) string {
 }
 
 // generatePartialSummary generates an LLM summary for a subset of messages.
-func (s *Session) generatePartialSummary(ctx context.Context, messages []types.FluxMessage) string {
+func (s *Session) generatePartialSummary(ctx context.Context, messages []types.RelayMessage) string {
 	if len(messages) == 0 {
 		return ""
 	}
 
-	var summaryMsgs []types.FluxMessage
+	var summaryMsgs []types.RelayMessage
 	compactPrompt := compact.BuildCompactPrompt(compact.CompactPartial)
 	var content strings.Builder
 	content.WriteString(compactPrompt)
@@ -195,7 +195,7 @@ func (s *Session) generatePartialSummary(ctx context.Context, messages []types.F
 		}
 	}
 
-	summaryMsgs = append(summaryMsgs, types.FluxMessage{
+	summaryMsgs = append(summaryMsgs, types.RelayMessage{
 		Role:    "user",
 		Content: content.String(),
 	})
@@ -219,7 +219,7 @@ func (s *Session) generatePartialSummary(ctx context.Context, messages []types.F
 }
 
 // summarizeOversizedTurn summarizes the content of a single oversized message.
-func (s *Session) summarizeOversizedTurn(ctx context.Context, msg types.FluxMessage) string {
+func (s *Session) summarizeOversizedTurn(ctx context.Context, msg types.RelayMessage) string {
 	content := msg.Content
 	if content == "" {
 		// If it's a tool result, use that
@@ -238,8 +238,8 @@ func (s *Session) summarizeOversizedTurn(ctx context.Context, msg types.FluxMess
 		halfLen = 4000
 	}
 
-	var summaryMsgs []types.FluxMessage
-	summaryMsgs = append(summaryMsgs, types.FluxMessage{
+	var summaryMsgs []types.RelayMessage
+	summaryMsgs = append(summaryMsgs, types.RelayMessage{
 		Role: "user",
 		Content: compact.BuildCompactPrompt(compact.CompactUpTo) + "\n\nSummarize the key information from this content prefix (the rest will be retained verbatim):\n\n" +
 			msg.Role + ": " + truncateRunes(content, halfLen),

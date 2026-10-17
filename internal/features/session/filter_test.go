@@ -3,7 +3,7 @@ package session
 import (
 	"testing"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/reflect/internal/session"
 )
 
 func TestFilterEntriesRanksIDPrefixFirst(t *testing.T) {

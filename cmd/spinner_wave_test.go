@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // frameContainsSpinnerWave reports whether a rendered frame contains the
@@ -17,7 +17,7 @@ func frameContainsSpinnerWave(s string) bool {
 }
 
 func TestSpinnerWave_AdvancesOnTick(t *testing.T) {
-	s := NewBrailleSpinner(SpinnerRho, "Hi")
+	s := NewBrailleSpinner(SpinnerReflect, "Hi")
 	f1 := s.Frame()
 	s.Tick()
 	f2 := s.Frame()
@@ -57,7 +57,7 @@ func TestSpinnerWave_FlowsThroughGlyphVerbAndDots(t *testing.T) {
 }
 
 func TestSpinnerWave_GlyphUsesWaveColor(t *testing.T) {
-	s := NewBrailleSpinner(SpinnerRho, "Go")
+	s := NewBrailleSpinner(SpinnerReflect, "Go")
 	f := s.Frame()
 	if !strings.Contains(f, "◐") && !strings.Contains(f, "◓") && !strings.Contains(f, "◑") && !strings.Contains(f, "◒") {
 		t.Fatalf("expected compass spinner glyph, got %q", f)

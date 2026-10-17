@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/daemon"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/daemon"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // TestDaemonReadyProbe_NilFactory verifies the probe reports not-ready when no
@@ -30,30 +30,30 @@ func TestDaemonReadyProbe_NilFactory(t *testing.T) {
 	}
 }
 
-// TestDaemonReadyProbe_FailedFluxPreflight verifies a factory alone does not
-// make the daemon ready when Flux's authoritative preflight is incomplete.
-func TestDaemonReadyProbe_FailedFluxPreflight(t *testing.T) {
+// TestDaemonReadyProbe_FailedRelayPreflight verifies a factory alone does not
+// make the daemon ready when Relay's authoritative preflight is incomplete.
+func TestDaemonReadyProbe_FailedRelayPreflight(t *testing.T) {
 	factory := func(daemon.ChatRequest) (*engine.Session, error) { return nil, nil }
-	probe := daemonReadyProbeWithPreflight(factory, func(context.Context) rhoconfig.EnginePreflight {
-		return rhoconfig.EnginePreflight{Ready: false}
+	probe := daemonReadyProbeWithPreflight(factory, func(context.Context) reflectconfig.EnginePreflight {
+		return reflectconfig.EnginePreflight{Ready: false}
 	})
 	ok, reason := probe()
 	if ok {
-		t.Fatal("failed Flux preflight must report not ready")
+		t.Fatal("failed Relay preflight must report not ready")
 	}
 	if reason == "" {
-		t.Fatal("failed Flux preflight must include a reason")
+		t.Fatal("failed Relay preflight must include a reason")
 	}
 }
 
-func TestDaemonReadyProbe_ReadyFluxPreflight(t *testing.T) {
+func TestDaemonReadyProbe_ReadyRelayPreflight(t *testing.T) {
 	factory := func(daemon.ChatRequest) (*engine.Session, error) { return nil, nil }
-	probe := daemonReadyProbeWithPreflight(factory, func(context.Context) rhoconfig.EnginePreflight {
-		return rhoconfig.EnginePreflight{Ready: true}
+	probe := daemonReadyProbeWithPreflight(factory, func(context.Context) reflectconfig.EnginePreflight {
+		return reflectconfig.EnginePreflight{Ready: true}
 	})
 	ok, reason := probe()
 	if !ok || reason != "" {
-		t.Fatalf("ready Flux preflight = (%v, %q), want (true, empty)", ok, reason)
+		t.Fatalf("ready Relay preflight = (%v, %q), want (true, empty)", ok, reason)
 	}
 }
 
@@ -62,8 +62,8 @@ func TestDaemonReadyProbe_ReadyFluxPreflight(t *testing.T) {
 func TestDaemonReadyProbe_AffectsReadyEndpoint(t *testing.T) {
 	factory := func(daemon.ChatRequest) (*engine.Session, error) { return nil, nil }
 	srv := daemon.New(daemon.Config{Port: 0, Host: "127.0.0.1"}, factory)
-	srv.SetReadyFn(daemonReadyProbeWithPreflight(factory, func(context.Context) rhoconfig.EnginePreflight {
-		return rhoconfig.EnginePreflight{Ready: false}
+	srv.SetReadyFn(daemonReadyProbeWithPreflight(factory, func(context.Context) reflectconfig.EnginePreflight {
+		return reflectconfig.EnginePreflight{Ready: false}
 	}))
 
 	addr, err := srv.Start()
@@ -93,7 +93,7 @@ func TestDaemonReadyProbe_AffectsReadyEndpoint(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusServiceUnavailable {
-		t.Errorf("expected 503 from /v1/ready when Flux is not ready, got %d", resp.StatusCode)
+		t.Errorf("expected 503 from /v1/ready when Relay is not ready, got %d", resp.StatusCode)
 	}
 	var body daemon.ReadyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {

@@ -81,7 +81,7 @@ func (ac *AutoCommitter) generateMessage(description string) string {
 		if len(description) > 72 {
 			description = description[:69] + "..."
 		}
-		return "rho: " + description
+		return "reflect: " + description
 	}
-	return fmt.Sprintf("rho: auto-commit %s", time.Now().Format("15:04:05"))
+	return fmt.Sprintf("reflect: auto-commit %s", time.Now().Format("15:04:05"))
 }

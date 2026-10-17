@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/permissions"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
 )
 
 func TestNormalizePermissionTier(t *testing.T) {
@@ -62,7 +62,7 @@ func TestParseBypassFlagsFailsClosed(t *testing.T) {
 }
 
 func TestEffectivePermissionRules(t *testing.T) {
-	settings := rhoconfig.Settings{
+	settings := reflectconfig.Settings{
 		AutoAllow:       []string{"Read"},
 		AllowedTools:    []string{"Bash(git:*)", "Read"},
 		DisallowedTools: []string{"Bash(rm -rf *)"},
@@ -83,7 +83,7 @@ func TestAutonomyCenterSummary(t *testing.T) {
 	sess.PermSvc().SetSpecStage(safety.SpecStageSpecify)
 	model := &chatModel{
 		session: sess,
-		settings: rhoconfig.Settings{
+		settings: reflectconfig.Settings{
 			AllowedTools:    []string{"Bash(git:*)"},
 			DisallowedTools: []string{"Bash(rm -rf *)"},
 		},
@@ -230,7 +230,7 @@ func TestResetPermissionCenter(t *testing.T) {
 	sess.PermSvc().SetExactRuleStore(store)
 	model := &chatModel{
 		session: sess,
-		settings: rhoconfig.Settings{
+		settings: reflectconfig.Settings{
 			Autonomy:        permissionTierSettingValue(safety.AutonomyYOLO),
 			AutoAllow:       []string{"Read"},
 			AllowedTools:    []string{"Bash(git:*)"},

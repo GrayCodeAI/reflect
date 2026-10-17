@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/permissions"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
 )
 
 func TestPermissionService_CheckTool(t *testing.T) {

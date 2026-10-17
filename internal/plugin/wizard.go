@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // BuildNewSkillPrompt creates an LLM prompt for the skill creator wizard.
 func BuildNewSkillPrompt(description string) string {
-	return fmt.Sprintf(`You are a skill creator for the Rho AI coding agent. Create a complete SKILL.md file based on this description:
+	return fmt.Sprintf(`You are a skill creator for the Reflect AI coding agent. Create a complete SKILL.md file based on this description:
 
 "%s"
 
@@ -51,7 +51,7 @@ allowed-tools: Read Write Bash Grep
 ...`, description)
 }
 
-// SaveNewSkill writes a SKILL.md to Rho user state.
+// SaveNewSkill writes a SKILL.md to Reflect user state.
 func SaveNewSkill(name, content string) (string, error) {
 	dir := filepath.Join(storage.StateDir(), "skills", name)
 	if err := os.MkdirAll(dir, 0o750); err != nil {

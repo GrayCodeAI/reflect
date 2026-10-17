@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // TranscriptPath returns the path to a feature's worker transcript file.
@@ -55,16 +55,16 @@ func IsTranscriptComplete(path string) (bool, bool, error) {
 	return found, false, nil
 }
 
-// LoadTranscript reads a transcript file back into FluxMessages. The final
+// LoadTranscript reads a transcript file back into RelayMessages. The final
 // __complete record (if any) is returned separately as handoff+true.
-func LoadTranscript(path string) ([]types.FluxMessage, *Handoff, bool, error) {
+func LoadTranscript(path string) ([]types.RelayMessage, *Handoff, bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, nil, false, err
 	}
 	defer func() { _ = f.Close() }()
 
-	var messages []types.FluxMessage
+	var messages []types.RelayMessage
 	var handoff *Handoff
 	var complete bool
 
@@ -86,7 +86,7 @@ func LoadTranscript(path string) ([]types.FluxMessage, *Handoff, bool, error) {
 			continue
 		}
 
-		var msg types.FluxMessage
+		var msg types.RelayMessage
 		if err := json.Unmarshal(line, &msg); err != nil {
 			// Skip malformed lines rather than failing the whole load.
 			continue
@@ -127,13 +127,13 @@ func (w *PersistWriter) Path() string {
 }
 
 // Write appends one message to the transcript.
-func (w *PersistWriter) Write(msg types.FluxMessage) error {
+func (w *PersistWriter) Write(msg types.RelayMessage) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.writeLocked(msg)
 }
 
-func (w *PersistWriter) writeLocked(msg types.FluxMessage) error {
+func (w *PersistWriter) writeLocked(msg types.RelayMessage) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("marshal transcript message: %w", err)

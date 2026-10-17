@@ -18,7 +18,7 @@ func specDir(root, slug string) (string, error) {
 	return filepath.Join(root, slug), nil
 }
 
-// StageMeta is persisted to .rho/specs/<slug>/spec.json to enable
+// StageMeta is persisted to .reflect/specs/<slug>/spec.json to enable
 // cross-session spec workflow recovery.
 type StageMeta struct {
 	Slug      string    `json:"slug"`
@@ -29,13 +29,13 @@ type StageMeta struct {
 	Title     string    `json:"title,omitempty"`
 }
 
-// SpecsRoot returns the .rho/specs directory, creating it if needed.
+// SpecsRoot returns the .reflect/specs directory, creating it if needed.
 func SpecsRoot() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("getwd: %w", err)
 	}
-	dir := filepath.Join(cwd, ".rho", "specs")
+	dir := filepath.Join(cwd, ".reflect", "specs")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("mkdir specs: %w", err)
 	}

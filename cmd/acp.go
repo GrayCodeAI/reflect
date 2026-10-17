@@ -7,19 +7,19 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/GrayCodeAI/rho/internal/acp"
-	"github.com/GrayCodeAI/rho/internal/attachment"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/acp"
+	"github.com/GrayCodeAI/reflect/internal/attachment"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/observability/logger"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 	"github.com/spf13/cobra"
 )
 
 var acpCmd = &cobra.Command{
 	Use:   "acp",
-	Short: "Run rho as an Agent Client Protocol (ACP) server",
-	Long: "Run rho as an ACP server over stdio (JSON-RPC 2.0) so editors such as " +
+	Short: "Run reflect as an Agent Client Protocol (ACP) server",
+	Long: "Run reflect as an ACP server over stdio (JSON-RPC 2.0) so editors such as " +
 		"Zed can drive it. Tool-permission prompts are routed back to the client " +
 		"via session/request_permission.",
 	RunE: runACP,
@@ -30,8 +30,8 @@ func init() {
 }
 
 func runACP(cmd *cobra.Command, _ []string) error {
-	settings := rhoconfig.LoadSettings()
-	newSession := newConfiguredRhoSessionFactory(settings, logger.New(io.Discard, logger.Error))
+	settings := reflectconfig.LoadSettings()
+	newSession := newConfiguredReflectSessionFactory(settings, logger.New(io.Discard, logger.Error))
 
 	factory := func() (*engine.Session, error) {
 		systemPrompt, err := buildSystemPrompt()

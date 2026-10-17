@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	feature "github.com/GrayCodeAI/rho/internal/features"
-	"github.com/GrayCodeAI/rho/internal/testutil"
+	feature "github.com/GrayCodeAI/reflect/internal/features"
+	"github.com/GrayCodeAI/reflect/internal/testutil"
 )
 
 // --- Pure helper unit tests ---

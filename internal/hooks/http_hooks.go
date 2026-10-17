@@ -96,7 +96,7 @@ func invokeHTTPHook(client *http.Client, url, event string, data map[string]inte
 		return hookError(failOpen, event, "build request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "rho-hooks/1.0")
+	req.Header.Set("User-Agent", "reflect-hooks/1.0")
 	resp, err := client.Do(req)
 	if err != nil {
 		return hookError(failOpen, event, "request failed: %v", err)
@@ -135,7 +135,7 @@ func firstNonEmpty(vals ...string) string {
 }
 
 // ValidateHTTPHookURL is a light SSRF guard: only http(s) and no localhost
-// unless RHO_HOOKS_ALLOW_LOCAL=1. Callers may skip this for tests.
+// unless REFLECT_HOOKS_ALLOW_LOCAL=1. Callers may skip this for tests.
 func ValidateHTTPHookURL(raw string) error {
 	if raw == "" {
 		return fmt.Errorf("empty hook URL")
@@ -151,14 +151,14 @@ func ValidateHTTPHookURL(raw string) error {
 	if host == "" {
 		return fmt.Errorf("hook URL has no host")
 	}
-	if strings.EqualFold(os.Getenv("RHO_HOOKS_ALLOW_LOCAL"), "1") {
+	if strings.EqualFold(os.Getenv("REFLECT_HOOKS_ALLOW_LOCAL"), "1") {
 		return nil
 	}
 	if strings.EqualFold(host, "localhost") {
-		return fmt.Errorf("hook URL must not target localhost (set RHO_HOOKS_ALLOW_LOCAL=1 to override)")
+		return fmt.Errorf("hook URL must not target localhost (set REFLECT_HOOKS_ALLOW_LOCAL=1 to override)")
 	}
 	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
-		return fmt.Errorf("hook URL must not target a loopback address (set RHO_HOOKS_ALLOW_LOCAL=1 to override)")
+		return fmt.Errorf("hook URL must not target a loopback address (set REFLECT_HOOKS_ALLOW_LOCAL=1 to override)")
 	}
 	return nil
 }

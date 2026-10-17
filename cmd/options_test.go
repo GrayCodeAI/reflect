@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
 func TestParseToolListFromCLI(t *testing.T) {

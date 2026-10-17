@@ -1,12 +1,12 @@
 # MCP Servers
 
-MCP (Model Context Protocol) servers extend Rho with external tool integrations. They let Rho interact with any service that implements the MCP standard.
+MCP (Model Context Protocol) servers extend Reflect with external tool integrations. They let Reflect interact with any service that implements the MCP standard.
 
 ---
 
 ## What Are MCP Servers?
 
-An MCP server is a process that exposes tools to Rho over a standardized protocol. When you configure an MCP server, its tools become available to the model alongside Rho's built-in tools. The model can discover and call these tools during a session.
+An MCP server is a process that exposes tools to Reflect over a standardized protocol. When you configure an MCP server, its tools become available to the model alongside Reflect's built-in tools. The model can discover and call these tools during a session.
 
 For example, a GitHub MCP server might expose tools like `create_issue`, `list_pull_requests`, and `search_code`. A database server might expose `query`, `list_tables`, and `describe_schema`.
 
@@ -16,11 +16,11 @@ See the [MCP specification](https://modelcontextprotocol.io) for protocol detail
 
 ## Configuration
 
-MCP servers are configured in `.rho/settings.json` under the `mcp_servers` key.
+MCP servers are configured in `.reflect/settings.json` under the `mcp_servers` key.
 
 ### stdio Transport (Local Process)
 
-Rho spawns a local process and communicates over stdin/stdout:
+Reflect spawns a local process and communicates over stdin/stdout:
 
 ```json
 {
@@ -64,40 +64,40 @@ Manage MCP servers from the command line:
 
 ```bash
 # List configured MCP servers
-rho mcp list
+reflect mcp list
 
 # Add a stdio server
-rho mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem /path/to/dir
+reflect mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem /path/to/dir
 
 # Add a remote HTTP server
-rho mcp add linear --transport http https://mcp.linear.app/mcp
+reflect mcp add linear --transport http https://mcp.linear.app/mcp
 
 # Remove a server
-rho mcp remove github
+reflect mcp remove github
 
 # Diagnose server configuration
-rho mcp doctor
-rho mcp doctor <server-name>
+reflect mcp doctor
+reflect mcp doctor <server-name>
 ```
 
-Use `--scope project` to write to `.rho/settings.json` in the current directory instead of the user config.
+Use `--scope project` to write to `.reflect/settings.json` in the current directory instead of the user config.
 
 ---
 
 ## Project-Scoped MCP Servers
 
-MCP servers can be configured per-project in `.rho/settings.json`:
+MCP servers can be configured per-project in `.reflect/settings.json`:
 
 ```
 my-project/
-  .rho/
+  .reflect/
     settings.json
   src/
   ...
 ```
 
 ```json
-// .rho/settings.json
+// .reflect/settings.json
 {
   "mcp_servers": {
     "linear": {
@@ -125,7 +125,7 @@ MCP tools are namespaced with the server name to avoid collisions:
 
 ## Discovering and Using Tools
 
-Rho provides built-in tools to work with MCP servers:
+Reflect provides built-in tools to work with MCP servers:
 
 - **`search_tool`** — Discover available integration tools across all enabled MCP servers
 - **`use_tool`** — Call an integration tool discovered via `search_tool`

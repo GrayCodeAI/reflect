@@ -39,7 +39,7 @@ func (SpecVersionTool) Schema() ToolSchema {
 		Properties: map[string]SchemaProperty{
 			"message":       {Type: "string", Description: "Custom commit message (optional, auto-generated if empty)"},
 			"dry_run":       {Type: "boolean", Description: "If true, show what would be committed without actually committing"},
-			"include_specs": {Type: "boolean", Description: "If true, include .rho/specs/ in the commit (default true)"},
+			"include_specs": {Type: "boolean", Description: "If true, include .reflect/specs/ in the commit (default true)"},
 		},
 	}
 }
@@ -81,7 +81,7 @@ func (SpecVersionTool) Execute(ctx context.Context, input json.RawMessage) (stri
 		p.Message = generateCommitMessage(tasksContent, specContent)
 	}
 
-	specRelPath := filepath.Join(".rho", "specs")
+	specRelPath := filepath.Join(".reflect", "specs")
 
 	var b strings.Builder
 	b.WriteString("## Spec Versioning\n\n")
@@ -176,7 +176,7 @@ func countTasks(content string) (total, complete int) {
 }
 
 func runGitCmd(dir string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := exec.CommandContext(context.Background(), "git", args...) // #nosec G204 -- internal callers supply git argv directly, without a shell
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	return string(out), err

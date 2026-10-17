@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func configMutedStyle() lipgloss.Style {
@@ -13,19 +13,19 @@ func configMutedStyle() lipgloss.Style {
 
 func configTitleStyle() lipgloss.Style {
 	// Talon Gold — title is the voice of the config panel.
-	return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	return lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 }
 
 func configSelectedStyle() lipgloss.Style {
 	// Talon Gold (bold) marks the focused row. Keep it distinct from
 	// the active/current value, which uses configActiveStyle.
-	return lipgloss.NewStyle().Foreground(rhoColor).Bold(true)
+	return lipgloss.NewStyle().Foreground(reflectColor).Bold(true)
 }
 
 func configAccentStyle() lipgloss.Style {
 	// Accent for inline highlights (breadcrumb, status line values).
 	// Same as title — both are the panel's voice.
-	return lipgloss.NewStyle().Foreground(rhoColor)
+	return lipgloss.NewStyle().Foreground(reflectColor)
 }
 
 func renderConfigBreadcrumb(title string) string {
@@ -109,7 +109,7 @@ func configNoticeStyle(notice string) lipgloss.Style {
 		strings.Contains(n, "unauthorized"):
 		return lipgloss.NewStyle().Foreground(errorCoral)
 	case strings.HasPrefix(notice, "Refreshed"),
-		strings.HasPrefix(notice, "Flux:"),
+		strings.HasPrefix(notice, "Relay:"),
 		strings.Contains(notice, "Removed API key"),
 		strings.Contains(notice, "Setup complete"),
 		strings.Contains(n, "key saved"),

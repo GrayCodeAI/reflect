@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
+	"github.com/GrayCodeAI/reflect/internal/eventlog"
 )
 
 // WriteBehindOptions configures one session's write-behind controller,

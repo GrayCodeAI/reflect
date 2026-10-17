@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -37,17 +37,17 @@ type FeedbackReport struct {
 
 var feedbackCmd = &cobra.Command{
 	Use:   "feedback [message]",
-	Short: "Submit feedback about rho",
-	Long: `Capture feedback about your rho experience. By default, opens a
+	Short: "Submit feedback about reflect",
+	Long: `Capture feedback about your reflect experience. By default, opens a
 GitHub issue template URL in your browser. Use --local to save feedback
-to Rho's user state directory for later submission.
+to Reflect's user state directory for later submission.
 
 Categories: bug, feature, ux, performance, other
 
 Examples:
-  rho feedback "The completion is slow"
-  rho feedback --category bug "Crash when using /compact"
-  rho feedback --local "Wish it could do X"`,
+  reflect feedback "The completion is slow"
+  reflect feedback --category bug "Crash when using /compact"
+  reflect feedback --local "Wish it could do X"`,
 	Args: cobra.MinimumNArgs(0),
 	RunE: runFeedback,
 }
@@ -141,7 +141,7 @@ func openFeedbackIssue(report FeedbackReport) error {
 	bodyBuilder.WriteString(fmt.Sprintf("- **Timestamp:** %s\n", report.Timestamp))
 
 	issueURL := fmt.Sprintf(
-		"https://github.com/GrayCodeAI/rho/issues/new?title=%s&body=%s&labels=%s",
+		"https://github.com/GrayCodeAI/reflect/issues/new?title=%s&body=%s&labels=%s",
 		url.QueryEscape(title),
 		url.QueryEscape(bodyBuilder.String()),
 		url.QueryEscape(report.Category),

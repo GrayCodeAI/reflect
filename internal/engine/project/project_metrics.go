@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/fsutil"
+	"github.com/GrayCodeAI/reflect/internal/fsutil"
 )
 
 // This file holds the quantitative project metrics gathered by ProjectAnalyzer

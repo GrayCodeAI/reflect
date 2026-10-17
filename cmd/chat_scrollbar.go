@@ -19,7 +19,7 @@ const (
 
 // scrollbarThumbStyle — Talon Gold thumb so it reads as a brand control.
 func scrollbarThumbStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(rhoColor)
+	return lipgloss.NewStyle().Foreground(reflectColor)
 }
 
 func scrollbarTrackStyle() lipgloss.Style {

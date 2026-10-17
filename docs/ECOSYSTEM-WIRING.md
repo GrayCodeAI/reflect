@@ -1,7 +1,7 @@
 # GrayCode ecosystem wiring
 
 > **STALE (2026-09-18):** Diagrams below predate `eagle` removal (2026-09-04) and list 14 repos / 6 engines.
-> NOTE (2026-09-04): `eagle` contracts vendored into `rho/internal/contracts`.
+> NOTE (2026-09-04): `eagle` contracts vendored into `reflect/internal/contracts`.
 > **INVENTORY MOVED (2026-10-02):** the canonical machine-readable inventory is
 > [`GrayCodeAI/graycode-eco/ecosystem.yaml`](https://github.com/GrayCodeAI/graycode-eco/blob/main/ecosystem.yaml)
 > (10 products, including `beam`). The `ecosystem.yaml` in this repo is
@@ -18,23 +18,23 @@ flowchart LR
   Lists --> Scripts[Workspace and release scripts]
   Lists --> Owl[Owl catalog]
 
-  Rho[Rho product] --> Engines[Six engine repositories]
+  Reflect[Reflect product] --> Engines[Six engine repositories]
   Engines --> Eagle[Eagle contracts]
-  Rho --> Eagle
+  Reflect --> Eagle
 
-  RhoSpec[Rho OpenAPI] -. manual snapshots .-> Sparrow
-  RhoSpec -. manual snapshots .-> Robin
-  RhoSpec -. no snapshot .-> Wren
+  ReflectSpec[Reflect OpenAPI] -. manual snapshots .-> Sparrow
+  ReflectSpec -. manual snapshots .-> Robin
+  ReflectSpec -. no snapshot .-> Wren
 
   Browser[GrayCode browser] --> Mixed[One mixed Worker]
   Mixed --> Identity[(Identity tables)]
-  Mixed --> Cloud[(Rho Cloud tables)]
+  Mixed --> Cloud[(Reflect Cloud tables)]
   Mixed -. fire-and-forget .-> Queue[Usage Queue]
 ```
 
 The runtime engine integrations were mostly sound, but the surrounding wiring
 could drift: repository names appeared independently in shell scripts and Owl,
-SDK contracts were inconsistent, browser identity and the Rho control plane
+SDK contracts were inconsistent, browser identity and the Reflect control plane
 shared a Worker and D1 binding, and a successful usage write did not guarantee a
 durable Queue-delivery intent.
 
@@ -48,15 +48,15 @@ flowchart TB
   Manifest --> OwlSnapshot[owl/ecosystem.json]
 
   subgraph Local[Local-first runtime]
-    User[CLI / daemon user] --> Rho[Rho composition root]
-    Rho --> Flux[Flux facade]
-    Rho --> Harrier[Harrier / Harrier facade]
-    Rho --> Shrike[Shrike / Shrike facade]
-    Rho --> Swift[Swift / Swift facade]
-    Rho --> Kestrel[Kestrel / Kestrel facade]
-    Rho --> Merlin[Merlin / Merlin facade]
-    Rho --> Eagle[Eagle neutral contracts]
-    Flux --> Eagle
+    User[CLI / daemon user] --> Reflect[Reflect composition root]
+    Reflect --> Relay[Relay facade]
+    Reflect --> Harrier[Harrier / Harrier facade]
+    Reflect --> Shrike[Shrike / Shrike facade]
+    Reflect --> Swift[Swift / Swift facade]
+    Reflect --> Kestrel[Kestrel / Kestrel facade]
+    Reflect --> Merlin[Merlin / Merlin facade]
+    Reflect --> Eagle[Eagle neutral contracts]
+    Relay --> Eagle
     Harrier --> Eagle
     Shrike --> Eagle
     Swift --> Eagle
@@ -64,7 +64,7 @@ flowchart TB
     Merlin --> Eagle
   end
 
-  Rho --> Daemon[Rho daemon API]
+  Reflect --> Daemon[Reflect daemon API]
   Daemon --> OpenAPI[api/openapi.yaml]
   OpenAPI --> Sparrow[Sparrow Go SDK snapshot]
   OpenAPI --> Robin[Robin Python SDK snapshot]
@@ -73,7 +73,7 @@ flowchart TB
   subgraph Hosted[Optional hosted plane]
     Browser[GrayCode browser] --> BFF[GrayCode identity/BFF Worker]
     BFF --> Identity[(Identity D1)]
-    BFF -->|private typed Service Binding| Cloud[Rho Cloud Worker]
+    BFF -->|private typed Service Binding| Cloud[Reflect Cloud Worker]
     Cloud --> Control[(Control-plane D1)]
     Cloud -->|same D1 transaction| Outbox[(Usage outbox)]
     Outbox -->|immediate + scheduled retry| Queue[Cloudflare Queue]
@@ -81,28 +81,28 @@ flowchart TB
     Queue --> Archive[(R2 archive)]
   end
 
-  Rho -. explicit opt-in; fail-open .-> Cloud
+  Reflect -. explicit opt-in; fail-open .-> Cloud
 ```
 
 ## Ownership rules
 
 | Boundary | Owner | Rule |
 |---|---|---|
-| Product orchestration | Rho | Engines never orchestrate Rho or one another. |
-| Provider runtime | Flux | Rho imports its supported `engine` facade. |
+| Product orchestration | Reflect | Engines never orchestrate Reflect or one another. |
+| Provider runtime | Relay | Reflect imports its supported `engine` facade. |
 | Shared data contracts | Eagle | Neutral types only; no product behavior. |
-| Portable local graph | Source engine/Rho | Emit bounded `rho.graph/v1` facts without raw secrets or prompts. |
-| Daemon HTTP API | Rho | `rho/api/openapi.yaml` is authoritative. |
+| Portable local graph | Source engine/Reflect | Emit bounded `reflect.graph/v1` facts without raw secrets or prompts. |
+| Daemon HTTP API | Reflect | `reflect/api/openapi.yaml` is authoritative. |
 | SDK endpoint support | Each SDK | Exact contract snapshot plus an explicit decision for every path. |
 | Browser identity | GrayCode BFF | Users, sessions, email, API keys, and UI activity remain in identity D1. |
-| Hosted control plane | Rho Cloud | Organizations, projects, devices, usage, billing, graph ledger, and audit. |
+| Hosted control plane | Reflect Cloud | Organizations, projects, devices, usage, billing, graph ledger, and audit. |
 | Cloud delivery | D1 outbox + Queue | Business state and delivery intent commit together; consumers are idempotent. |
 | Architecture discovery | Owl | Generated projection of the canonical manifest, never a second inventory. |
 
 ## Repository identity
 
 Repository directories are repository and Go module identities. Product names
-remain the user-facing labels. In particular, `flux` is Flux. Scripts and CI
+remain the user-facing labels. In particular, `relay` is Relay. Scripts and CI
 must use `directory`/`github_repo`; UI copy may use `product_name`.
 
 ## Contract and event flow
@@ -113,7 +113,7 @@ must use `directory`/`github_repo`; UI copy may use `product_name`.
 2. Eagle commit `9d358dde4ad8` is the cross-repository contract revision, pinned
    through its reachable Go pseudo-version until the next semver tag is published;
    the parity gate checks every declared consumer.
-3. Local graph projections use `rho.graph/v1`. Rho Cloud independently
+3. Local graph projections use `reflect.graph/v1`. Reflect Cloud independently
    validates and privacy-normalizes them into `graycode-cloud.graph/v1`.
 4. Usage ingestion commits its idempotency claim, budget counter, event,
    billing ledger row, daily activity projection, and `usage.recorded.v1`
@@ -124,12 +124,12 @@ must use `directory`/`github_repo`; UI copy may use `product_name`.
 
 ## Release and development workflow
 
-- Run `make workspace` in Rho to regenerate the parent `go.work`.
+- Run `make workspace` in Reflect to regenerate the parent `go.work`.
 - Run `make boundaries` to validate the inventory, module isolation, Eagle
   parity, facade locations, and support-repository coupling.
 - Root `go.mod` files never contain local `replace` directives. Local sibling
   substitutions exist only in the generated, uncommitted parent workspace.
-- SDK CI checks its snapshot byte-for-byte against Rho and separately checks
+- SDK CI checks its snapshot byte-for-byte against Reflect and separately checks
   that every OpenAPI path has a support decision.
 - Run `owl/scripts/sync-ecosystem.sh` after changing the canonical inventory;
   Owl CI rejects drift.
@@ -138,33 +138,33 @@ must use `directory`/`github_repo`; UI copy may use `product_name`.
 
 ### Coordinated Go publication gate
 
-The compatible Eagle-migrated Flux source is currently ahead of Flux's
-published `origin/main`. Do not merge or release Rho against the older Flux
-pseudo-version: it still exposes the retired `rho-core-contracts` types and is
-not type-compatible with Rho's Eagle boundary.
+The compatible Eagle-migrated Relay source is currently ahead of Relay's
+published `origin/main`. Do not merge or release Reflect against the older Relay
+pseudo-version: it still exposes the retired `reflect-core-contracts` types and is
+not type-compatible with Reflect's Eagle boundary.
 
-1. Merge and publish the Flux ecosystem-wiring branch first.
+1. Merge and publish the Relay ecosystem-wiring branch first.
 2. Resolve that final remote commit to its canonical Go pseudo-version with
-   `go list -m github.com/GrayCodeAI/flux@<commit>`.
-3. Update Rho's Flux requirement, run `GOWORK=off go mod tidy`, and remove any
+   `go list -m github.com/GrayCodeAI/relay@<commit>`.
+3. Update Reflect's Relay requirement, run `GOWORK=off go mod tidy`, and remove any
    transition excludes no longer required by the published engine graphs.
-4. Require Rho's `public-modules` and `release-parity` CI jobs to pass before
-   merging or tagging Rho.
+4. Require Reflect's `public-modules` and `release-parity` CI jobs to pass before
+   merging or tagging Reflect.
 
 This publication is intentionally not performed by the source implementation:
 remote branch merges and tags are externally visible release operations.
 
 ## Deployment sequence for the Worker split
 
-1. Create or automatically provision the `rho-identity` D1 database and
+1. Create or automatically provision the `reflect-identity` D1 database and
    confirm its binding in `apps/bff/wrangler.jsonc`.
 2. Export the existing identity tables from the legacy mixed database and
    import them into the identity database; verify row counts and login flows.
-3. Deploy `graycode-cloud` with the named `RhoCloudService` entrypoint and
+3. Deploy `graycode-cloud` with the named `ReflectCloudService` entrypoint and
    apply migration `0023_usage_outbox.sql`.
-4. Deploy `rho-bff` with its D1 binding and private service binding.
-5. Point the web frontend API hostname at the BFF. Rho/CLI device start and
-   poll traffic continues to target Rho Cloud.
+4. Deploy `reflect-bff` with its D1 binding and private service binding.
+5. Point the web frontend API hostname at the BFF. Reflect/CLI device start and
+   poll traffic continues to target Reflect Cloud.
 6. After a rollback window, remove the legacy identity tables from the old
    cloud D1 using a separately reviewed data-retirement migration.
 

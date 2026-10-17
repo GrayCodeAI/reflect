@@ -339,7 +339,7 @@ var builtinPersonaSpecs = []Persona{
 			"Ensure tests pass before and after every step",
 		},
 	},
-	// --- Cavecrew personas (built into GrayCode Rho) ---
+	// --- Cavecrew personas (built into GrayCode Reflect) ---
 	// Three compact, opinionated personas for multi-agent crews.
 	// Each enforces a strict output format so downstream agents
 	// can parse the output mechanically.
@@ -411,7 +411,7 @@ var builtinPersonaSpecs = []Persona{
 }
 
 // CavecrewPersonas returns just the three cavecrew personas
-// (investigator, builder, reviewer) built into GrayCode Rho.
+// (investigator, builder, reviewer) built into GrayCode Reflect.
 // These are a strict, format-driven subset of the full BuiltinPersonas
 // list; callers that want only the cavecrew subset can use this
 // function instead of BuiltinPersonas.

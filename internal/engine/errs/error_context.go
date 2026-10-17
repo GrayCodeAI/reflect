@@ -419,7 +419,7 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 		},
 	},
 
-	"rho_old_str_not_found": {
+	"reflect_old_str_not_found": {
 		Pattern:     regexp.MustCompile(`old_str not found`),
 		Title:       "Edit target string not found",
 		Explanation: "The text specified in old_str does not exist in the file. The file may have been modified since it was last read, or the string may contain whitespace or encoding differences.",
@@ -436,7 +436,7 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 		AutoFix: "Re-read the target file and retry with the exact current content",
 	},
 
-	"rho_file_too_large": {
+	"reflect_file_too_large": {
 		Pattern:     regexp.MustCompile(`file too large`),
 		Title:       "File exceeds size limit",
 		Explanation: "The file is too large to be processed in a single operation. This protects against accidentally loading very large files into memory.",
@@ -453,7 +453,7 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 		AutoFix: "Use head_tail or line-range reads to process the file in parts",
 	},
 
-	"rho_budget_exceeded": {
+	"reflect_budget_exceeded": {
 		Pattern:     regexp.MustCompile(`budget exceeded`),
 		Title:       "Token or cost budget exceeded",
 		Explanation: "The session has consumed more tokens or cost than the configured budget allows. This is a safety limit to prevent runaway costs.",
@@ -464,12 +464,12 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 			"Check for loops that may be inflating token usage",
 		},
 		Examples: []string{
-			"rho --budget 10.00  # set a higher budget",
+			"reflect --budget 10.00  # set a higher budget",
 			"/compact  # reduce context size",
 		},
 	},
 
-	"rho_tool_not_found": {
+	"reflect_tool_not_found": {
 		Pattern:     regexp.MustCompile(`(tool not found|unknown tool)`),
 		Title:       "Tool not found",
 		Explanation: "The requested tool does not exist in the current tool registry. It may be misspelled or not available in this configuration.",
@@ -484,7 +484,7 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 		},
 	},
 
-	"rho_path_boundary_violation": {
+	"reflect_path_boundary_violation": {
 		Pattern:     regexp.MustCompile(`(path boundary violation|operation not permitted outside allowed path)`),
 		Title:       "Path boundary violation",
 		Explanation: "The operation was blocked because it attempted to access a resource outside the allowed project paths.",
@@ -492,7 +492,7 @@ var builtinErrorPatterns = map[string]*ErrorHelp{
 			"Check which paths are allowed by the project policy",
 			"Request permission for the specific operation",
 			"Verify the file is within the project directory",
-			"Check Rho permission settings",
+			"Check Reflect permission settings",
 		},
 		Examples: []string{
 			"// Ensure operations target files within the project root",

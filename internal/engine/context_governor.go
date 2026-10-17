@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/engine/ctxmgr"
-	modelPkg "github.com/GrayCodeAI/rho/internal/provider/routing"
+	"github.com/GrayCodeAI/reflect/internal/engine/ctxmgr"
+	modelPkg "github.com/GrayCodeAI/reflect/internal/provider/routing"
 )
 
 const (
@@ -174,6 +174,9 @@ func (s *Session) CompactConversation(ctx context.Context) (strategy string, tok
 	if s == nil {
 		return "", 0, 0, fmt.Errorf("no session")
 	}
+	// Capture a lifeboat before mutating the message list (see
+	// internal/session lifeboat) — best-effort, never blocks compaction.
+	_, _ = s.SaveLifeboat()
 	s.Persistence().SetRawMessages(ctxmgr.CollapseRepeatedMessages(s.Persistence().RawMessages()))
 	s.EnsureAutoCompactor()
 	beforeMsgs := len(s.Persistence().RawMessages())

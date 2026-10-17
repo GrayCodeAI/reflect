@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // mockProvider returns canned expand/score responses keyed by the user content.
@@ -14,7 +14,7 @@ type mockProvider struct {
 	scores map[string]string
 }
 
-func (m *mockProvider) Chat(ctx context.Context, msgs []types.FluxMessage, opts types.ChatOptions) (*types.FluxResponse, error) {
+func (m *mockProvider) Chat(ctx context.Context, msgs []types.RelayMessage, opts types.ChatOptions) (*types.RelayResponse, error) {
 	user := ""
 	for _, mm := range msgs {
 		if mm.Role == "user" {
@@ -22,15 +22,15 @@ func (m *mockProvider) Chat(ctx context.Context, msgs []types.FluxMessage, opts 
 		}
 	}
 	if e, ok := m.expand[user]; ok {
-		return &types.FluxResponse{Content: e}, nil
+		return &types.RelayResponse{Content: e}, nil
 	}
 	if s, ok := m.scores[user]; ok {
-		return &types.FluxResponse{Content: s}, nil
+		return &types.RelayResponse{Content: s}, nil
 	}
-	return &types.FluxResponse{Content: "0.5"}, nil
+	return &types.RelayResponse{Content: "0.5"}, nil
 }
 
-func (m *mockProvider) StreamChat(ctx context.Context, msgs []types.FluxMessage, opts types.ChatOptions) (*types.StreamResult, error) {
+func (m *mockProvider) StreamChat(ctx context.Context, msgs []types.RelayMessage, opts types.ChatOptions) (*types.StreamResult, error) {
 	return nil, nil
 }
 func (m *mockProvider) Ping(ctx context.Context) error { return nil }

@@ -23,8 +23,8 @@ func TestUsageEventNormalizedClampsToContract(t *testing.T) {
 		Model:               strings.Repeat("m", 150),
 		Status:              "timeout",
 	}.normalized(now)
-	if got.Capability != CapabilityRho {
-		t.Fatalf("capability = %q, want %q", got.Capability, CapabilityRho)
+	if got.Capability != CapabilityReflect {
+		t.Fatalf("capability = %q, want %q", got.Capability, CapabilityReflect)
 	}
 	if got.DurationMS != MaxUsageDurationMS {
 		t.Fatalf("durationMs = %d, want %d", got.DurationMS, MaxUsageDurationMS)
@@ -39,7 +39,7 @@ func TestUsageEventNormalizedClampsToContract(t *testing.T) {
 		t.Fatalf("occurredAt = %q", got.OccurredAt)
 	}
 
-	kept := UsageEvent{Capability: "rho", DurationMS: 1500, Status: "failed", OccurredAt: "2026-01-01T00:00:00Z"}.normalized(now)
+	kept := UsageEvent{Capability: "reflect", DurationMS: 1500, Status: "failed", OccurredAt: "2026-01-01T00:00:00Z"}.normalized(now)
 	if kept.DurationMS != 1500 || kept.Status != "failed" || kept.OccurredAt != "2026-01-01T00:00:00Z" {
 		t.Fatalf("in-range event changed: %+v", kept)
 	}
@@ -63,7 +63,7 @@ func TestRecordUsageSendsClampedDurationAndReportsRejection(t *testing.T) {
 	if !errors.As(err, &apiErr) || apiErr.Message != "Invalid usage event" {
 		t.Fatalf("error = %v, want the Worker's rejection", err)
 	}
-	if body["durationMs"] != float64(MaxUsageDurationMS) || body["capability"] != CapabilityRho {
+	if body["durationMs"] != float64(MaxUsageDurationMS) || body["capability"] != CapabilityReflect {
 		t.Fatalf("body = %v", body)
 	}
 }

@@ -37,7 +37,7 @@ func DetectOSTheme() string {
 
 // detectMacOSTheme uses the system preference.
 func detectMacOSTheme() string {
-	cmd := exec.Command("sh", "-c", "defaults read -g AppleInterfaceStyle 2>/dev/null")
+	cmd := exec.CommandContext(context.Background(), "sh", "-c", "defaults read -g AppleInterfaceStyle 2>/dev/null")
 	out, err := cmd.Output()
 	if err != nil {
 		return "" // Default/no preference
@@ -65,7 +65,7 @@ func detectLinuxTheme() string {
 
 // detectWindowsTheme reads system registry.
 func detectWindowsTheme() string {
-	cmd := exec.Command("powershell", "-Command", `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Personal' -Name 'AppsUseLightTheme' -ErrorAction SilentlyContinue).AppsUseLightTheme`)
+	cmd := exec.CommandContext(context.Background(), "powershell", "-Command", `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Personal' -Name 'AppsUseLightTheme' -ErrorAction SilentlyContinue).AppsUseLightTheme`)
 	out, err := cmd.Output()
 	if err != nil {
 		return ""

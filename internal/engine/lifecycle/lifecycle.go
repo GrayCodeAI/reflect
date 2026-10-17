@@ -8,7 +8,7 @@ import (
 )
 
 // SessionLifecycle manages the start and end of agent sessions, implementing
-// the self-improvement loop that makes rho better over time.
+// the self-improvement loop that makes reflect better over time.
 //
 // Research basis:
 // - Reflexion (NeurIPS 2023): 91% HumanEval via episodic memory of reflections

@@ -12,11 +12,11 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
-	parallelfeature "github.com/GrayCodeAI/rho/internal/features/parallel"
-	"github.com/GrayCodeAI/rho/internal/multiagent/parallel"
-	"github.com/GrayCodeAI/rho/internal/plugin"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	commandfeature "github.com/GrayCodeAI/reflect/internal/features/commands"
+	parallelfeature "github.com/GrayCodeAI/reflect/internal/features/parallel"
+	"github.com/GrayCodeAI/reflect/internal/multiagent/parallel"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // slashCmdCache caches the slash commands list to avoid rebuilding.

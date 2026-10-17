@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/schedule"
+	"github.com/GrayCodeAI/reflect/internal/schedule"
 )
 
 // ScheduleCreateTool creates an in-conversation scheduled reminder or task.

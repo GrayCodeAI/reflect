@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // SemanticDiff holds the result of semantic analysis of a diff.

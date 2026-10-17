@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/textutil"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/textutil"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // TrajectoryRun records a single attempt at completing a task.
 type TrajectoryRun struct {
 	ID       int
-	Messages []types.FluxMessage
+	Messages []types.RelayMessage
 	Success  bool
 	Summary  string // distilled lessons from this run
 	Tokens   int
@@ -124,7 +124,7 @@ func (td *TrajectoryDistiller) RunWithDistillation(ctx context.Context, prompt s
 
 // SummarizeTrajectory extracts a concise summary from a sequence of messages:
 // what was attempted, what failed, key decisions made, and files touched.
-func SummarizeTrajectory(messages []types.FluxMessage) string {
+func SummarizeTrajectory(messages []types.RelayMessage) string {
 	var b strings.Builder
 	var attempted []string
 	var failures []string

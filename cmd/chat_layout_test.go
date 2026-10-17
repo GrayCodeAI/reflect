@@ -12,7 +12,7 @@ func TestView_PinsWelcomeAboveViewport(t *testing.T) {
 	m := chatModel{
 		height:       24,
 		width:        80,
-		welcomeCache: "RHO LOGO\nv0.1.0",
+		welcomeCache: "REFLECT LOGO\nv0.1.0",
 		input:        textarea.New(),
 		viewport:     viewport.New(viewport.WithWidth(80), viewport.WithHeight(8)),
 		ghostText:    NewGhostText(),
@@ -21,7 +21,7 @@ func TestView_PinsWelcomeAboveViewport(t *testing.T) {
 	m.viewDirty = true
 	m.updateViewportContent()
 	got := m.View().Content
-	if !strings.Contains(got, "RHO LOGO") {
+	if !strings.Contains(got, "REFLECT LOGO") {
 		t.Fatalf("welcome should be pinned at top, got prefix: %q", got[:min(40, len(got))])
 	}
 	if !strings.Contains(got, "─") {
@@ -33,20 +33,20 @@ func TestPrimeInitialViewportContent_RendersWelcomeBeforeFirstFrame(t *testing.T
 	m := chatModel{
 		height:       24,
 		width:        80,
-		welcomeCache: "RHO LOGO\nv0.1.0",
+		welcomeCache: "REFLECT LOGO\nv0.1.0",
 		input:        textarea.New(),
 		viewport:     viewport.New(viewport.WithWidth(80), viewport.WithHeight(8)),
 		ghostText:    NewGhostText(),
 	}
 	m = m.withSyncedLayout()
 
-	if strings.Contains(m.viewport.View(), "RHO LOGO") {
+	if strings.Contains(m.viewport.View(), "REFLECT LOGO") {
 		t.Fatal("expected empty initial viewport before priming")
 	}
 
 	m.primeInitialViewportContent()
 
-	if !strings.Contains(m.viewport.View(), "RHO LOGO") {
+	if !strings.Contains(m.viewport.View(), "REFLECT LOGO") {
 		t.Fatalf("expected primed viewport to include welcome content, got %q", m.viewport.View())
 	}
 }

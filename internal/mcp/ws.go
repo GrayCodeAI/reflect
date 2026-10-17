@@ -91,7 +91,7 @@ func ConnectWS(ctx context.Context, name, rawURL string, headers map[string]stri
 	if _, err := s.Call(ctx, "initialize", map[string]interface{}{
 		"protocolVersion": "2025-03-26",
 		"capabilities":    map[string]interface{}{},
-		"clientInfo":      map[string]interface{}{"name": "rho", "version": clientVersion},
+		"clientInfo":      map[string]interface{}{"name": "reflect", "version": clientVersion},
 	}); err != nil {
 		_ = s.Close()
 		return nil, fmt.Errorf("mcp ws init: %w", err)
@@ -482,7 +482,7 @@ func (s *WSServer) CallTool(ctx context.Context, name string, args map[string]in
 	if err != nil {
 		return "", err
 	}
-	// Reuse the shared decoder so the WebSocket transport honors the spec's
+	// Reuse the shared reflect so the WebSocket transport honors the spec's
 	// isError flag identically to the stdio transport: a remote tool failure
 	// must surface as a Go error, not a successful result.
 	return parseToolCallResult(result)

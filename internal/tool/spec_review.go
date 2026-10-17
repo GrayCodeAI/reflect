@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/spec"
 )
 
 type SpecReviewTool struct{}
@@ -88,7 +88,7 @@ func reviewAgainstSpec(dir string) (string, error) {
 }
 
 func reviewDiff(dir string) (string, error) {
-	cmd := exec.Command("git", "diff", "--stat")
+	cmd := exec.CommandContext(context.Background(), "git", "diff", "--stat")
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/GrayCodeAI/rho/internal/installtxn"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/installtxn"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // Skills lockfile, modeled on Autohand Code CLI's skills-lock.json:

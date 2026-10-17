@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestChatWithReplayDisabledPassesThrough(t *testing.T) {
@@ -14,7 +14,7 @@ func TestChatWithReplayDisabledPassesThrough(t *testing.T) {
 	calls := 0
 	client := &countingClient{n: &calls, resp: "live"}
 	resp, err := chatWithReplay(context.Background(), client,
-		[]types.FluxMessage{{Role: "user", Content: "hi"}}, types.ChatOptions{Model: "m"})
+		[]types.RelayMessage{{Role: "user", Content: "hi"}}, types.ChatOptions{Model: "m"})
 	if err != nil || resp.Content != "live" {
 		t.Fatalf("resp=%v err=%v", resp, err)
 	}
@@ -29,7 +29,7 @@ func TestChatWithReplayCachesAndHits(t *testing.T) {
 
 	calls := 0
 	client := &countingClient{n: &calls, resp: "live"}
-	msgs := []types.FluxMessage{{Role: "user", Content: "deterministic"}}
+	msgs := []types.RelayMessage{{Role: "user", Content: "deterministic"}}
 	opts := types.ChatOptions{Provider: "p", Model: "m", MaxTokens: 10}
 
 	first, err := chatWithReplay(context.Background(), client, msgs, opts)
@@ -57,7 +57,7 @@ func TestChatWithReplayFingerprintInvalidates(t *testing.T) {
 
 	calls := 0
 	client := &countingClient{n: &calls, resp: "live"}
-	msgs := []types.FluxMessage{{Role: "user", Content: "x"}}
+	msgs := []types.RelayMessage{{Role: "user", Content: "x"}}
 	opts := types.ChatOptions{Provider: "p", Model: "m"}
 
 	if _, err := chatWithReplay(context.Background(), client, msgs, opts); err != nil {
@@ -80,7 +80,7 @@ func TestChatWithReplayDoesNotCacheErrors(t *testing.T) {
 	client := &countingClient{n: &calls, err: errors.New("boom")}
 	for i := 0; i < 2; i++ {
 		if _, err := chatWithReplay(context.Background(), client,
-			[]types.FluxMessage{{Role: "user", Content: "e"}}, types.ChatOptions{}); err == nil {
+			[]types.RelayMessage{{Role: "user", Content: "e"}}, types.ChatOptions{}); err == nil {
 			t.Fatal("expected error to pass through")
 		}
 	}
@@ -99,20 +99,20 @@ type countingClient struct {
 	err  error
 }
 
-func (c *countingClient) Chat(context.Context, []types.FluxMessage, types.ChatOptions) (*types.FluxResponse, error) {
+func (c *countingClient) Chat(context.Context, []types.RelayMessage, types.ChatOptions) (*types.RelayResponse, error) {
 	*c.n++
 	if c.err != nil {
 		return nil, c.err
 	}
-	return &types.FluxResponse{Content: c.resp}, nil
+	return &types.RelayResponse{Content: c.resp}, nil
 }
 
-func (c *countingClient) StreamChatContinue(context.Context, []types.FluxMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *countingClient) StreamChatContinue(context.Context, []types.RelayMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
 	*c.n++
 	if c.err != nil {
 		return nil, c.err
 	}
-	ch := make(chan types.FluxStreamEvent, 1)
-	ch <- types.FluxStreamEvent{Type: "done"}
+	ch := make(chan types.RelayStreamEvent, 1)
+	ch <- types.RelayStreamEvent{Type: "done"}
 	return &types.StreamResult{Events: ch}, nil
 }

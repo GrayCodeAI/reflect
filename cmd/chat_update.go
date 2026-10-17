@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/spec"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/spec"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // This file holds the Bubble Tea event loop for the chat TUI: the central
@@ -92,7 +92,7 @@ func shouldReturnToPromptOnType(msg tea.KeyMsg) bool {
 // background workers (watcher, parallel agents, background tasks), and mark
 // the model as quitting so the final view can show the resume hint.
 func (m *chatModel) quitModel() (tea.Model, tea.Cmd) {
-	m.clearInteractivePrompts("rho is exiting")
+	m.clearInteractivePrompts("reflect is exiting")
 	if m.cancel != nil {
 		m.cancel()
 		m.cancel = nil
@@ -312,7 +312,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			chosen, handled := m.themePicker.Update(msg)
 			if handled {
 				if chosen != nil {
-					if err := rhoconfig.SetGlobalSetting("theme", chosen.Name); err != nil {
+					if err := reflectconfig.SetGlobalSetting("theme", chosen.Name); err != nil {
 						m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
 					} else {
 						// Apply immediately — repaints with full palette on next frame.
@@ -736,7 +736,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.configSaving = false
 		if msg.err != nil {
 			if m.configOpen {
-				m.configNotice = sanitizeConfigNotice(rhoconfig.FormatConfigProviderError(msg.provider, msg.err))
+				m.configNotice = sanitizeConfigNotice(reflectconfig.FormatConfigProviderError(msg.provider, msg.err))
 				m.viewDirty = true
 				m.updateViewportContent()
 			}
@@ -753,7 +753,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.configNotice = ""
 			}
 		} else if m.configOpen {
-			m.configNotice = rhoconfig.CatalogEmptyHint(context.Background())
+			m.configNotice = reflectconfig.CatalogEmptyHint(context.Background())
 		}
 		if m.session != nil && msg.provider != "" {
 			gw, _ := m.sessionGatewayModel()
@@ -944,8 +944,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		line := fmt.Sprintf(
 			"Context compacted (%s): ~%s → ~%s tokens",
 			msg.strategy,
-			formatRhoTokenCount(msg.tokensBefore),
-			formatRhoTokenCount(msg.tokensAfter),
+			formatReflectTokenCount(msg.tokensBefore),
+			formatReflectTokenCount(msg.tokensAfter),
 		)
 		m.messages = append(m.messages, displayMsg{role: "system", content: line})
 		m.invalidateConnStatus()

@@ -9,8 +9,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/GrayCodeAI/rho/internal/executiongraph"
-	"github.com/GrayCodeAI/rho/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/executiongraph"
+	"github.com/GrayCodeAI/reflect/internal/session"
 )
 
 const (
@@ -26,7 +26,7 @@ type GraphRequest struct {
 	GeneratedAt        time.Time
 }
 
-// GraphFactory projects one persisted session into Rho's portable graph.
+// GraphFactory projects one persisted session into Reflect's portable graph.
 type GraphFactory func(context.Context, GraphRequest) (executiongraph.Export, error)
 
 // handleGetSessionGraph handles GET /v1/sessions/{id}/graph.

@@ -1,6 +1,6 @@
 package cmd
 
-import commandfeature "github.com/GrayCodeAI/rho/internal/features/commands"
+import commandfeature "github.com/GrayCodeAI/reflect/internal/features/commands"
 
 // Compatibility wrappers keep the TUI and existing command tests independent
 // of the feature package's storage implementation during migration.

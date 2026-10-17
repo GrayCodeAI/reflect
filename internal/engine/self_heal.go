@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // SelfHealer implements a wolverine-inspired self-healing execution loop.
@@ -433,7 +433,7 @@ func (sh *SelfHealer) RunScript(ctx context.Context, path string) (stdout, stder
 	// metacharacters would be executed as shell code (double evaluation).
 	// /bin/sh treats a leading `#!` shebang line as a comment, so script
 	// semantics are unchanged.
-	cmd := exec.CommandContext(ctx, "/bin/sh", path)
+	cmd := exec.CommandContext(ctx, "/bin/sh", path) // #nosec G204 -- executing the caller-requested script is this API's purpose; path is a single argument, not shell-evaluated text
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
@@ -458,7 +458,7 @@ func (sh *SelfHealer) RunScript(ctx context.Context, path string) (stdout, stder
 func (sh *SelfHealer) runCommand(ctx context.Context, command string) (stdout, stderr string, exitCode int, err error) {
 	// Route model-generated shell through the same safety stack the Bash
 	// tool enforces. Without this, a jailbroken model could read
-	// ~/.rho/provider.json, fork-bomb, or rm -rf from a "fix" attempt.
+	// ~/.reflect/provider.json, fork-bomb, or rm -rf from a "fix" attempt.
 	if reason := tool.CommandReferencesSensitivePath(command); reason != "" {
 		return "", "", -1, fmt.Errorf("self-heal: command references sensitive path (%s): %s", reason, command)
 	}

@@ -232,9 +232,9 @@ func TestIsSensitivePath(t *testing.T) {
 		filepath.Join(home, ".ssh", "config"),
 		filepath.Join(home, ".ssh", "authorized_keys"),
 		filepath.Join(home, ".aws", "credentials"),
-		filepath.Join(home, ".rho", "provider.json"),
-		filepath.Join(home, ".rho", "env"),
-		filepath.Join(home, ".rho", ".env"),
+		filepath.Join(home, ".reflect", "provider.json"),
+		filepath.Join(home, ".reflect", "env"),
+		filepath.Join(home, ".reflect", ".env"),
 		filepath.Join(home, ".env"),
 		"/some/project/.env",
 		"/tmp/app/credentials.json",
@@ -258,40 +258,40 @@ func TestIsSensitivePath(t *testing.T) {
 	}
 }
 
-func TestIsSensitivePath_RhoConfigDir(t *testing.T) {
+func TestIsSensitivePath_ReflectConfigDir(t *testing.T) {
 	cfgDir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", cfgDir)
+	t.Setenv("REFLECT_CONFIG_DIR", cfgDir)
 	if reason := IsSensitivePath(filepath.Join(cfgDir, "env")); reason == "" {
-		t.Fatalf("expected custom RHO_CONFIG_DIR env file blocked, got empty")
+		t.Fatalf("expected custom REFLECT_CONFIG_DIR env file blocked, got empty")
 	}
 }
 
-func TestIsSensitivePath_FluxConfigDir(t *testing.T) {
-	rhoDir := filepath.Join(t.TempDir(), "rho")
-	fluxDir := filepath.Join(t.TempDir(), "flux")
-	t.Setenv("RHO_CONFIG_DIR", rhoDir)
-	t.Setenv("FLUX_CONFIG_DIR", fluxDir)
+func TestIsSensitivePath_RelayConfigDir(t *testing.T) {
+	reflectDir := filepath.Join(t.TempDir(), "reflect")
+	relayDir := filepath.Join(t.TempDir(), "relay")
+	t.Setenv("REFLECT_CONFIG_DIR", reflectDir)
+	t.Setenv("RELAY_CONFIG_DIR", relayDir)
 
-	if reason := IsSensitivePath(filepath.Join(fluxDir, "provider.json")); reason == "" {
-		t.Fatal("expected FLUX_CONFIG_DIR/provider.json to be blocked")
+	if reason := IsSensitivePath(filepath.Join(relayDir, "provider.json")); reason == "" {
+		t.Fatal("expected RELAY_CONFIG_DIR/provider.json to be blocked")
 	}
-	if reason := IsSensitivePath(filepath.Join(rhoDir, "settings.json")); reason != "" {
-		t.Fatalf("expected Rho settings path to remain allowed, got %q", reason)
+	if reason := IsSensitivePath(filepath.Join(reflectDir, "settings.json")); reason != "" {
+		t.Fatalf("expected Reflect settings path to remain allowed, got %q", reason)
 	}
 }
 
-func TestIsSensitivePath_RhoConfigDirEnv(t *testing.T) {
+func TestIsSensitivePath_ReflectConfigDirEnv(t *testing.T) {
 	cfgDir := t.TempDir()
-	t.Setenv("RHO_CONFIG_DIR", cfgDir)
+	t.Setenv("REFLECT_CONFIG_DIR", cfgDir)
 
 	envPath := filepath.Join(cfgDir, "env")
 	if reason := IsSensitivePath(envPath); reason == "" {
-		t.Error("expected RHO_CONFIG_DIR/env to be blocked")
+		t.Error("expected REFLECT_CONFIG_DIR/env to be blocked")
 	}
 
 	dotEnvPath := filepath.Join(cfgDir, ".env")
 	if reason := IsSensitivePath(dotEnvPath); reason == "" {
-		t.Error("expected RHO_CONFIG_DIR/.env to be blocked")
+		t.Error("expected REFLECT_CONFIG_DIR/.env to be blocked")
 	}
 }
 
@@ -745,7 +745,7 @@ func TestCommandReferencesSensitivePath(t *testing.T) {
 		"cat .npmrc",
 		"less ~/.netrc",
 		"tar czf out.tgz ~/.ssh",
-		"cat ~/.rho/provider.json",
+		"cat ~/.reflect/provider.json",
 		"grep key credentials.json",
 	}
 	for _, cmd := range blocked {

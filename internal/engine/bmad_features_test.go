@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/engine/project"
+	"github.com/GrayCodeAI/reflect/internal/engine/project"
 )
 
 func TestClassifyScale(t *testing.T) {

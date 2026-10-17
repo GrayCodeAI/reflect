@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/engine/ctxmgr"
+	"github.com/GrayCodeAI/reflect/internal/engine/ctxmgr"
 )
 
 // incrementalContextEnabled reports whether the opt-in incremental
@@ -14,7 +14,7 @@ import (
 // changed sections are re-rendered, preserving a stable system-prompt prefix
 // that keeps provider prompt-cache entries valid across turns.
 func incrementalContextEnabled() bool {
-	return strings.EqualFold(os.Getenv("RHO_INCREMENTAL_CONTEXT"), "1")
+	return strings.EqualFold(os.Getenv("REFLECT_INCREMENTAL_CONTEXT"), "1")
 }
 
 // memoryIncremental is a small holder that wires a memory-recall loader into

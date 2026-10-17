@@ -3,12 +3,12 @@ package engine
 import (
 	"path/filepath"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/eventlog"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/eventlog"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // CompactionEvent describes a completed context compaction.
@@ -22,7 +22,7 @@ type CompactionEvent struct {
 // OnCompaction is invoked after compaction (TUI, logging, etc.).
 type OnCompaction func(CompactionEvent)
 
-// PersistID is the on-disk session id under Rho's user state sessions dir.
+// PersistID is the on-disk session id under Reflect's user state sessions dir.
 // Set from the TUI when a chat session is created or resumed.
 func (s *Session) SetPersistID(id string) {
 	if s == nil {
@@ -135,7 +135,7 @@ func (s *Session) checkpointManager() *session.CheckpointManager {
 	return p.CheckpointManager()
 }
 
-func rawToSessionMessages(raw []types.FluxMessage) []session.Message {
+func rawToSessionMessages(raw []types.RelayMessage) []session.Message {
 	return session.FromRuntimeMessages(raw)
 }
 

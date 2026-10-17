@@ -1,10 +1,10 @@
 # graycode-eco OpenTelemetry Semantic Conventions for AI Agent Spans
 
 Status: Draft / shared spec
-Applies to: rho, flux
+Applies to: reflect, relay
 
-This document defines the OpenTelemetry (OTel) semantic conventions Rho and
-Flux should follow when emitting spans for AI agent and LLM operations. The
+This document defines the OpenTelemetry (OTel) semantic conventions Reflect and
+Relay should follow when emitting spans for AI agent and LLM operations. The
 goal is that a single tracing backend (Jaeger, Tempo, Honeycomb, an OTLP
 collector, etc.) can correlate model calls, tool invocations, token usage, and
 cost across both repos using one common attribute vocabulary.
@@ -18,24 +18,24 @@ concerns that the GenAI spec does not yet standardize.
 
 ## Reference ownership
 
-Flux owns provider-call instrumentation behind its `flux/engine` facade.
+Relay owns provider-call instrumentation behind its `relay/engine` facade.
 Its lower provider layer contains the reference OTel decorator for chat and
 stream calls: it starts a client span, records provider/model/usage attributes,
 sets status from the result, and ends a streamed span on completion. That
-decorator is an Flux implementation detail; Rho must not import or compose it
+decorator is an Relay implementation detail; Reflect must not import or compose it
 directly.
 
-- `flux/internal/observability/observability.go` provides a stdlib-only,
+- `relay/internal/observability/observability.go` provides a stdlib-only,
   zero-dependency telemetry/metrics layer (spans, latency histograms,
   Prometheus + JSON export) for environments that cannot pull in the OTel SDK.
-- `flux/internal/observability/genai_semconv.go` exports the canonical
+- `relay/internal/observability/genai_semconv.go` exports the canonical
   attribute-key constants defined below, so Go code can reference them instead
   of hard-coding strings. A pinning test
   (`genai_semconv_test.go`) guards the exact key values.
 
-When adding tracing to Rho, propagate trace context through the Engine call
-and use the attribute keys in this document. Flux wraps provider operations;
-Rho wraps product turns, tools, and the embedded token engine.
+When adding tracing to Reflect, propagate trace context through the Engine call
+and use the attribute keys in this document. Relay wraps provider operations;
+Reflect wraps product turns, tools, and the embedded token engine.
 
 ## Span kinds and names
 
@@ -50,7 +50,7 @@ Rho wraps product turns, tools, and the embedded token engine.
 LLM/provider request spans SHOULD use span kind `CLIENT`. Tool invocations and
 agent steps that represent internal work SHOULD use span kind `INTERNAL`.
 
-flux's existing stdlib layer also defines short span names
+relay's existing stdlib layer also defines short span names
 (`llm.chat`, `llm.stream`, `llm.retry`, `llm.cache_hit`) — these remain valid
 for the internal metrics collector; the names above are the cross-repo
 convention for OTLP-exported spans.
@@ -58,10 +58,10 @@ convention for OTLP-exported spans.
 ## Required / recommended attributes
 
 The required attribute set for any AI agent span. Keys are exported as Go
-constants in `flux/internal/observability/genai_semconv.go` (constant name in
+constants in `relay/internal/observability/genai_semconv.go` (constant name in
 parentheses).
 
-| Attribute key                   | Go const (`flux` observability)   | Type   | Required | Meaning                                                        |
+| Attribute key                   | Go const (`relay` observability)   | Type   | Required | Meaning                                                        |
 |---------------------------------|------------------------------------|--------|----------|----------------------------------------------------------------|
 | `gen_ai.system`                 | `AttrGenAISystem`                  | string | yes      | Provider/system: `openai`, `anthropic`, `gemini`, etc.         |
 | `gen_ai.request.model`          | `AttrGenAIRequestModel`            | string | yes      | Model requested by the caller, e.g. `gpt-4o`.                  |
@@ -77,13 +77,13 @@ parentheses).
 ### Notes
 
 - **Tokens as integers.** Emit `gen_ai.usage.input_tokens` /
-  `gen_ai.usage.output_tokens` as OTel integer attributes. flux's stdlib
+  `gen_ai.usage.output_tokens` as OTel integer attributes. relay's stdlib
   `Span.Attributes` is `map[string]string`; when bridging that layer to OTLP,
   convert to integer attributes.
 - **Cost is a double in USD.** `cost.usd` is the ecosystem standard.
-  flux's metrics collector stores cost internally in micro-USD for precision
+  relay's metrics collector stores cost internally in micro-USD for precision
   (`costMicroUSD`) but exports USD; emit the USD value on spans.
-- **No prompt/response bodies by default.** Following flux's audit design
+- **No prompt/response bodies by default.** Following relay's audit design
   (`observability/audit.go`), spans MUST NOT carry raw prompt/response text by
   default. If content capture is enabled, use the OTel GenAI event/log channel,
   not span attributes, and gate it behind explicit opt-in.
@@ -92,7 +92,7 @@ parentheses).
 
 ## Legacy attribute mapping
 
-flux's older stdlib constants (`AttrLLMProvider`, `AttrLLMModel`,
+relay's older stdlib constants (`AttrLLMProvider`, `AttrLLMModel`,
 `AttrLLMInputTokens`, …, keyed `llm.*`) predate this spec and remain for
 backwards compatibility. New instrumentation should use the `gen_ai.*` keys.
 Mapping:
@@ -109,12 +109,12 @@ Mapping:
 
 ## Per-repo guidance
 
-- **flux** — owns provider/model/usage spans behind `flux/engine`; align
+- **relay** — owns provider/model/usage spans behind `relay/engine`; align
   attribute keys to `gen_ai.*` over time.
-- **rho** — daemon/orchestrator. Already has OTel hooks
-  (`RHO_ENABLE_TELEMETRY`, `RHO_OTEL_SHUTDOWN_TIMEOUT_MS`). Emit
+- **reflect** — daemon/orchestrator. Already has OTel hooks
+  (`REFLECT_ENABLE_TELEMETRY`, `REFLECT_OTEL_SHUTDOWN_TIMEOUT_MS`). Emit
   `agent.id` and `session.id` on agent-turn spans; propagate them downstream to
-  flux via context so provider spans inherit the same IDs.
+  relay via context so provider spans inherit the same IDs.
 - **internal/token** — embedded token engine. Token accounting is its domain;
   when it emits spans, populate `gen_ai.usage.input_tokens` / `output_tokens`
   and `cost.usd` so compression savings are visible in the same trace.
@@ -122,5 +122,5 @@ Mapping:
 ## Versioning
 
 This spec tracks OTel GenAI conventions, which are still evolving. Pin changes
-to the constants via `genai_semconv_test.go` in flux and update this table in
+to the constants via `genai_semconv_test.go` in relay and update this table in
 the same change.

@@ -6,13 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/GrayCodeAI/rho/internal/safewrite"
+	"github.com/GrayCodeAI/reflect/internal/safewrite"
 )
 
 // ManifestPath returns the location of the persisted verify environment
-// manifest for a project: <root>/.rho/verify/environment.json.
+// manifest for a project: <root>/.reflect/verify/environment.json.
 func ManifestPath(root string) string {
-	return filepath.Join(root, ".rho", "verify", "environment.json")
+	return filepath.Join(root, ".reflect", "verify", "environment.json")
 }
 
 // Manifest is the on-disk contract between recipe detection and execution.

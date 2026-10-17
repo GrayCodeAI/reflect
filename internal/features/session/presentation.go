@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	store "github.com/GrayCodeAI/rho/internal/session"
+	store "github.com/GrayCodeAI/reflect/internal/session"
 )
 
 // QuitResumeMessage renders the stable exit message for a session-aware CLI.
 func QuitResumeMessage(sessionID string) string {
 	if strings.TrimSpace(sessionID) == "" {
-		return "Thank you for using Rho!\n"
+		return "Thank you for using Reflect!\n"
 	}
-	return fmt.Sprintf("Thank you for using Rho!\n\nTo resume this session, run: rho --resume %s\n", sessionID)
+	return fmt.Sprintf("Thank you for using Reflect!\n\nTo resume this session, run: reflect --resume %s\n", sessionID)
 }
 
 // RecoveryReport renders recovery candidates consistently across the TUI and

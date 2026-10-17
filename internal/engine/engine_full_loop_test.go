@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestEngine_FullLoop_TextOnly(t *testing.T) {
@@ -69,14 +69,14 @@ func TestEngine_FullLoop_MultiTurn(t *testing.T) {
 
 func TestEngine_FullLoop_ToolUse(t *testing.T) {
 	mc := newMockClient(
-		&types.FluxResponse{
+		&types.RelayResponse{
 			FinishReason: "tool_use",
 			ToolCalls: []types.ToolCall{{
 				ID:        "call_1",
 				Name:      "Read",
 				Arguments: map[string]interface{}{"file_path": "/nonexistent"},
 			}},
-			Usage: &types.FluxUsage{PromptTokens: 50, CompletionTokens: 30},
+			Usage: &types.RelayUsage{PromptTokens: 50, CompletionTokens: 30},
 		},
 		mockTextResponse("I read the file and here's what I found."),
 	)

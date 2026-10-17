@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	fluxengine "github.com/GrayCodeAI/flux/engine"
-	"github.com/GrayCodeAI/rho/internal/stt"
-	"github.com/GrayCodeAI/rho/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/stt"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	relayengine "github.com/GrayCodeAI/relay/engine"
 )
 
 // Env gates for opt-in backend wiring (Gap-05). Off by default so the default
@@ -19,32 +19,32 @@ import (
 // facade. Credentials and endpoint come from the companion env vars; no new
 // secret store path is introduced.
 const (
-	envMediaGate = "RHO_MEDIA"
-	envSTTGate   = "RHO_STT"
+	envMediaGate = "REFLECT_MEDIA"
+	envSTTGate   = "REFLECT_STT"
 )
 
 // routerMediaEngine implements tool.MediaEngine against the router engine
 // facade's image-generation backend. Video generation has no router facade
 // yet, so it preserves the unwired fail-safe error.
 type routerMediaEngine struct {
-	eng     *fluxengine.Engine
+	eng     *relayengine.Engine
 	apiKey  string
 	baseURL string
 	model   string
 }
 
-func (e *routerMediaEngine) Name() string { return "flux" }
+func (e *routerMediaEngine) Name() string { return "relay" }
 
 func (e *routerMediaEngine) GenerateImage(ctx context.Context, prompt, source string, opts tool.MediaOptions) ([]tool.MediaResult, error) {
 	if source != "" {
-		return nil, fmt.Errorf("image editing via the flux backend is not supported; generate a new image instead")
+		return nil, fmt.Errorf("image editing via the relay backend is not supported; generate a new image instead")
 	}
 	n := opts.Count
 	if n <= 0 {
 		n = 1
 	}
-	res, err := e.eng.GenerateImage(ctx, fluxengine.GenerateImageRequest{
-		MediaOptions: fluxengine.MediaOptions{APIKey: e.apiKey, BaseURL: e.baseURL},
+	res, err := e.eng.GenerateImage(ctx, relayengine.GenerateImageRequest{
+		MediaOptions: relayengine.MediaOptions{APIKey: e.apiKey, BaseURL: e.baseURL},
 		Prompt:       prompt,
 		Model:        e.model,
 		Size:         mediaSize(opts),
@@ -61,27 +61,27 @@ func (e *routerMediaEngine) GenerateImage(ctx context.Context, prompt, source st
 }
 
 func (e *routerMediaEngine) GenerateVideo(ctx context.Context, prompt, source string, opts tool.MediaOptions) ([]tool.MediaResult, error) {
-	return nil, fmt.Errorf("video generation via the flux backend is not wired; no video backend installed")
+	return nil, fmt.Errorf("video generation via the relay backend is not wired; no video backend installed")
 }
 
 // routerTranscriber implements stt.Transcriber against the router engine
 // facade's audio-transcription backend.
 type routerTranscriber struct {
-	eng     *fluxengine.Engine
+	eng     *relayengine.Engine
 	apiKey  string
 	baseURL string
 	model   string
 }
 
-func (t *routerTranscriber) Name() string { return "flux" }
+func (t *routerTranscriber) Name() string { return "relay" }
 
 func (t *routerTranscriber) Transcribe(ctx context.Context, localPath, language string) (string, error) {
 	audio, err := os.ReadFile(localPath)
 	if err != nil {
 		return "", fmt.Errorf("read audio for transcription: %w", err)
 	}
-	return t.eng.Transcribe(ctx, fluxengine.TranscribeRequest{
-		MediaOptions: fluxengine.MediaOptions{APIKey: t.apiKey, BaseURL: t.baseURL},
+	return t.eng.Transcribe(ctx, relayengine.TranscribeRequest{
+		MediaOptions: relayengine.MediaOptions{APIKey: t.apiKey, BaseURL: t.baseURL},
 		Audio:        audio,
 		FileName:     filepath.Base(localPath),
 		Model:        t.model,
@@ -93,21 +93,21 @@ func (t *routerTranscriber) Transcribe(ctx context.Context, localPath, language 
 // tool/stt seams. It is a no-op unless the corresponding env gate is "1".
 // Called once from the gateway composition root (New) so all construction
 // paths wire identically.
-func wireOptionalBackends(eng *fluxengine.Engine) {
+func wireOptionalBackends(eng *relayengine.Engine) {
 	if os.Getenv(envMediaGate) == "1" {
 		tool.SetMediaEngine(&routerMediaEngine{
 			eng:     eng,
-			apiKey:  os.Getenv("RHO_MEDIA_API_KEY"),
-			baseURL: os.Getenv("RHO_MEDIA_BASE_URL"),
-			model:   os.Getenv("RHO_MEDIA_MODEL"),
+			apiKey:  os.Getenv("REFLECT_MEDIA_API_KEY"),
+			baseURL: os.Getenv("REFLECT_MEDIA_BASE_URL"),
+			model:   os.Getenv("REFLECT_MEDIA_MODEL"),
 		})
 	}
 	if os.Getenv(envSTTGate) == "1" {
 		stt.SetTranscriber(&routerTranscriber{
 			eng:     eng,
-			apiKey:  os.Getenv("RHO_STT_API_KEY"),
-			baseURL: os.Getenv("RHO_STT_BASE_URL"),
-			model:   os.Getenv("RHO_STT_MODEL"),
+			apiKey:  os.Getenv("REFLECT_STT_API_KEY"),
+			baseURL: os.Getenv("REFLECT_STT_BASE_URL"),
+			model:   os.Getenv("REFLECT_STT_MODEL"),
 		})
 	}
 }

@@ -232,16 +232,16 @@ func TestConfigDir_Default(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv(envConfigDir, "")
-	t.Setenv(envFluxConfigDir, "")
+	t.Setenv(envRelayConfigDir, "")
 	t.Setenv("HAWK_CONFIG_DIR", "")
 
 	got := ConfigDir()
 	if got == "" {
 		t.Error("ConfigDir() should return non-empty string")
 	}
-	// Should end with "rho"
-	if !strings.HasSuffix(got, "rho") {
-		t.Errorf("ConfigDir() = %q, want suffix 'rho'", got)
+	// Should end with "reflect"
+	if !strings.HasSuffix(got, "reflect") {
+		t.Errorf("ConfigDir() = %q, want suffix 'reflect'", got)
 	}
 }
 
@@ -278,22 +278,22 @@ func TestSettingsPath(t *testing.T) {
 
 // --- ProviderConfigPath tests ---
 
-func TestProviderConfigPath_FluxOverride(t *testing.T) {
-	fluxDir := filepath.Join(t.TempDir(), "flux")
-	t.Setenv(envFluxConfigDir, fluxDir)
+func TestProviderConfigPath_RelayOverride(t *testing.T) {
+	relayDir := filepath.Join(t.TempDir(), "relay")
+	t.Setenv(envRelayConfigDir, relayDir)
 
 	got := ProviderConfigPath()
-	want := filepath.Join(fluxDir, "provider.json")
+	want := filepath.Join(relayDir, "provider.json")
 	if got != want {
 		t.Errorf("ProviderConfigPath() = %q, want %q", got, want)
 	}
 }
 
-func TestProviderConfigPath_FluxWhitespaceIgnored(t *testing.T) {
-	t.Setenv(envFluxConfigDir, "   ") // whitespace should be treated as empty
+func TestProviderConfigPath_RelayWhitespaceIgnored(t *testing.T) {
+	t.Setenv(envRelayConfigDir, "   ") // whitespace should be treated as empty
 
 	got := ProviderConfigPath()
-	want := filepath.Join(mustUserConfigDir(), "flux", "provider.json")
+	want := filepath.Join(mustUserConfigDir(), "relay", "provider.json")
 	if got != want {
 		t.Errorf("ProviderConfigPath() = %q, want %q", got, want)
 	}

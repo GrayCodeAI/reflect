@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/conversationarc"
-	store "github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/storage"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/conversationarc"
+	store "github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 // Snapshot is the persistence boundary for a live conversation.
@@ -22,7 +22,7 @@ type Snapshot struct {
 	ID       string
 	Model    string
 	Provider string
-	Messages []types.FluxMessage
+	Messages []types.RelayMessage
 	Created  time.Time
 	Arc      *conversationarc.Arc
 }

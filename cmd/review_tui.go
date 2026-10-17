@@ -9,7 +9,7 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 var reviewTUICmd = &cobra.Command{
@@ -122,16 +122,16 @@ func (m reviewTUIModel) View() tea.View {
 		return tea.View{}
 	}
 
-	header := lipgloss.NewStyle().Bold(true).Foreground(rhoColor)
+	header := lipgloss.NewStyle().Bold(true).Foreground(reflectColor)
 	dim := lipgloss.NewStyle().Faint(true)
 	selected := lipgloss.NewStyle().Bold(true).Background(bgCode).Foreground(textPrimary)
 
 	var b strings.Builder
-	b.WriteString(header.Render("  rho review") + dim.Render("  j/k:nav  enter:expand  c:close  f:fix  r:refresh  q:quit") + "\n")
+	b.WriteString(header.Render("  reflect review") + dim.Render("  j/k:nav  enter:expand  c:close  f:fix  r:refresh  q:quit") + "\n")
 	b.WriteString(strings.Repeat("─", reviewMin(m.width, 80)) + "\n")
 
 	if len(m.reviews) == 0 {
-		b.WriteString("\n  No reviews yet. Run 'rho review init' to get started.\n")
+		b.WriteString("\n  No reviews yet. Run 'reflect review init' to get started.\n")
 		v := tea.View{Content: b.String()}
 		v.AltScreen = true
 		return v

@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
-	"github.com/GrayCodeAI/rho/internal/permissions/stableid"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/permissions/stableid"
 
 	tea "charm.land/bubbletea/v2"
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
 )
 
 func normalizePermissionTier(raw string) (safety.AutonomyLevel, string, bool) {
@@ -362,7 +362,7 @@ func appendExactPermissionRules(b *strings.Builder, rules []stableid.RuleSnap) {
 	}
 }
 
-func effectiveAllowRules(settings rhoconfig.Settings) []string {
+func effectiveAllowRules(settings reflectconfig.Settings) []string {
 	var rules []string
 	rules = append(rules, settings.AutoAllow...)
 	rules = append(rules, settings.AllowedTools...)
@@ -370,7 +370,7 @@ func effectiveAllowRules(settings rhoconfig.Settings) []string {
 	return dedupeStrings(rules)
 }
 
-func effectiveDenyRules(settings rhoconfig.Settings) []string {
+func effectiveDenyRules(settings reflectconfig.Settings) []string {
 	rules := append([]string{}, settings.DisallowedTools...)
 	rules = append(rules, parseToolListFromCLI(disallowedToolsFlag)...)
 	return dedupeStrings(rules)
@@ -390,7 +390,7 @@ func dedupeStrings(values []string) []string {
 	return out
 }
 
-func rebuildSessionPermissionRules(sess *engine.Session, settings rhoconfig.Settings) {
+func rebuildSessionPermissionRules(sess *engine.Session, settings reflectconfig.Settings) {
 	if sess == nil {
 		return
 	}
@@ -434,7 +434,7 @@ func (m *chatModel) updateAutonomyRule(parts []string, allow bool) {
 	m.messages = append(m.messages, displayMsg{role: "system", content: label + " rules updated.\n" + permissionRulesSummary(m)})
 }
 
-func savePermissionSettings(scope string, settings rhoconfig.Settings, level safety.AutonomyLevel) (string, error) {
+func savePermissionSettings(scope string, settings reflectconfig.Settings, level safety.AutonomyLevel) (string, error) {
 	scope = strings.ToLower(strings.TrimSpace(scope))
 	if scope == "" {
 		scope = "global"
@@ -448,13 +448,13 @@ func savePermissionSettings(scope string, settings rhoconfig.Settings, level saf
 	case "project":
 		return "", fmt.Errorf("project-local settings writes are disabled; use scope \"global\" or an explicit --settings file")
 	case "global":
-		target := rhoconfig.LoadGlobalSettings()
+		target := reflectconfig.LoadGlobalSettings()
 		target.AutoAllow = append([]string{}, settings.AutoAllow...)
 		target.AllowedTools = append([]string{}, settings.AllowedTools...)
 		target.DisallowedTools = append([]string{}, settings.DisallowedTools...)
 		target.Autonomy = settings.Autonomy
 		target.AutonomyExplicit = true
-		if err := rhoconfig.SaveGlobal(target); err != nil {
+		if err := reflectconfig.SaveGlobal(target); err != nil {
 			return "", err
 		}
 		return "user settings", nil
@@ -754,7 +754,7 @@ func (m *chatModel) handleAutonomyCommand(parts []string) (chatModel, tea.Cmd) {
 		m.messages = append(m.messages, displayMsg{role: "system", content: m.session.PermSvc().PermissionMetrics()})
 	case "reset":
 		resetPermissionCenter(m)
-		m.messages = append(m.messages, displayMsg{role: "system", content: "Session autonomy reset to defaults. Persisted exact rules were kept; use `rho permissions reset` to remove them with confirmation.\n" + autonomyCenterSummary(m)})
+		m.messages = append(m.messages, displayMsg{role: "system", content: "Session autonomy reset to defaults. Persisted exact rules were kept; use `reflect permissions reset` to remove them with confirmation.\n" + autonomyCenterSummary(m)})
 	default:
 		m.messages = append(m.messages, displayMsg{role: "system", content: autonomyCommandHelp()})
 	}

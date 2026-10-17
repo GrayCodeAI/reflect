@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -9,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	mission "github.com/GrayCodeAI/rho/internal/multiagent"
-	"github.com/GrayCodeAI/rho/internal/observability/logger"
-	"github.com/GrayCodeAI/rho/internal/tool"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	mission "github.com/GrayCodeAI/reflect/internal/multiagent"
+	"github.com/GrayCodeAI/reflect/internal/observability/logger"
+	"github.com/GrayCodeAI/reflect/internal/tool"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,7 @@ var (
 	missionAuto    string
 	missionTimeout time.Duration
 	missionDryRun  bool
+	missionGasp    bool
 )
 
 var missionCmd = &cobra.Command{
@@ -36,10 +38,10 @@ Each feature runs in its own worktree with a full engine session.
 Results are committed on separate branches for review/merge.
 
 Examples:
-  rho mission "Add auth, rate limiting, and logging to the API"
-  rho mission --workers 6 "Refactor the database layer into 3 services"
-  rho mission --model claude-sonnet-4-6 "Add tests for all untested packages"
-  rho mission --from-tasks`,
+  reflect mission "Add auth, rate limiting, and logging to the API"
+  reflect mission --workers 6 "Refactor the database layer into 3 services"
+  reflect mission --model claude-sonnet-4-6 "Add tests for all untested packages"
+  reflect mission --from-tasks`,
 	Args: cobra.ArbitraryArgs,
 	RunE: runMission,
 }
@@ -50,6 +52,7 @@ func init() {
 	missionCmd.Flags().StringVar(&missionAuto, "auto", "full", "Autonomy level for workers")
 	missionCmd.Flags().DurationVar(&missionTimeout, "timeout", 30*time.Minute, "Mission timeout")
 	missionCmd.Flags().BoolVar(&missionDryRun, "dry-run", false, "Plan only, don't execute workers")
+	missionCmd.Flags().BoolVar(&missionGasp, "experimental-gasp", false, "Write an experimental GASP-style portable artifact after the run")
 }
 
 func runMission(_ *cobra.Command, args []string) error {
@@ -61,7 +64,7 @@ func runMission(_ *cobra.Command, args []string) error {
 	cwd, _ := os.Getwd()
 	baseBranch := getCurrentBranch(cwd)
 
-	settings := rhoconfig.LoadSettings()
+	settings := reflectconfig.LoadSettings()
 	effectiveModel, effectiveProvider := effectiveModelAndProvider(settings)
 	if missionModel != "" {
 		effectiveModel = missionModel
@@ -79,7 +82,7 @@ func runMission(_ *cobra.Command, args []string) error {
 
 	m := mission.New(prompt, cfg)
 	// Clean up the mission's temp directory when the command finishes,
-	// whether it succeeded or failed. Without this, /tmp/rho-missions/
+	// whether it succeeded or failed. Without this, /tmp/reflect-missions/
 	// accumulates one directory per run indefinitely (C6 fix).
 	defer func() { _ = m.Cleanup() }()
 
@@ -98,7 +101,14 @@ func runMission(_ *cobra.Command, args []string) error {
 	} else {
 		fmt.Printf("%s\n", auditTint(fmt.Sprintf("Mission %s: planning...", m.ID), textPrimary))
 		planFn := func(ctx context.Context, p string) ([]mission.Feature, error) {
-			return planWithLLM(ctx, p, effectiveProvider, effectiveModel, settings)
+			features, err := planWithLLM(ctx, p, effectiveProvider, effectiveModel, settings)
+			if err != nil || len(features) > 0 {
+				return features, err
+			}
+			// Retry once with a stricter JSON contract if the first pass yields
+			// nothing parseable.
+			strictPrompt := p + "\n\nReturn ONLY a JSON array of objects with \"description\" fields."
+			return planWithLLM(ctx, strictPrompt, effectiveProvider, effectiveModel, settings)
 		}
 		if err := m.Plan(ctx, planFn); err != nil {
 			return fmt.Errorf("planning: %w", err)
@@ -148,6 +158,14 @@ func runMission(_ *cobra.Command, args []string) error {
 		prog.Done()
 	}
 
+	if missionGasp {
+		if err := m.ExportGASP(); err != nil {
+			fmt.Printf("%s\n", auditTint(fmt.Sprintf("warning: GASP export failed: %v", err), textMuted))
+		} else {
+			fmt.Printf("%s\n", auditTint(fmt.Sprintf("GASP artifact written to %s/mission.gasp.json", m.Dir), textMuted))
+		}
+	}
+
 	// Print results
 	fmt.Println()
 	fmt.Println(auditTint(m.Summary(), textPrimary))
@@ -175,7 +193,7 @@ func runMission(_ *cobra.Command, args []string) error {
 
 	// Propagate feature failures as a non-zero exit so CI sees a real
 	// failure instead of green: Mission.Run historically returned nil even
-	// when every feature failed (H9), so `rho mission` exited 0.
+	// when every feature failed (H9), so `reflect mission` exited 0.
 	failed := 0
 	for _, f := range m.Features {
 		if f.Status == mission.FeatureFailed {
@@ -189,20 +207,21 @@ func runMission(_ *cobra.Command, args []string) error {
 	return nil
 }
 
-func planWithLLM(ctx context.Context, prompt, provider, model string, settings rhoconfig.Settings) ([]mission.Feature, error) {
+func planWithLLM(ctx context.Context, prompt, provider, model string, settings reflectconfig.Settings) ([]mission.Feature, error) {
 	planPrompt := fmt.Sprintf(
 		"Decompose this task into independent features that can be implemented in parallel.\n\n"+
 			"Task: %s\n\n"+
-			"Return a numbered list of features. Each feature should be:\n"+
+			"Return ONLY a JSON array of objects, each with a\\\"description\\\" string (and optional\\n"+
+			"\\\"expected_behavior\\\" string). Each feature must be:\n"+
 			"- Independent (can be implemented without the others)\n"+
 			"- Specific (clear what to implement)\n"+
 			"- Testable (has clear success criteria)\n\n"+
-			"Format: one feature per line, numbered. Just the descriptions, no extra text.",
+			"Do not include any text outside the JSON array.",
 		prompt,
 	)
 
 	registry, _ := defaultRegistry(settings)
-	sess, err := newConfiguredRhoSession(settings, provider, model, planPrompt, registry, logger.New(io.Discard, logger.Error))
+	sess, err := newConfiguredReflectSession(settings, provider, model, planPrompt, registry, logger.New(io.Discard, logger.Error))
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +249,34 @@ func planWithLLM(ctx context.Context, prompt, provider, model string, settings r
 }
 
 func parseFeatures(text string) []mission.Feature {
+	text = strings.TrimSpace(text)
+	// Prefer structured JSON when the model emits it. This keeps descriptions
+	// (and optional metadata) out of fragile line parsing and avoids dropped
+	// features when a description contains newlines.
+	if strings.HasPrefix(text, "[") {
+		var parsed []struct {
+			Description      string `json:"description"`
+			ExpectedBehavior string `json:"expected_behavior,omitempty"`
+			OutputSchema     string `json:"output_schema,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(text), &parsed); err == nil && len(parsed) > 0 {
+			var features []mission.Feature
+			for _, p := range parsed {
+				if strings.TrimSpace(p.Description) == "" {
+					continue
+				}
+				features = append(features, mission.Feature{
+					Description:      p.Description,
+					ExpectedBehavior: p.ExpectedBehavior,
+					OutputSchema:     p.OutputSchema,
+				})
+			}
+			if len(features) > 0 {
+				return features
+			}
+		}
+	}
+
 	var features []mission.Feature
 	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)

@@ -1,8 +1,8 @@
-# Rho Architecture Specification
+# Reflect Architecture Specification
 
 ## Problem Statement
 
-Rho is an AI-powered coding agent for the terminal. This specification defines the complete architecture: repository structure, agent loop, agile workflow, feedback loops, and edge case handling. It serves as the authoritative reference for how rho works.
+Reflect is an AI-powered coding agent for the terminal. This specification defines the complete architecture: repository structure, agent loop, agile workflow, feedback loops, and edge case handling. It serves as the authoritative reference for how reflect works.
 
 ## Scope
 
@@ -20,15 +20,15 @@ Rho is an AI-powered coding agent for the terminal. This specification defines t
 
 ### REQ-1: Repository Structure
 
-Rho SHALL be organized as a Go repository and workspace entry point within a
-multi-repository ecosystem. The Rho repository has the following top-level
+Reflect SHALL be organized as a Go repository and workspace entry point within a
+multi-repository ecosystem. The Reflect repository has the following top-level
 layout:
 
 | Directory | Purpose |
 |-----------|---------|
 | `cmd/` | CLI entry point (Cobra) and TUI (Bubble Tea) |
 | `internal/` | Private Go packages (not importable by external repos) |
-| Parent `go.work` | Resolves the nine local Go siblings: rho, eagle, falcon, flux, harrier (Harrier), shrike (Shrike), swift (Swift), kestrel (Kestrel), and merlin (Merlin) |
+| Parent `go.work` | Resolves the nine local Go siblings: reflect, eagle, falcon, relay, harrier (Harrier), shrike (Shrike), swift (Swift), kestrel (Kestrel), and merlin (Merlin) |
 | `spec/` | OpenSpec schema consumed by `internal/spec` |
 | `docs/` | Architecture docs, design docs, plans |
 | `rules/` | User-defined rules |
@@ -44,7 +44,7 @@ The `internal/` directory SHALL contain the following packages:
 | `tool/` | 40+ built-in tools (file edit, git, codegen, spec tools, etc.) |
 | `permissions/` | Guardian, rules DSL, boundary checker |
 | `plugin/` | Skills loader, registry, auto-skill, marketplace install |
-| `config/` | Product settings, Flux composition, state migration |
+| `config/` | Product settings, Relay composition, state migration |
 | `session/` | SQLite persistence, search, export, replay |
 | `hooks/` | Event-driven plugin system |
 | `mcp/` | Model Context Protocol client/server |
@@ -73,7 +73,7 @@ The `internal/engine/` package SHALL contain the following sub-systems:
 |------------|---------|
 | `stream.go` | The agent loop (agentLoop) - main orchestration |
 | `session.go` | Session struct and sub-services |
-| `chat_service.go` | Rho ChatClient port, engine adapter coordination, compact |
+| `chat_service.go` | Reflect ChatClient port, engine adapter coordination, compact |
 | `safety/` | Permission engine, trust tiers, spec gate |
 | `compact/` | Context compaction (collapse, micro, smart, truncate) |
 | `ctxmgr/` | Context providers, packing, visualization |
@@ -93,17 +93,17 @@ The `internal/engine/` package SHALL contain the following sub-systems:
 Provider boundary invariant:
 
 ```text
-Rho CLI/TUI + conversation + tools
+Reflect CLI/TUI + conversation + tools
                   |
-        Rho-owned ports/DTOs
+        Reflect-owned ports/DTOs
                   |
                   v
-            flux/engine
+            relay/engine
  credentials -> catalog -> routing -> generate/stream
 ```
 
-No production Rho package may import a lower Flux package. Custom gateways
-are supplied per Engine instance, and Flux DTOs are not Rho persistence or
+No production Reflect package may import a lower Relay package. Custom gateways
+are supplied per Engine instance, and Relay DTOs are not Reflect persistence or
 CLI output schemas.
 
 ### REQ-4: Agent Loop Lifecycle
@@ -128,7 +128,7 @@ The agent loop in `stream.go` SHALL execute the following phases:
 6. Refresh Harrier memories
 7. Build LLM ChatOptions (system prompt, tools, model)
 8. Inject ephemeral context (beliefs, matched skills, spec stage)
-9. Execute the LLM call via `ChatService.Stream()` and the `flux/engine` adapter
+9. Execute the LLM call via `ChatService.Stream()` and the `relay/engine` adapter
 10. Process response (tool calls, messages, cost tracking)
 11. Check termination conditions
 

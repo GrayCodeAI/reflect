@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/env"
-	"github.com/GrayCodeAI/rho/internal/home"
-	"github.com/GrayCodeAI/rho/internal/pathsafe"
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/env"
+	"github.com/GrayCodeAI/reflect/internal/home"
+	"github.com/GrayCodeAI/reflect/internal/pathsafe"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -234,8 +234,8 @@ func expandCommandPathVariables(command string) string {
 		value string
 	}{
 		{name: "HOME", value: home.MustDir()},
-		{name: "RHO_CONFIG_DIR", value: strings.TrimSpace(env.Getenv("RHO_CONFIG_DIR"))},
-		{name: "FLUX_CONFIG_DIR", value: strings.TrimSpace(env.Getenv("FLUX_CONFIG_DIR"))},
+		{name: "REFLECT_CONFIG_DIR", value: strings.TrimSpace(env.Getenv("REFLECT_CONFIG_DIR"))},
+		{name: "RELAY_CONFIG_DIR", value: strings.TrimSpace(env.Getenv("RELAY_CONFIG_DIR"))},
 	} {
 		if item.value == "" {
 			continue
@@ -255,18 +255,18 @@ func expandCommandPathVariables(command string) string {
 // the file tools.
 func CommandReferencesSensitivePath(command string) string {
 	// Do not try to emulate every shell parameter-expansion form here. An
-	// FLUX_CONFIG_DIR reference is itself sensitive because the variable
+	// RELAY_CONFIG_DIR reference is itself sensitive because the variable
 	// identifies the credential-bearing provider-state directory. This also
-	// closes modifier forms such as ${FLUX_CONFIG_DIR%/}/provider.json.
-	if strings.Contains(command, "FLUX_CONFIG_DIR") {
-		return "command references FLUX_CONFIG_DIR, blocked for security"
+	// closes modifier forms such as ${RELAY_CONFIG_DIR%/}/provider.json.
+	if strings.Contains(command, "RELAY_CONFIG_DIR") {
+		return "command references RELAY_CONFIG_DIR, blocked for security"
 	}
 	if !strings.ContainsAny(command, "/.") {
 		return ""
 	}
 	command = expandCommandPathVariables(command)
 	configuredPaths := []string{storage.ProviderConfigPath()}
-	if cfgDir := strings.TrimSpace(env.Getenv("RHO_CONFIG_DIR")); cfgDir != "" {
+	if cfgDir := strings.TrimSpace(env.Getenv("REFLECT_CONFIG_DIR")); cfgDir != "" {
 		configuredPaths = append(configuredPaths, filepath.Join(cfgDir, "env"), filepath.Join(cfgDir, ".env"))
 	}
 	for _, candidate := range configuredPaths {
@@ -290,7 +290,7 @@ func CommandReferencesSensitivePath(command string) string {
 			}
 		}
 		// Keep Bash aligned with the Read/Edit/Write path policy, including a
-		// provider.json rooted at FLUX_CONFIG_DIR. ResolvePath also handles
+		// provider.json rooted at RELAY_CONFIG_DIR. ResolvePath also handles
 		// relative custom config directories and symlinked parents.
 		if reason := IsSensitivePath(tok); reason != "" {
 			return "command references a sensitive path: " + reason
@@ -303,7 +303,7 @@ func CommandReferencesSensitivePath(command string) string {
 		if strings.Contains(tok, "/.ssh/") || strings.HasSuffix(tok, "/.ssh") {
 			return "command references ~/.ssh, blocked for security"
 		}
-		if strings.HasSuffix(tok, ".rho/provider.json") {
+		if strings.HasSuffix(tok, ".reflect/provider.json") {
 			return "command references provider.json, blocked for security (API credentials)"
 		}
 		base := tok

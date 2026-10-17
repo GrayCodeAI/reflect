@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/storage"
+	"github.com/GrayCodeAI/reflect/internal/storage"
 	"github.com/spf13/cobra"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Background Sessions — run rho sessions in the background and manage them.
+// Background Sessions — run reflect sessions in the background and manage them.
 // ─────────────────────────────────────────────────────────────────────────────
 
 func bgSessionsDir() string {
@@ -119,15 +119,15 @@ func KillBGSession(id string) error {
 	return SaveBGSession(info)
 }
 
-// StartBGSession launches rho in background mode.
+// StartBGSession launches reflect in background mode.
 func StartBGSession(prompt string, args []string) (*BGSessionInfo, error) {
 	id := genID()
 	cwd, _ := os.Getwd()
 	logFile := filepath.Join(bgSessionsDir(), id+".log")
 
-	// Build command: rho --print <prompt> with all inherited flags
+	// Build command: reflect --print <prompt> with all inherited flags
 	cmdArgs := append([]string{"--print", "--session-id", id, prompt}, args...)
-	cmd := exec.CommandContext(context.Background(), "rho", cmdArgs...) // #nosec G204 -- fixed command 'rho' relaunching self with internal flags
+	cmd := exec.CommandContext(context.Background(), "reflect", cmdArgs...) // #nosec G204 -- fixed command 'reflect' relaunching self with internal flags
 	cmd.Dir = cwd
 
 	// 0600: the log captures full session output (private user state, matching
@@ -207,11 +207,11 @@ func FormatBGSessions(sessions []*BGSessionInfo) string {
 var bgCmd = &cobra.Command{
 	Use:   "bg [prompt]",
 	Short: "Run a session in the background",
-	Long: `Start rho in the background and continue working in your terminal.
+	Long: `Start reflect in the background and continue working in your terminal.
 
 Examples:
-  rho bg "Refactor the auth module"
-  rho bg "Run tests and fix failures"`,
+  reflect bg "Refactor the auth module"
+  reflect bg "Run tests and fix failures"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("prompt required")
@@ -229,7 +229,7 @@ Examples:
 		if len(attachID) > 8 {
 			attachID = attachID[:8]
 		}
-		cmd.Printf("%s\n", auditTint("Attach: rho attach "+attachID, textMuted))
+		cmd.Printf("%s\n", auditTint("Attach: reflect attach "+attachID, textMuted))
 		return nil
 	},
 }

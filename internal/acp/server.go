@@ -1,4 +1,4 @@
-// Package acp implements an Agent Client Protocol (ACP) server for rho, exposing
+// Package acp implements an Agent Client Protocol (ACP) server for reflect, exposing
 // the agent over newline-delimited JSON-RPC 2.0 on stdio so editors (e.g. Zed)
 // can drive it. It mirrors the framing of internal/mcp and the session-driving
 // pattern of internal/daemon.
@@ -6,7 +6,7 @@
 // Scope (first cut): the core agent-side methods (initialize, session/new,
 // session/prompt, session/cancel), streamed session/update notifications, and
 // client-routed tool approvals via session/request_permission. File reads/writes
-// use rho's local tools; client fs routing is intentionally out of scope.
+// use reflect's local tools; client fs routing is intentionally out of scope.
 package acp
 
 import (
@@ -20,12 +20,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
-	"github.com/GrayCodeAI/rho/internal/attachment"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/session"
-	statussnapshot "github.com/GrayCodeAI/rho/internal/status"
+	"github.com/GrayCodeAI/reflect/internal/attachment"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	statussnapshot "github.com/GrayCodeAI/reflect/internal/status"
 )
 
 // ProtocolVersion is the ACP protocol version this server implements.
@@ -188,10 +188,10 @@ func (s *Server) handle(ctx context.Context, msg rpcMessage) {
 					"audio": false,
 				},
 			},
-			// Rho control-plane metadata for IDE clients that want it.
-			"rhoCapabilities": map[string]any{
+			// Reflect control-plane metadata for IDE clients that want it.
+			"reflectCapabilities": map[string]any{
 				"workModes": []string{"plan", "act", "review"},
-				// Rho has no local OS/container sandbox runtime. These are the
+				// Reflect has no local OS/container sandbox runtime. These are the
 				// only isolation choices the ACP surface can actually honor.
 				"isolation":       []string{"none", "worktree"},
 				"folderTrust":     true,
@@ -328,8 +328,8 @@ func (s *Server) handleSessionNew(msg rpcMessage) {
 
 	s.reply(msg.ID, map[string]any{
 		"sessionId": id,
-		// Rho extensions (ignored by clients that only read sessionId).
-		"rho": map[string]any{
+		// Reflect extensions (ignored by clients that only read sessionId).
+		"reflect": map[string]any{
 			"workMode":   string(sess.WorkMode()),
 			"autoCommit": sess.AutoCommit(),
 		},

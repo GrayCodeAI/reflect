@@ -4,11 +4,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 type CompactResult struct {
-	Messages     []types.FluxMessage
+	Messages     []types.RelayMessage
 	Summary      string
 	TokensBefore int
 	TokensAfter  int
@@ -52,7 +52,7 @@ func IsCompactableTool(name string) bool {
 	return compactableTools[name]
 }
 
-func AdjustIndexToPreserveAPIInvariants(msgs []types.FluxMessage, startIdx int) int {
+func AdjustIndexToPreserveAPIInvariants(msgs []types.RelayMessage, startIdx int) int {
 	if startIdx <= 0 {
 		return 0
 	}
@@ -87,7 +87,7 @@ func AdjustIndexToPreserveAPIInvariants(msgs []types.FluxMessage, startIdx int) 
 	return idx
 }
 
-func HasTextContent(m types.FluxMessage) bool {
+func HasTextContent(m types.RelayMessage) bool {
 	if len(m.ToolResults) > 0 {
 		return false
 	}

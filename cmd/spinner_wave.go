@@ -5,12 +5,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // spinnerWaveColors — 20 distinct hues; the wave flows glyph → verb → ▪▫▫.
 var spinnerWaveColors = [20][3]int{
-	{255, 215, 0}, // Talon Gold — anchor the wave in Rho's brand color.
+	{255, 215, 0}, // Talon Gold — anchor the wave in Reflect's brand color.
 	{255, 60, 60},
 	{255, 100, 80},
 	{255, 150, 60},
@@ -46,7 +46,7 @@ func ansiSpinnerWaveColor(index int) string {
 // renderSpinnerWaveLine paints glyph + verb + ▪▫▫ as one flowing strip (20 colors).
 func renderSpinnerWaveLine(glyph, verb string, wavePhase, dotPhase int) string {
 	verbRunes := utf8.RuneCountInString(verb)
-	total := 1 + verbRunes + 1 + rhoTypingDots
+	total := 1 + verbRunes + 1 + reflectTypingDots
 	if verb == "" {
 		total = 1
 	}
@@ -66,10 +66,10 @@ func renderSpinnerWaveLine(glyph, verb string, wavePhase, dotPhase int) string {
 	}
 	b.WriteString(renderSpinnerWaveSlot(' ', wavePhase+pos, head == pos, false))
 	pos++
-	for i := 0; i < rhoTypingDots; i++ {
+	for i := 0; i < reflectTypingDots; i++ {
 		g := icons.CircleOutline()
 		bold := false
-		if i == dotPhase%rhoTypingDots {
+		if i == dotPhase%reflectTypingDots {
 			g = icons.CircleFilled()
 			bold = true
 		}

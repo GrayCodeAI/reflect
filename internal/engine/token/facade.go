@@ -3,63 +3,63 @@ package token
 import (
 	"encoding/json"
 
-	rhotoken "github.com/GrayCodeAI/rho/internal/token"
+	reflecttoken "github.com/GrayCodeAI/reflect/internal/token"
 )
 
-// Stats is the compression result consumed by Rho's runtime observations.
+// Stats is the compression result consumed by Reflect's runtime observations.
 // The alias preserves the local token engine schema while keeping token imports
 // inside this package.
-type Stats = rhotoken.Stats
+type Stats = reflecttoken.Stats
 
-// UsageTracker and UsageLimits expose the session budget API through Rho's
+// UsageTracker and UsageLimits expose the session budget API through Reflect's
 // token boundary without changing the local engine's accounting behavior.
 type (
-	UsageTracker       = rhotoken.UsageTracker
-	UsageLimits        = rhotoken.UsageLimits
-	CodeChunk          = rhotoken.CodeChunk
-	ChunkOptions       = rhotoken.ChunkOptions
-	SecretMatch        = rhotoken.SecretMatch
-	SecretDetector     = rhotoken.SecretDetector
-	BudgetDecision     = rhotoken.BudgetDecision
-	RedactionSummary   = rhotoken.RedactionSummary
-	RuntimeGraphInput  = rhotoken.RuntimeGraphInput
-	RuntimeGraphExport = rhotoken.RuntimeGraphExport
+	UsageTracker       = reflecttoken.UsageTracker
+	UsageLimits        = reflecttoken.UsageLimits
+	CodeChunk          = reflecttoken.CodeChunk
+	ChunkOptions       = reflecttoken.ChunkOptions
+	SecretMatch        = reflecttoken.SecretMatch
+	SecretDetector     = reflecttoken.SecretDetector
+	BudgetDecision     = reflecttoken.BudgetDecision
+	RedactionSummary   = reflecttoken.RedactionSummary
+	RuntimeGraphInput  = reflecttoken.RuntimeGraphInput
+	RuntimeGraphExport = reflecttoken.RuntimeGraphExport
 )
 
 // NewUsageTracker creates an in-memory usage tracker with the engine's defaults.
-func NewUsageTracker() *UsageTracker { return rhotoken.NewUsageTracker() }
+func NewUsageTracker() *UsageTracker { return reflecttoken.NewUsageTracker() }
 
 // ChunkCode splits source into semantically meaningful token-bounded chunks.
 func ChunkCode(source string, opts ChunkOptions) []CodeChunk {
-	return rhotoken.ChunkCode(source, opts)
+	return reflecttoken.ChunkCode(source, opts)
 }
 
 // DefaultSecretDetector returns the engine's concurrency-safe built-in detector.
-func DefaultSecretDetector() *SecretDetector { return rhotoken.DefaultSecretDetector() }
+func DefaultSecretDetector() *SecretDetector { return reflecttoken.DefaultSecretDetector() }
 
 func BuildRuntimeGraph(input RuntimeGraphInput) (*RuntimeGraphExport, error) {
-	return rhotoken.BuildRuntimeGraph(input)
+	return reflecttoken.BuildRuntimeGraph(input)
 }
 
 // Compress applies context compression with a fixed token budget.
 func Compress(text string, budget int) (string, Stats) {
-	return rhotoken.Compress(text, budget)
+	return reflecttoken.Compress(text, budget)
 }
 
 // JSONInvariants renders verified-fact summaries for elided JSON records.
-func JSONInvariants(dropped []json.RawMessage) string { return rhotoken.JSONInvariants(dropped) }
+func JSONInvariants(dropped []json.RawMessage) string { return reflecttoken.JSONInvariants(dropped) }
 
 // ShrinkToolCatalog compresses an OpenAI-style function-tool catalog,
 // preserving the selection surface byte-for-byte. Fail-open: unchanged input
 // with ok=false when nothing can be safely reduced.
 func ShrinkToolCatalog(catalog string) (string, bool) {
-	return rhotoken.ShrinkToolCatalog(catalog)
+	return reflecttoken.ShrinkToolCatalog(catalog)
 }
 
 // LintToolCatalog reports per-tool reductions without committing.
-func LintToolCatalog(catalog string) ([]rhotoken.ToolShrinkStats, bool) {
-	return rhotoken.LintToolCatalog(catalog)
+func LintToolCatalog(catalog string) ([]reflecttoken.ToolShrinkStats, bool) {
+	return reflecttoken.LintToolCatalog(catalog)
 }
 
 // LogInvariants renders the level distribution of elided log lines.
-func LogInvariants(lines []string) string { return rhotoken.LogInvariants(lines) }
+func LogInvariants(lines []string) string { return reflecttoken.LogInvariants(lines) }

@@ -25,7 +25,7 @@ func PlainTranscript(messages []Message, partial string) string {
 		b.WriteString("\n\n")
 	}
 	if partial != "" {
-		b.WriteString("rho: ")
+		b.WriteString("reflect: ")
 		b.WriteString(partial)
 		b.WriteString("\n\n")
 	}
@@ -45,7 +45,7 @@ func PlainTranscriptLine(message Message) (string, bool) {
 	case "user":
 		return "You: " + content, true
 	case "assistant":
-		return "rho: " + content, true
+		return "reflect: " + content, true
 	case "error":
 		return "Error: " + content, true
 	case "system":

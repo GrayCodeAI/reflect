@@ -100,11 +100,11 @@ pre-push:
         fi
         govulncheck ./...
 
-    boundary-flux-client:
-      run: bash scripts/check-flux-client-imports.sh
+    boundary-relay-client:
+      run: bash scripts/check-relay-client-imports.sh
 
-    boundary-flux-engine:
-      run: bash scripts/check-flux-engine-boundary.sh
+    boundary-relay-engine:
+      run: bash scripts/check-relay-engine-boundary.sh
 
     boundary-support-repo:
       run: bash scripts/check-support-repo-coupling.sh

@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/GrayCodeAI/rho/internal/terminal/tape"
+	"github.com/GrayCodeAI/reflect/internal/terminal/tape"
 )
 
 // recordPath is set by --record; when non-empty, interactive REPL output is

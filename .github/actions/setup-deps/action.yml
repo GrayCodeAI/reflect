@@ -4,7 +4,7 @@ description: Clone ecosystem sibling repos with retry, setup Go, sync workspace
 inputs:
   go-version:
     description: Go version to install
-    default: '1.26.1'
+    default: '1.27.2'
   token:
     description: GitHub token for authenticated clones
     required: true
@@ -28,7 +28,7 @@ runs:
         ws_parent="$(cd "${GITHUB_WORKSPACE}/.." && pwd)"
         mkdir -p "$ws_parent"
         while IFS= read -r repo; do
-          [ "$repo" = rho ] && continue
+          [ "$repo" = reflect ] && continue
           dest="$ws_parent/$repo"
           if [ -d "$dest/.git" ]; then
             echo "$repo already present at $dest"

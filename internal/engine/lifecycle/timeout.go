@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // timeoutDeadlineKey is the context key for storing the deadline used by RemainingTime.

@@ -14,10 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/GrayCodeAI/rho/internal/textutil"
+	"github.com/GrayCodeAI/reflect/internal/textutil"
 )
 
-// SearchEngine provides full-text search across rho sessions/conversations.
+// SearchEngine provides full-text search across reflect sessions/conversations.
 type SearchEngine struct {
 	SessionDir string
 	Index      map[string]*SessionIndex
@@ -546,8 +546,8 @@ func (se *SearchEngine) loadJSONL(f *os.File) ([]Message, sessionMeta, error) {
 
 func (se *SearchEngine) loadLegacyJSON(f *os.File) ([]Message, sessionMeta, error) {
 	var s Session
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&s); err != nil {
+	reflect := json.NewDecoder(f)
+	if err := reflect.Decode(&s); err != nil {
 		return nil, sessionMeta{}, err
 	}
 	meta := sessionMeta{

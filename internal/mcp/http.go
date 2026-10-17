@@ -42,7 +42,7 @@ func ConnectHTTP(ctx context.Context, name, url string, headers map[string]strin
 	_, err := s.Call(ctx, "initialize", map[string]interface{}{
 		"protocolVersion": "2025-03-26",
 		"capabilities":    map[string]interface{}{},
-		"clientInfo":      map[string]interface{}{"name": "rho", "version": "1.0.0"},
+		"clientInfo":      map[string]interface{}{"name": "reflect", "version": "1.0.0"},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("mcp http init: %w", err)
@@ -62,7 +62,7 @@ func ConnectSSE(ctx context.Context, name, url string, headers map[string]string
 	_, err := s.Call(ctx, "initialize", map[string]interface{}{
 		"protocolVersion": "2025-03-26",
 		"capabilities":    map[string]interface{}{},
-		"clientInfo":      map[string]interface{}{"name": "rho", "version": "1.0.0"},
+		"clientInfo":      map[string]interface{}{"name": "reflect", "version": "1.0.0"},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("mcp sse init: %w", err)
@@ -180,7 +180,7 @@ func (s *HTTPServer) CallTool(ctx context.Context, name string, args map[string]
 	if err != nil {
 		return "", err
 	}
-	// Reuse the shared decoder so the HTTP/SSE transport honors the spec's
+	// Reuse the shared reflect so the HTTP/SSE transport honors the spec's
 	// isError flag identically to the stdio transport: a remote tool failure
 	// must surface as a Go error, not a successful result.
 	return parseToolCallResult(result)

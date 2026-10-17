@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/token"
+	"github.com/GrayCodeAI/reflect/internal/engine/token"
 
-	"github.com/GrayCodeAI/rho/internal/engine/compact"
+	"github.com/GrayCodeAI/reflect/internal/engine/compact"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
 func TestSessionMemoryStrategy_ShouldTrigger(t *testing.T) {
@@ -104,14 +104,14 @@ func TestTurnTokenBudget(t *testing.T) {
 		t.Errorf("turnTokenBudget(nil) = %d, want 0", got)
 	}
 
-	small := []types.FluxMessage{{Role: "user", Content: "short"}}
+	small := []types.RelayMessage{{Role: "user", Content: "short"}}
 	if got := turnTokenBudget(small); got != 2000 {
 		t.Errorf("turnTokenBudget(small) = %d, want minimum floor 2000", got)
 	}
 
-	big := make([]types.FluxMessage, 10)
+	big := make([]types.RelayMessage, 10)
 	for i := range big {
-		big[i] = types.FluxMessage{Role: "user", Content: strings.Repeat("x", 10000)}
+		big[i] = types.RelayMessage{Role: "user", Content: strings.Repeat("x", 10000)}
 	}
 	avg := token.EstimateMessageTokens(big[0])
 	if avg*3 <= 2000 {
@@ -122,13 +122,13 @@ func TestTurnTokenBudget(t *testing.T) {
 	}
 }
 
-func makeMessages(n int) []types.FluxMessage {
-	msgs := make([]types.FluxMessage, n)
+func makeMessages(n int) []types.RelayMessage {
+	msgs := make([]types.RelayMessage, n)
 	for i := range msgs {
 		if i%2 == 0 {
-			msgs[i] = types.FluxMessage{Role: "user", Content: strings.Repeat("message ", 50)}
+			msgs[i] = types.RelayMessage{Role: "user", Content: strings.Repeat("message ", 50)}
 		} else {
-			msgs[i] = types.FluxMessage{Role: "assistant", Content: strings.Repeat("response ", 50)}
+			msgs[i] = types.RelayMessage{Role: "assistant", Content: strings.Repeat("response ", 50)}
 		}
 	}
 	return msgs

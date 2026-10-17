@@ -2,7 +2,7 @@
 
 ## Authority
 
-[`rho/ecosystem.yaml`](../../ecosystem.yaml) is the canonical repository
+[`reflect/ecosystem.yaml`](../../ecosystem.yaml) is the canonical repository
 inventory. It defines the repositories, their directory names, product
 labels, Go modules, and workspace membership. It is the single source of
 truth; other ecosystem documents must not maintain a second repository list.
@@ -14,10 +14,10 @@ workspace root provides local coordination; it is not itself a Git repository.
 
 ```text
 graycode-eco/
-├── rho                 # product, CLI, daemon, orchestration, policy
+├── reflect                 # product, CLI, daemon, orchestration, policy
 ├── eagle                # shared neutral contracts
 ├── falcon               # shared MCP transport/handler kit
-├── flux                # provider runtime (product label: Flux)
+├── relay                # provider runtime (product label: Relay)
 ├── harrier              # memory engine (product label: Harrier)
 ├── shrike               # token/context engine (product label: Shrike)
 ├── swift                # provenance engine (product label: Swift)
@@ -28,15 +28,15 @@ graycode-eco/
 ├── wren                 # TypeScript SDK
 ├── starling             # community skills/extensions
 ├── owl                  # architecture visualization tooling
-└── graycode-platform    # web, browser BFF, and Rho Cloud Worker
+└── graycode-platform    # web, browser BFF, and Reflect Cloud Worker
 ```
 
 ## Compile-time dependency graph
 
 ```text
-sparrow / robin / wren ── Rho daemon API ──> rho <── skill API ── starling
+sparrow / robin / wren ── Reflect daemon API ──> reflect <── skill API ── starling
                                              │
-                                             ├── flux/engine
+                                             ├── relay/engine
                                              ├── harrier       (Harrier)
                                              ├── shrike        (Shrike)
                                              ├── swift/cli     (Swift)
@@ -44,12 +44,12 @@ sparrow / robin / wren ── Rho daemon API ──> rho <── skill API ─�
                                              ├── merlin        (Merlin)
                                              └── eagle
 
-flux / harrier / shrike / swift / kestrel / merlin ──> eagle (as needed)
+relay / harrier / shrike / swift / kestrel / merlin ──> eagle (as needed)
 harrier / kestrel / merlin ──> falcon ──> mark3labs/mcp-go
 ```
 
-Rho is the only orchestration root. Engines are peers: they do not import
-Rho internals and do not import one another. Eagle owns neutral contracts;
+Reflect is the only orchestration root. Engines are peers: they do not import
+Reflect internals and do not import one another. Eagle owns neutral contracts;
 Falcon owns reusable MCP scaffolding. SDKs are API consumers, not Go imports
 of the engines.
 
@@ -66,15 +66,15 @@ CI must test both workspace mode and `GOWORK=off` module mode.
 ## Runtime/API connectivity
 
 ```text
-Rho local runtime
-  ├── Flux provider generation
+Reflect local runtime
+  ├── Relay provider generation
   ├── Harrier memory and retrieval
   ├── Shrike token budgeting/compression
   ├── Swift swift/provenance
   ├── Kestrel review
   └── Merlin verification
 
-Rho ── optional authenticated HTTP ──> graycode-platform/apps/worker
+Reflect ── optional authenticated HTTP ──> graycode-platform/apps/worker
 web ──> graycode-platform/apps/bff ── private Service Binding ──> worker
 worker ──> control-plane D1, usage Queue, and R2 archive
 
@@ -84,10 +84,10 @@ Owl <── manifest and read-only generated repository artifacts
 The Worker deployment is named `graycode-cloud`, but it is an application
 inside the `graycode-platform` repository, not a separate repository. The BFF
 owns browser identity and forwards authenticated requests over the private
-`RhoCloudService` binding. Rho Cloud owns Rho-specific projects, devices,
+`ReflectCloudService` binding. Reflect Cloud owns Reflect-specific projects, devices,
 usage, billing, audit, and graph records.
 
-Cloud is optional. Rho local execution must never depend on the platform being
+Cloud is optional. Reflect local execution must never depend on the platform being
 available; automatic usage delivery is fail-open, while graph synchronization
 is an explicit user operation.
 
@@ -96,25 +96,25 @@ is an explicit user operation.
 Allowed:
 
 ```text
-rho -> engine facades and Eagle contracts
+reflect -> engine facades and Eagle contracts
 engine -> Eagle when a shared contract is required
 harrier / kestrel / merlin -> Falcon for MCP serving
-SDK -> Rho public HTTP/OpenAPI contract
-Starling -> Rho skill/plugin surface
-Rho -> deployed Rho Cloud over authenticated HTTP only
+SDK -> Reflect public HTTP/OpenAPI contract
+Starling -> Reflect skill/plugin surface
+Reflect -> deployed Reflect Cloud over authenticated HTTP only
 ```
 
 Forbidden:
 
 ```text
 engine -> engine
-engine -> rho/internal/*
+engine -> reflect/internal/*
 SDK -> engine
 skills -> engine
 any Go module -> graycode-platform code
 ```
 
-Graph and quality-projection packages imported by Rho are explicit integration
+Graph and quality-projection packages imported by Reflect are explicit integration
 surfaces. If they become replaceability-sensitive, move them behind the
 corresponding engine facade rather than exporting implementation types further.
 
@@ -122,12 +122,12 @@ corresponding engine facade rather than exporting implementation types further.
 
 1. Publish Eagle contract changes.
 2. Publish the Eagle-compatible engine revisions.
-3. Update Rho's engine pins and verify `GOWORK=off` builds.
-4. Validate SDK OpenAPI snapshots against Rho.
+3. Update Reflect's engine pins and verify `GOWORK=off` builds.
+4. Validate SDK OpenAPI snapshots against Reflect.
 5. Deploy GrayCode Platform independently after its Worker/BFF contract tests
    pass.
 
-The current local Flux checkout is Eagle-compatible, but Rho's published
-Flux pin still has a transitive `rho-core-contracts` dependency. That is a
+The current local Relay checkout is Eagle-compatible, but Reflect's published
+Relay pin still has a transitive `reflect-core-contracts` dependency. That is a
 release-order issue, not a reason to add a local `replace` directive or a
 platform dependency.

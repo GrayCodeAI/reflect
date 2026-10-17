@@ -37,7 +37,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.26.5"
+  GO_VERSION: "1.27.2"
   GOPROXY: "https://proxy.golang.org,direct"
   GOPRIVATE: "github.com/GrayCodeAI/*"
   GONOSUMDB: "github.com/GrayCodeAI/*"
@@ -86,7 +86,7 @@ jobs:
         run: bash ./scripts/check-ecosystem-boundaries.sh
       - uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v7.0.0
         with:
-          version: v2.1.0
+          version: v2.14.0
           install-mode: goinstall
           verify: false
           args: --timeout=5m
@@ -146,11 +146,19 @@ jobs:
           cache: true
       - name: govulncheck
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
           govulncheck ./...
       - name: gosec (advisory)
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+          # gosec's release still pins an older Go export-data reader.
+          # Build it with Go 1.27-compatible x/tools in an isolated module.
+          tool_dir=$(mktemp -d)
+          (
+            cd "$tool_dir"
+            go mod init graycodeai.local/gosec-tool
+            go get github.com/securego/gosec/v2/cmd/gosec@v2.29.0 golang.org/x/tools@v0.52.0
+            go install github.com/securego/gosec/v2/cmd/gosec
+          )
           gosec -exclude=G104,G301,G302,G304,G306 ./...
 
   # -------------------------------------------------------------------------

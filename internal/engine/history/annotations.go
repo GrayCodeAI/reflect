@@ -154,7 +154,7 @@ func (am *AnnotationManager) InjectAnnotations(file, content string) string {
 		if a.Resolved {
 			continue
 		}
-		commentLine := fmt.Sprintf("%s [rho:%s] %s", commentPrefix, a.Type, a.Content)
+		commentLine := fmt.Sprintf("%s [reflect:%s] %s", commentPrefix, a.Type, a.Content)
 		idx := a.Line - 1 // convert 1-based to 0-based
 		if idx < 0 {
 			idx = 0
@@ -188,29 +188,29 @@ func annotationCommentPrefix(file string) string {
 	}
 }
 
-// rhoAnnotationRe matches rho annotation comment lines.
-var rhoAnnotationRe = regexp.MustCompile(`^\s*(//|#|/\*|<!--|--)\s*\[rho:(note|todo|question|warning|context)\]\s*(.*)$`)
+// reflectAnnotationRe matches reflect annotation comment lines.
+var reflectAnnotationRe = regexp.MustCompile(`^\s*(//|#|/\*|<!--|--)\s*\[reflect:(note|todo|question|warning|context)\]\s*(.*)$`)
 
-// StripAnnotations removes all [rho:*] comment lines from content.
+// StripAnnotations removes all [reflect:*] comment lines from content.
 // Used before commit/save to keep annotations agent-only.
 func StripAnnotations(content string) string {
 	lines := strings.Split(content, "\n")
 	var result []string
 	for _, line := range lines {
-		if !rhoAnnotationRe.MatchString(line) {
+		if !reflectAnnotationRe.MatchString(line) {
 			result = append(result, line)
 		}
 	}
 	return strings.Join(result, "\n")
 }
 
-// DetectAnnotations finds existing rho annotations in file content and parses them.
+// DetectAnnotations finds existing reflect annotations in file content and parses them.
 func DetectAnnotations(content string) []*Annotation {
 	lines := strings.Split(content, "\n")
 	var result []*Annotation
 
 	for i, line := range lines {
-		matches := rhoAnnotationRe.FindStringSubmatch(line)
+		matches := reflectAnnotationRe.FindStringSubmatch(line)
 		if matches == nil {
 			continue
 		}

@@ -89,12 +89,12 @@ func TestMemoryIncrementalNilRecall(t *testing.T) {
 }
 
 func TestIncrementalContextEnabledFlag(t *testing.T) {
-	t.Setenv("RHO_INCREMENTAL_CONTEXT", "1")
+	t.Setenv("REFLECT_INCREMENTAL_CONTEXT", "1")
 	if !incrementalContextEnabled() {
-		t.Fatal("expected enabled with RHO_INCREMENTAL_CONTEXT=1")
+		t.Fatal("expected enabled with REFLECT_INCREMENTAL_CONTEXT=1")
 	}
-	t.Setenv("RHO_INCREMENTAL_CONTEXT", "0")
+	t.Setenv("REFLECT_INCREMENTAL_CONTEXT", "0")
 	if incrementalContextEnabled() {
-		t.Fatal("expected disabled with RHO_INCREMENTAL_CONTEXT=0")
+		t.Fatal("expected disabled with REFLECT_INCREMENTAL_CONTEXT=0")
 	}
 }

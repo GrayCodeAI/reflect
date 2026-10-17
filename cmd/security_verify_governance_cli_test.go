@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/securitylog"
+	"github.com/GrayCodeAI/reflect/internal/securitylog"
 )
 
-// withTempState runs a cli test body with RHO_STATE_DIR pointed at a temp dir
+// withTempState runs a cli test body with REFLECT_STATE_DIR pointed at a temp dir
 // so the real user state is never touched.
 func withTempState(t *testing.T, body func(stateDir string)) {
 	t.Helper()
 	dir := t.TempDir()
-	t.Setenv("RHO_STATE_DIR", dir)
+	t.Setenv("REFLECT_STATE_DIR", dir)
 	body(dir)
 }
 

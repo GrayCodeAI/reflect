@@ -8,7 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // handleImageCommand implements the /image slash command:
@@ -17,7 +17,7 @@ import (
 //
 // It reads an image (or PDF) file, builds a multimodal user message gated on the
 // active model's vision capability, and starts a turn. For PDFs the text is
-// extracted and injected inline (flux has no native document block). Without a
+// extracted and injected inline (relay has no native document block). Without a
 // vision-capable model the image degrades to a text-only note.
 func (m *chatModel) handleImageCommand(parts []string, text string) (tea.Model, tea.Cmd) {
 	if len(parts) < 2 {

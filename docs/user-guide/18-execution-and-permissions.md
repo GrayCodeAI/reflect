@@ -1,6 +1,6 @@
 # Execution & Permissions
 
-Rho executes agent commands directly on the host. There is no container or
+Reflect executes agent commands directly on the host. There is no container or
 OS-level sandbox layer; the safety boundary is the permission engine plus the
 tool-level guards described below.
 
@@ -9,7 +9,7 @@ tool-level guards described below.
 ## Quick Start
 
 ```bash
-# Set the autonomy tier (how much Rho may do without asking)
+# Set the autonomy tier (how much Reflect may do without asking)
 /autonomy tier builder
 
 # Allow or deny specific tool rules
@@ -39,14 +39,14 @@ for the full model.
 
 ## Tool-Level Guards
 
-Independent of the autonomy tier, Rho always enforces:
+Independent of the autonomy tier, Reflect always enforces:
 
 - **Destructive-command blocking** — patterns like `rm -rf /` are hard-blocked
   in Bash and PowerShell.
 - **Path guard** — file tools are restricted to the working directory and any
   directories added with `--add-dir` / `/add-dir`.
 - **Sensitive-path protection** — credential files (`~/.ssh/*`, provider state,
-  Rho env files) are blocked for Read/Edit/Write.
+  Reflect env files) are blocked for Read/Edit/Write.
 - **Environment scrubbing** — provider API keys are removed from child-process
   environments.
 

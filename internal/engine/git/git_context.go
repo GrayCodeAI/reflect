@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/gitcmd"
+	"github.com/GrayCodeAI/reflect/internal/gitcmd"
 )
 
 // GitContext provides git-aware context enrichment for files and sessions.

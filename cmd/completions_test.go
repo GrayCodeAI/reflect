@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/flux/catalog/registry"
+	"github.com/GrayCodeAI/relay/catalog/registry"
 )
 
 func TestNewCompletionGenerator(t *testing.T) {
@@ -44,10 +44,10 @@ func TestGenerateBashContainsFunctionDefinition(t *testing.T) {
 	g := NewCompletionGenerator()
 	bash := g.GenerateBash()
 
-	if !strings.Contains(bash, "_rho_completions()") {
-		t.Error("Bash completion should contain _rho_completions() function definition")
+	if !strings.Contains(bash, "_reflect_completions()") {
+		t.Error("Bash completion should contain _reflect_completions() function definition")
 	}
-	if !strings.Contains(bash, "complete -F _rho_completions rho") {
+	if !strings.Contains(bash, "complete -F _reflect_completions reflect") {
 		t.Error("Bash completion should register the completion function with 'complete'")
 	}
 }
@@ -106,8 +106,8 @@ func TestGenerateZshContainsCompdefHeader(t *testing.T) {
 	g := NewCompletionGenerator()
 	zsh := g.GenerateZsh()
 
-	if !strings.HasPrefix(zsh, "#compdef rho") {
-		t.Error("Zsh completion should start with #compdef rho header")
+	if !strings.HasPrefix(zsh, "#compdef reflect") {
+		t.Error("Zsh completion should start with #compdef reflect header")
 	}
 }
 
@@ -115,8 +115,8 @@ func TestGenerateZshContainsFunction(t *testing.T) {
 	g := NewCompletionGenerator()
 	zsh := g.GenerateZsh()
 
-	if !strings.Contains(zsh, "_rho()") {
-		t.Error("Zsh completion should contain _rho() function")
+	if !strings.Contains(zsh, "_reflect()") {
+		t.Error("Zsh completion should contain _reflect() function")
 	}
 	if !strings.Contains(zsh, "_arguments") {
 		t.Error("Zsh completion should use _arguments for flag completion")
@@ -165,8 +165,8 @@ func TestGenerateFishContainsCompleteDirectives(t *testing.T) {
 	g := NewCompletionGenerator()
 	fish := g.GenerateFish()
 
-	if !strings.Contains(fish, "complete -c rho") {
-		t.Error("Fish completion should contain 'complete -c rho' directives")
+	if !strings.Contains(fish, "complete -c reflect") {
+		t.Error("Fish completion should contain 'complete -c reflect' directives")
 	}
 }
 
@@ -328,8 +328,8 @@ func TestInstallCompletionBash(t *testing.T) {
 	if path == "" {
 		t.Error("InstallCompletion(bash) returned empty path")
 	}
-	if !strings.Contains(path, "rho") {
-		t.Errorf("Bash install path should contain 'rho', got %q", path)
+	if !strings.Contains(path, "reflect") {
+		t.Errorf("Bash install path should contain 'reflect', got %q", path)
 	}
 	// Should be a bash-related path
 	if !strings.Contains(path, "bash") && !strings.Contains(path, "completion") {
@@ -345,8 +345,8 @@ func TestInstallCompletionZsh(t *testing.T) {
 	if path == "" {
 		t.Error("InstallCompletion(zsh) returned empty path")
 	}
-	if !strings.Contains(path, "_rho") {
-		t.Errorf("Zsh install path should contain '_rho', got %q", path)
+	if !strings.Contains(path, "_reflect") {
+		t.Errorf("Zsh install path should contain '_reflect', got %q", path)
 	}
 }
 
@@ -358,8 +358,8 @@ func TestInstallCompletionFish(t *testing.T) {
 	if path == "" {
 		t.Error("InstallCompletion(fish) returned empty path")
 	}
-	if !strings.Contains(path, "rho.fish") {
-		t.Errorf("Fish install path should contain 'rho.fish', got %q", path)
+	if !strings.Contains(path, "reflect.fish") {
+		t.Errorf("Fish install path should contain 'reflect.fish', got %q", path)
 	}
 	if !strings.Contains(path, "fish") {
 		t.Errorf("Fish install path should be fish-related, got %q", path)
@@ -516,8 +516,8 @@ func TestGenerateZshProviderChoices(t *testing.T) {
 	zsh := g.GenerateZsh()
 
 	// The provider completion function should list all providers
-	if !strings.Contains(zsh, "_rho_providers()") {
-		t.Error("Zsh completion should contain _rho_providers() function")
+	if !strings.Contains(zsh, "_reflect_providers()") {
+		t.Error("Zsh completion should contain _reflect_providers() function")
 	}
 }
 

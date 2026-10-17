@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GrayCodeAI/flux/llm"
-	"github.com/GrayCodeAI/rho/internal/resilience/retry"
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/resilience/retry"
+	"github.com/GrayCodeAI/reflect/internal/types"
+	"github.com/GrayCodeAI/relay/llm"
 )
 
 // TestChatService_BuildOptions checks that BuildOptions correctly
@@ -19,8 +19,8 @@ func TestChatService_BuildOptions(t *testing.T) {
 		Provider: "anthropic",
 		Model:    "claude-opus-4",
 	})
-	opts := svc.BuildOptions(strings.Repeat("you are rho. ", cacheMinPrefixBytes/7+64), "claude-opus-4", 4096, nil)
-	opts.System = "you are rho" // restore exact assertion target
+	opts := svc.BuildOptions(strings.Repeat("you are reflect. ", cacheMinPrefixBytes/7+64), "claude-opus-4", 4096, nil)
+	opts.System = "you are reflect" // restore exact assertion target
 	if opts.Provider != "anthropic" {
 		t.Errorf("expected provider=anthropic, got %q", opts.Provider)
 	}
@@ -35,7 +35,7 @@ func TestChatService_BuildOptions(t *testing.T) {
 	if !opts.EnableCaching {
 		t.Error("expected EnableCaching=true for anthropic with a prefix at/above break-even")
 	}
-	if opts.System != "you are rho" {
+	if opts.System != "you are reflect" {
 		t.Errorf("expected system prompt to be set, got %q", opts.System)
 	}
 }
@@ -137,7 +137,7 @@ func TestChatService_ChatDelegatesToClient(t *testing.T) {
 	})
 	resp, err := svc.Chat(
 		context.Background(),
-		[]types.FluxMessage{{Role: "user", Content: "hi"}},
+		[]types.RelayMessage{{Role: "user", Content: "hi"}},
 		svc.BuildOptions("sys", "claude-opus-4", 1024, nil),
 	)
 	if err != nil {
@@ -152,11 +152,11 @@ func TestChatService_ChatDelegatesToClient(t *testing.T) {
 // ChatService.Chat surfaces the underlying error unchanged.
 type errClient struct{ err error }
 
-func (e *errClient) Chat(_ context.Context, _ []types.FluxMessage, _ types.ChatOptions) (*types.FluxResponse, error) {
+func (e *errClient) Chat(_ context.Context, _ []types.RelayMessage, _ types.ChatOptions) (*types.RelayResponse, error) {
 	return nil, e.err
 }
 
-func (e *errClient) StreamChatContinue(_ context.Context, _ []types.FluxMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
+func (e *errClient) StreamChatContinue(_ context.Context, _ []types.RelayMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
 	return nil, e.err
 }
 
@@ -174,11 +174,11 @@ type resilienceManagingTestClient struct {
 	calls int
 }
 
-func (c *resilienceManagingTestClient) Chat(context.Context, []types.FluxMessage, types.ChatOptions) (*types.FluxResponse, error) {
+func (c *resilienceManagingTestClient) Chat(context.Context, []types.RelayMessage, types.ChatOptions) (*types.RelayResponse, error) {
 	return nil, c.err
 }
 
-func (c *resilienceManagingTestClient) StreamChatContinue(context.Context, []types.FluxMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *resilienceManagingTestClient) StreamChatContinue(context.Context, []types.RelayMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
 	c.calls++
 	return nil, c.err
 }
@@ -187,7 +187,7 @@ func (c *resilienceManagingTestClient) ManagesResilience() bool { return true }
 func TestChatService_DoesNotDuplicateEngineResilience(t *testing.T) {
 	client := &resilienceManagingTestClient{err: errors.New("routed transport failed")}
 	svc := NewChatService(client, ChatServiceConfig{})
-	_, err := svc.Stream(context.Background(), []types.FluxMessage{{Role: "user", Content: "hi"}}, types.ChatOptions{})
+	_, err := svc.Stream(context.Background(), []types.RelayMessage{{Role: "user", Content: "hi"}}, types.ChatOptions{})
 	if err == nil {
 		t.Fatal("expected stream error")
 	}
@@ -200,16 +200,16 @@ type flakyLegacyStartClient struct {
 	calls int
 }
 
-func (*flakyLegacyStartClient) Chat(context.Context, []types.FluxMessage, types.ChatOptions) (*types.FluxResponse, error) {
+func (*flakyLegacyStartClient) Chat(context.Context, []types.RelayMessage, types.ChatOptions) (*types.RelayResponse, error) {
 	return nil, nil
 }
 
-func (c *flakyLegacyStartClient) StreamChatContinue(context.Context, []types.FluxMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *flakyLegacyStartClient) StreamChatContinue(context.Context, []types.RelayMessage, types.ChatOptions, types.ContinuationConfig) (*types.StreamResult, error) {
 	c.calls++
 	if c.calls == 1 {
 		return nil, errors.New("temporary transport failure")
 	}
-	events := make(chan types.FluxStreamEvent)
+	events := make(chan types.RelayStreamEvent)
 	close(events)
 	return llm.NewStreamResult(events, "", nil), nil
 }
@@ -243,21 +243,21 @@ func retryConfigForBoundaryTest() retry.Config {
 // received on the retry so tests can assert the emergency compact (H3).
 type overflowThenCaptureClient struct {
 	calls   int
-	seen    []types.FluxMessage
+	seen    []types.RelayMessage
 	started bool
 }
 
-func (*overflowThenCaptureClient) Chat(context.Context, []types.FluxMessage, types.ChatOptions) (*types.FluxResponse, error) {
+func (*overflowThenCaptureClient) Chat(context.Context, []types.RelayMessage, types.ChatOptions) (*types.RelayResponse, error) {
 	return nil, nil
 }
 
-func (c *overflowThenCaptureClient) StreamChatContinue(_ context.Context, messages []types.FluxMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
+func (c *overflowThenCaptureClient) StreamChatContinue(_ context.Context, messages []types.RelayMessage, _ types.ChatOptions, _ types.ContinuationConfig) (*types.StreamResult, error) {
 	c.calls++
 	if c.calls == 1 {
 		return nil, errors.New("input too long: 120000 tokens exceeds the limit of 100000")
 	}
 	c.started = true
-	c.seen = append([]types.FluxMessage(nil), messages...)
+	c.seen = append([]types.RelayMessage(nil), messages...)
 	return &types.StreamResult{}, nil
 }
 
@@ -265,10 +265,10 @@ func (c *overflowThenCaptureClient) StreamChatContinue(_ context.Context, messag
 // context-overflow error, the retry sends a compacted (smaller) transcript
 // instead of re-sending the same overflowing messages.
 func TestChatService_EmergencyCompactTrimsBeforeRetry(t *testing.T) {
-	var messages []types.FluxMessage
-	messages = append(messages, types.FluxMessage{Role: "system", Content: "sys"})
+	var messages []types.RelayMessage
+	messages = append(messages, types.RelayMessage{Role: "system", Content: "sys"})
 	for i := 0; i < 100; i++ {
-		messages = append(messages, types.FluxMessage{Role: "user", Content: "message-" + itoaForTest(i)})
+		messages = append(messages, types.RelayMessage{Role: "user", Content: "message-" + itoaForTest(i)})
 	}
 
 	client := &overflowThenCaptureClient{}

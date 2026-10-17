@@ -1,20 +1,20 @@
-// Package routing provides Rho-owned task routing and health policy. Model
+// Package routing provides Reflect-owned task routing and health policy. Model
 // discovery, pricing, provider ownership, and catalog policy are delegated to
-// Flux's engine facade through the gateway package (the single Flux boundary).
+// Relay's engine facade through the gateway package (the single Relay boundary).
 package routing
 
 import (
 	"context"
 	"sort"
 
-	"github.com/GrayCodeAI/rho/internal/provider/gateway"
+	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
 
-// ModelInfo is Rho's product-facing view of Flux model metadata (the gateway
-// layer owns the Flux conversation that produces it).
+// ModelInfo is Reflect's product-facing view of Relay model metadata (the gateway
+// layer owns the Relay conversation that produces it).
 type ModelInfo = gateway.ModelInfo
 
-// Find looks up a model by id or alias through Flux.
+// Find looks up a model by id or alias through Relay.
 func Find(name string) (ModelInfo, bool) {
 	return gateway.ModelInfoLookup(context.Background(), name)
 }

@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GrayCodeAI/rho/internal/theme"
-	"github.com/GrayCodeAI/rho/internal/token"
+	"github.com/GrayCodeAI/reflect/internal/theme"
+	"github.com/GrayCodeAI/reflect/internal/token"
 )
 
 // EcosystemReport is the structured view of the ecosystem panel.
 type EcosystemReport struct {
-	Flux  EcosystemFlux `json:"flux"`
-	Token EngineToken   `json:"token"`
+	Relay EcosystemRelay `json:"relay"`
+	Token EngineToken    `json:"token"`
 }
 
-type EcosystemFlux struct {
+type EcosystemRelay struct {
 	CatalogExists bool   `json:"catalog_exists"`
 	ModelCount    int    `json:"model_count,omitempty"`
 	Ready         bool   `json:"ready"`
@@ -33,60 +33,60 @@ type EngineToken struct {
 func BuildEcosystemReport(ctx context.Context, provider, model string) EcosystemReport {
 	var r EcosystemReport
 
-	// flux
+	// relay
 	cat := CatalogHealthReport(ctx)
-	r.Flux.CatalogExists = cat.Exists
-	r.Flux.ModelCount = cat.Models
+	r.Relay.CatalogExists = cat.Exists
+	r.Relay.ModelCount = cat.Models
 	pre := EnginePreflightReport(ctx)
-	r.Flux.Ready = pre.Ready
+	r.Relay.Ready = pre.Ready
 	if strings.TrimSpace(provider) != "" && provider != "auto" {
-		r.Flux.Provider = provider
+		r.Relay.Provider = provider
 	}
 	if dep, err := EngineDeploymentSummary(ctx, model); err == nil {
-		r.Flux.RoutingSource = dep.RoutingSource
-		r.Flux.RoutingStages = dep.RoutingStages
+		r.Relay.RoutingSource = dep.RoutingSource
+		r.Relay.RoutingStages = dep.RoutingStages
 	}
 
 	// embedded token engine
 	r.Token.Embedded = token.ShrikeAvailable()
-	r.Token.SampleTokens = token.CountTokensFast("rho context compression pipeline")
+	r.Token.SampleTokens = token.CountTokensFast("reflect context compression pipeline")
 
 	return r
 }
 
-// FormatEcosystemPanel summarizes flux and token-engine integration for doctor and status output.
+// FormatEcosystemPanel summarizes relay and token-engine integration for doctor and status output.
 func FormatEcosystemPanel(ctx context.Context, provider, model string) string {
 	var b strings.Builder
-	b.WriteString(theme.Tint("Ecosystem (flux · token engine):", theme.ReportInfo) + "\n")
+	b.WriteString(theme.Tint("Ecosystem (relay · token engine):", theme.ReportInfo) + "\n")
 
-	// flux — LLM provider layer
+	// relay — LLM provider layer
 	cat := CatalogHealthReport(ctx)
-	fluxLine := "  " + theme.Tint("flux:", theme.ReportMuted) + " "
+	relayLine := "  " + theme.Tint("relay:", theme.ReportMuted) + " "
 	if cat.Exists {
-		fluxLine += theme.Tint(fmt.Sprintf("catalog %d models", cat.Models), theme.ReportInfo)
+		relayLine += theme.Tint(fmt.Sprintf("catalog %d models", cat.Models), theme.ReportInfo)
 	} else {
-		fluxLine += theme.Tint("catalog missing (run rho models refresh)", theme.ReportWarn)
+		relayLine += theme.Tint("catalog missing (run reflect models refresh)", theme.ReportWarn)
 	}
 	pre := EnginePreflightReport(ctx)
 	if pre.Ready {
-		fluxLine += " · " + theme.Tint("locally ready", theme.ReportSuccess)
+		relayLine += " · " + theme.Tint("locally ready", theme.ReportSuccess)
 	} else {
-		fluxLine += " · " + theme.Tint("setup incomplete", theme.ReportWarn)
+		relayLine += " · " + theme.Tint("setup incomplete", theme.ReportWarn)
 	}
 	if strings.TrimSpace(provider) != "" && provider != "auto" {
-		fluxLine += " · " + theme.Tint("provider "+provider, theme.ReportInfo)
+		relayLine += " · " + theme.Tint("provider "+provider, theme.ReportInfo)
 	}
 	if dep, err := EngineDeploymentSummary(ctx, model); err == nil {
 		if dep.RoutingStages > 0 {
-			fluxLine += " · " + theme.Tint(fmt.Sprintf("routing %s (%d stages)", dep.RoutingSource, dep.RoutingStages), theme.ReportInfo)
+			relayLine += " · " + theme.Tint(fmt.Sprintf("routing %s (%d stages)", dep.RoutingSource, dep.RoutingStages), theme.ReportInfo)
 		} else {
-			fluxLine += " · " + theme.Tint("routing "+dep.RoutingSource, theme.ReportInfo)
+			relayLine += " · " + theme.Tint("routing "+dep.RoutingSource, theme.ReportInfo)
 		}
 	}
-	b.WriteString(fluxLine + "\n")
+	b.WriteString(relayLine + "\n")
 
 	// Embedded token engine — token counting and context compression.
-	sample := token.CountTokensFast("rho context compression pipeline")
+	sample := token.CountTokensFast("reflect context compression pipeline")
 	if token.ShrikeAvailable() {
 		b.WriteString("  " + theme.Tint("token:", theme.ReportMuted) + " " + theme.Tint("embedded", theme.ReportInfo) + " · " + theme.Tint("token/compress pipeline OK", theme.ReportSuccess) + fmt.Sprintf(" (sample=%d tokens)", sample) + "\n")
 	} else {

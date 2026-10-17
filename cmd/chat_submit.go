@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/rho/internal/engine/safety"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	tea "charm.land/bubbletea/v2"
 
-	rhoconfig "github.com/GrayCodeAI/rho/internal/config"
-	"github.com/GrayCodeAI/rho/internal/engine"
-	"github.com/GrayCodeAI/rho/internal/features/shellmode"
-	"github.com/GrayCodeAI/rho/internal/session"
-	"github.com/GrayCodeAI/rho/internal/ui/icons"
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
+	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 // submitUserMessage handles Enter on a non-empty prompt (slash commands, shell, or agent turn).
@@ -79,7 +79,7 @@ func (m chatModel) submitUserMessage() (chatModel, tea.Cmd) {
 		}
 		return m, cmd
 	}
-	if setup := rhoconfig.EvaluateSetupCached(context.Background()); setup.NeedsSetup {
+	if setup := reflectconfig.EvaluateSetupCached(context.Background()); setup.NeedsSetup {
 		hint := setup.Hint
 		if hint == "" {
 			hint = "Complete setup in /config (keychain + model)."

@@ -186,7 +186,7 @@ Install a skill from a source.
 
 ```
 /skills install go-review
-rho skills install go-review
+reflect skills install go-review
 ```
 
 ### `/skills audit`
@@ -195,7 +195,7 @@ Security scan installed skills.
 
 ```
 /skills audit
-rho skills audit
+reflect skills audit
 ```
 
 ---
@@ -317,7 +317,7 @@ Quick ready-to-chat check.
 
 ### `/ecosystem`
 
-Show ecosystem component status (Flux and the token pipeline).
+Show ecosystem component status (Relay and the token pipeline).
 
 ```
 /ecosystem
@@ -413,7 +413,7 @@ Toggle vim-style keybindings.
 
 ### `/refresh-model-catalog`
 
-Fetch the latest deployment-aware model catalog from Flux.
+Fetch the latest deployment-aware model catalog from Relay.
 
 ```
 /refresh-model-catalog

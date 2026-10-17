@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GrayCodeAI/rho/internal/types"
+	"github.com/GrayCodeAI/reflect/internal/types"
 )
 
-func bloatedTools() []types.FluxTool {
-	return []types.FluxTool{
+func bloatedTools() []types.RelayTool {
+	return []types.RelayTool{
 		{
 			Name: "read_file",
 			Description: strings.Repeat("Reads a file from disk quickly and safely. ", 30) +
@@ -32,20 +32,20 @@ func bloatedTools() []types.FluxTool {
 	}
 }
 
-func TestShrinkFluxToolsDisabledByDefault(t *testing.T) {
-	t.Setenv("RHO_TOOL_SHRINK", "")
+func TestShrinkRelayToolsDisabledByDefault(t *testing.T) {
+	t.Setenv("REFLECT_TOOL_SHRINK", "")
 	in := bloatedTools()
-	out := shrinkFluxTools(in)
+	out := shrinkRelayTools(in)
 	if len(out) != len(in) || out[0].Description != in[0].Description {
 		t.Fatal("shrink must be a no-op when disabled")
 	}
 }
 
-func TestShrinkFluxToolsEnabledReducesAndPreservesNames(t *testing.T) {
-	t.Setenv("RHO_TOOL_SHRINK", "1")
-	t.Setenv("RHO_STATE_DIR", t.TempDir())
+func TestShrinkRelayToolsEnabledReducesAndPreservesNames(t *testing.T) {
+	t.Setenv("REFLECT_TOOL_SHRINK", "1")
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	in := bloatedTools()
-	out := shrinkFluxTools(in)
+	out := shrinkRelayTools(in)
 	if len(out) != 2 {
 		t.Fatalf("tool count changed: %d", len(out))
 	}
@@ -65,8 +65,8 @@ func TestShrinkFluxToolsEnabledReducesAndPreservesNames(t *testing.T) {
 }
 
 func TestBuildOptionsAppliesShrink(t *testing.T) {
-	t.Setenv("RHO_TOOL_SHRINK", "1")
-	t.Setenv("RHO_STATE_DIR", t.TempDir())
+	t.Setenv("REFLECT_TOOL_SHRINK", "1")
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	c := &ChatService{}
 	opts := c.BuildOptions("sys", "m", 100, bloatedTools())
 	if len(opts.Tools) != 2 || opts.Tools[0].Name != "read_file" {
@@ -79,10 +79,10 @@ func TestBuildOptionsAppliesShrink(t *testing.T) {
 
 func TestOriginalCatalogPersistedForRecovery(t *testing.T) {
 	stateDir := t.TempDir()
-	t.Setenv("RHO_TOOL_SHRINK", "1")
-	t.Setenv("RHO_STATE_DIR", stateDir)
+	t.Setenv("REFLECT_TOOL_SHRINK", "1")
+	t.Setenv("REFLECT_STATE_DIR", stateDir)
 	in := bloatedTools()
-	_ = shrinkFluxTools(in)
+	_ = shrinkRelayTools(in)
 	matches, err := filepath.Glob(stateDir + "/tool-catalog-originals/*.json")
 	if err != nil || len(matches) == 0 {
 		t.Fatalf("original catalog not persisted: %v %v", matches, err)

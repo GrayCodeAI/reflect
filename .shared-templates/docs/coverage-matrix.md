@@ -8,8 +8,8 @@ repo's threshold, update both the CI file and this table in the same PR.**
 
 | Repo | Threshold | Mechanism |
 |---|---|---|
-| `rho` | 65% | inline `bc` check in `ci.yml` |
-| `flux` | 60% | inline `bc` check in `ci.yml` |
+| `reflect` | 65% | inline `bc` check in `ci.yml` |
+| `relay` | 60% | inline `bc` check in `ci.yml` |
 | `graycode-skills` | n/a | no Go/Python test suite (skill/content registry) |
 
 ## Why thresholds differ per repo
