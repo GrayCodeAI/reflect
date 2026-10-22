@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.27.2"
+  GO_VERSION: "1.27.3"
   # Module resolution: relay is the only GrayCodeAI module dependency and it is
   # published on the public proxy. Direct-VCS fallback is retained for anything
   # else.
@@ -37,6 +37,20 @@ env:
   GOWORK: "off"
 
 jobs:
+  commit-policy:
+    name: commit policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Enforce signed commits and no AI co-authors
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.event.after }}
+        run: bash scripts/check-commit-policy.sh
+
   version:
     name: Canonical version metadata
     runs-on: ubuntu-latest

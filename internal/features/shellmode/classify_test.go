@@ -1,8 +1,45 @@
 package shellmode
 
-import "testing"
+import (
+	"os/exec"
+	"testing"
+)
+
+// stubCommands replaces PATH lookup for the duration of a test, so routing
+// results depend only on the input rather than on which binaries the host
+// happens to have installed. It also clears the package-level lookup cache so
+// earlier tests cannot leak their results into this one.
+func stubCommands(t *testing.T, names ...string) {
+	t.Helper()
+	allowed := make(map[string]bool, len(names))
+	for _, name := range names {
+		allowed[name] = true
+	}
+
+	oldLookPath := lookPath
+	lookPath = func(name string) (string, error) {
+		if allowed[name] {
+			return "/usr/bin/" + name, nil
+		}
+		return "", exec.ErrNotFound
+	}
+
+	cmdCacheMu.Lock()
+	oldCache := cmdCache
+	cmdCache = make(map[string]bool)
+	cmdCacheMu.Unlock()
+
+	t.Cleanup(func() {
+		lookPath = oldLookPath
+		cmdCacheMu.Lock()
+		cmdCache = oldCache
+		cmdCacheMu.Unlock()
+	})
+}
 
 func TestClassifyInput(t *testing.T) {
+	stubCommands(t, "ls", "git", "echo", "find", "kill", "make", "sort")
+
 	tests := []struct {
 		input string
 		want  Classification
@@ -57,6 +94,15 @@ func TestClassifyInput(t *testing.T) {
 // shell-syntax evidence (flags/paths/operators) for these ambiguous
 // command names before trusting them as shell.
 func TestClassifyInput_AmbiguousWordsWithoutShellSyntax(t *testing.T) {
+	// Stub every ambiguous verb so this test exercises the shell-syntax
+	// gate, not whether the host happens to ship these binaries.
+	stubCommands(
+		t,
+		"make", "test", "find", "time", "kill", "man", "more", "less",
+		"true", "date", "file", "look", "expr", "link", "mount",
+		"sort", "diff", "patch",
+	)
+
 	sentences := []string{
 		"make sure this works",
 		"test the login flow",
