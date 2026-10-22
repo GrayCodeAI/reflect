@@ -159,6 +159,10 @@ var (
 	cmdCache   = make(map[string]bool)
 )
 
+// lookPath is exec.LookPath, indirected so tests can make command lookup
+// deterministic instead of depending on which binaries the host has installed.
+var lookPath = exec.LookPath
+
 // isValidCommand checks if a word exists as a command in PATH (cached).
 func isValidCommand(word string) bool {
 	cmdCacheMu.RLock()
@@ -167,7 +171,7 @@ func isValidCommand(word string) bool {
 		return v
 	}
 	cmdCacheMu.RUnlock()
-	_, err := exec.LookPath(word)
+	_, err := lookPath(word)
 	result := err == nil
 	cmdCacheMu.Lock()
 	cmdCache[word] = result
