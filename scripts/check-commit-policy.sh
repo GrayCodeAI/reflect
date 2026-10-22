@@ -24,8 +24,17 @@ commit_shas() {
                 # New branch: check the pushed head only; its history predates
                 # this policy.
                 printf '%s\n' "$after"
+            elif cmp=$(gh api "repos/$repo/compare/${before}...${after}" 2>&1); then
+                # Fast-forward or rebased push: check the commits in the range.
+                jq -r '.commits[].sha' <<<"$cmp"
+            elif grep -q "No common ancestor" <<<"$cmp"; then
+                # Force push that replaced history: the old head is gone, so
+                # check the new head. Branch protection enforces the rest.
+                echo "commit policy: force push detected; checking new head only" >&2
+                printf '%s\n' "$after"
             else
-                gh api "repos/$repo/compare/${before}...${after}" --jq '.commits[].sha'
+                echo "commit policy: compare failed: $cmp" >&2
+                exit 1
             fi
             ;;
         *)
