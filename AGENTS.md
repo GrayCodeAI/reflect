@@ -252,3 +252,7 @@ reflect depends on ecosystem repos (`relay`, etc.) as independent sibling repos 
 3. Open a PR in the sibling repo → merge to `main`
 4. Ensure reflect's `go.mod` pins a version that resolves to (or is an ancestor of) the sibling's `main` — run `make sync` to verify parity
 5. No pointer commits: reflect resolves the sibling via `go.work` for local dev and via the pinned `go.mod` version for standalone/module-mode builds (Docker, released consumers)
+
+## Cloudflare
+
+This repo has no Cloudflare deployment. If one is added it must follow the Vaultly-only policy (vault `cf-graycodeai`, account f4b522a3ebdf147fa6d51fa475331b1c) used by graycode-platform.
