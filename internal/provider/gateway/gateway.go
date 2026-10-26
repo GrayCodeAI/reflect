@@ -396,6 +396,9 @@ func RegisteredProviderCount() int {
 func SecretStoreName() string { return relayengine.SecretStoreName() }
 
 func CredentialStorage(ctx context.Context) CredentialStorageReport {
+	// StorageReportFor reads credentials. Select Reflect's keychain namespace
+	// before that read so Relay cannot cache misses from its default namespace.
+	declareReflectIdentity()
 	return relayengine.CredentialStorage(ctx)
 }
 
