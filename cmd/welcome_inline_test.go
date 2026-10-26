@@ -84,8 +84,11 @@ func TestBuildWelcomeMessage_ShortTerminalUsesCompactCopy(t *testing.T) {
 func TestBuildWelcomeMessage_WideTerminalUsesReflectWordmark(t *testing.T) {
 	for _, width := range []int{24, 40, 80, 120, 200} {
 		out := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, reflectconfig.Settings{}, 2, 1, 0, width, 40, welcomeStatusSnapshot{agentsOK: true}, "")
-		if !strings.Contains(out, "Reflect") || !strings.Contains(out, "v"+DisplayVersion()) || !strings.Contains(out, "▀▀") || !strings.Contains(out, "▄▄") {
+		if !strings.Contains(out, "Reflect") || !strings.Contains(out, "v"+DisplayVersion()) {
 			t.Fatalf("width %d lost name/version: %s", width, out)
+		}
+		if strings.Contains(out, "██") || strings.Contains(out, "▀▀") || strings.Contains(out, "▄▄") {
+			t.Fatalf("width %d still renders block art: %s", width, out)
 		}
 		for _, line := range strings.Split(out, "\n") {
 			if visibleWidth(line) > width {
@@ -103,9 +106,9 @@ func TestBuildWelcomeMessage_ReflectWordmarkIsStatic(t *testing.T) {
 	}
 }
 
-func TestBuildWelcomeMessage_GraphicalMascotKeepsTextFallback(t *testing.T) {
+func TestBuildWelcomeMessage_MascotSettingKeepsPlainTextWelcome(t *testing.T) {
 	out := buildWelcomeMessageWithSnapshotAndMascot(nil, "", nil, nil, reflectconfig.Settings{}, 0, 0, 0, 120, 40, welcomeStatusSnapshot{setup: reflectconfig.SetupState{NeedsSetup: true}}, "", true)
-	if !strings.Contains(out, "Reflect") || !strings.Contains(out, "/config") || !strings.Contains(out, "▀▀") {
+	if !strings.Contains(out, "Reflect") || !strings.Contains(out, "/config") || strings.Contains(out, "▀▀") {
 		t.Fatalf("welcome must retain heading and actionable setup guidance: %s", out)
 	}
 }

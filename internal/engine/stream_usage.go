@@ -73,8 +73,12 @@ func updateResolvedRoute(provider, model string, route *types.ResolvedRoute) (st
 // recordStreamUsage updates session billing/context counters and notifies the TUI.
 // Provider and model are the concrete route selected by Relay, not merely the
 // user's preference, so fallback usage is attributed to the transport that ran.
-func (s *Session) recordStreamUsage(ch chan<- StreamEvent, prompt, completion int, provider, model, taskType string, apiStart time.Time) {
-	if prompt <= 0 && completion <= 0 {
+func (s *Session) recordStreamUsage(ch chan<- StreamEvent, providerUsage *types.RelayUsage, provider, model, taskType string, apiStart time.Time) {
+	if providerUsage == nil {
+		return
+	}
+	prompt, completion := providerUsage.PromptTokens, providerUsage.CompletionTokens
+	if prompt <= 0 && completion <= 0 && providerUsage.CacheReadTokens <= 0 && providerUsage.CacheCreationTokens <= 0 {
 		return
 	}
 	provider = strings.TrimSpace(provider)
@@ -117,6 +121,8 @@ func (s *Session) recordStreamUsage(ch chan<- StreamEvent, prompt, completion in
 			Usage: &StreamUsage{
 				PromptTokens:     prompt,
 				CompletionTokens: completion,
+				CacheReadTokens:  providerUsage.CacheReadTokens,
+				CacheWriteTokens: providerUsage.CacheCreationTokens,
 				Provider:         provider,
 				Model:            model,
 			},

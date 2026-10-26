@@ -112,20 +112,9 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 	if err != nil {
 		workspace = "."
 	}
-	details := []string{heading, ansiDim + selection + ansiReset, ansiDim + shortenHomePath(workspace) + ansiReset, ""}
-	mascot := reflectRobotArtLines()
-	if width-indent >= 50 {
-		for i, art := range mascot {
-			b.WriteString(line(ansiOrange + art + ansiReset + "  " + details[i]))
-		}
-	} else {
-		for _, art := range mascot {
-			b.WriteString(line(ansiOrange + art + ansiReset))
-		}
-		for _, detail := range details[:3] {
-			b.WriteString(line(detail))
-		}
-	}
+	b.WriteString(line(heading))
+	b.WriteString(line(ansiDim + shortenHomePath(workspace) + ansiReset))
+	b.WriteString(line(ansiDim + selection + ansiReset))
 	b.WriteString("\n")
 	if indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, ansiDim, ansiGrayDim, ansiReset, "", ""); indicators != "" {
 		b.WriteString(line(indicators))

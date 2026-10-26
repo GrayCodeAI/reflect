@@ -533,7 +533,7 @@ func (m chatModel) terminalView(content string) tea.View {
 // timeoutAt is non-zero, a visual countdown bar is shown above the options
 // so the user can see how long they have to decide before the prompt auto-dismisses.
 func renderPermissionBox(summary string, width int, timeoutAt time.Time) string {
-	title := lipgloss.NewStyle().Foreground(warnAmber).Bold(true).Render(icons.Alert() + " Permission required")
+	title := lipgloss.NewStyle().Foreground(warnAmber).Bold(true).Render("Permission request")
 	// Multi-line body: risk badge, action summary, short "why" (from FormatPermissionDisplay).
 	bodyWidth := width - 10
 	if bodyWidth < 20 {
@@ -552,13 +552,18 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 		}
 	}
 	body := lipgloss.JoinVertical(lipgloss.Left, bodyParts...)
-	options := lipgloss.NewStyle().Foreground(reflectColor).Render(strings.Join([]string{
-		"[y] allow once     [n] deny once",
-		"[s] allow this action for session",
-		"[d] deny this tool for session",
-		"[p] allow exact for project    [x] deny exact for project",
-	}, "\n"))
-	hint := lipgloss.NewStyle().Foreground(textMuted).Render("Session rules reset on exit · Project rules persist · Esc denies · 5m timeout")
+	primary := "[y] Allow once     [n] Deny"
+	secondary := "Remember this action: [s] Session  [p] Project\nBlock: [d] Tool for session  [x] Action for project"
+	if width < 60 {
+		primary = "[y] Allow once\n[n] Deny"
+		secondary = "Allow action: [s] Session  [p] Project\nBlock: [d] Tool/session  [x] Action/project"
+	}
+	options := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Render(primary),
+		lipgloss.NewStyle().Foreground(textMuted).Render(secondary),
+	)
+	hint := lipgloss.NewStyle().Foreground(textMuted).Render("Session rules end on exit · Project rules persist · Esc denies · 5m timeout")
 
 	return renderPromptCard(title, body, options, hint, warnAmber, width, timeoutAt)
 }
@@ -567,13 +572,13 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 // normal permission prompt, while making the extra high-risk checkpoint
 // visually distinct.
 func renderApprovalBox(summary string, width int, timeoutAt time.Time) string {
-	title := lipgloss.NewStyle().Foreground(errorCoral).Bold(true).Render(icons.Alert() + " High-risk approval required")
+	title := lipgloss.NewStyle().Foreground(errorCoral).Bold(true).Render("High-risk action")
 	body := renderPromptBody(summary, width)
-	options := lipgloss.NewStyle().Foreground(reflectColor).Render(strings.Join([]string{
-		"[y] approve once     [n] deny once",
-		"[s] approve category for session",
-		"[5] approve next 5 actions",
-	}, "\n"))
+	options := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Render("[y] Approve once     [n] Deny"),
+		lipgloss.NewStyle().Foreground(textMuted).Render("[s] Approve category for session\n[5] Approve next 5 actions"),
+	)
 	hint := lipgloss.NewStyle().Foreground(textMuted).Render("Esc denies · expires after 5 minutes")
 	return renderPromptCard(title, body, options, hint, errorCoral, width, timeoutAt)
 }

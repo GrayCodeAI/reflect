@@ -11,17 +11,16 @@ import (
 func TestRenderPermissionBoxKeepsApprovalActionsReadable(t *testing.T) {
 	got := renderPermissionBox("Bash [HIGH risk]\nrun git status\nWhy: execute a command", 80, time.Now().Add(time.Minute))
 	for _, want := range []string{
-		"[y] allow once     [n] deny once",
-		"[s] allow this action for session",
-		"[d] deny this tool for session",
-		"[p] allow exact for project    [x] deny exact for project",
+		"[y] Allow once     [n] Deny",
+		"Remember this action: [s] Session  [p] Project",
+		"Block: [d] Tool for session  [x] Action for project",
 		"Esc denies",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("permission card missing %q: %q", want, got)
 		}
 	}
-	if strings.Count(got, "allow once") != 1 {
+	if strings.Count(got, "Allow once") != 1 {
 		t.Fatalf("permission action should be rendered once: %q", got)
 	}
 }
@@ -40,9 +39,9 @@ func TestRenderPermissionBoxFitsNarrowTerminals(t *testing.T) {
 func TestRenderApprovalBoxKeepsKeyboardActionsReadable(t *testing.T) {
 	got := renderApprovalBox("network: curl https://example.com", 80, time.Now().Add(time.Minute))
 	for _, want := range []string{
-		"[y] approve once     [n] deny once",
-		"[s] approve category for session",
-		"[5] approve next 5 actions",
+		"[y] Approve once     [n] Deny",
+		"[s] Approve category for session",
+		"[5] Approve next 5 actions",
 		"Esc denies",
 	} {
 		if !strings.Contains(got, want) {

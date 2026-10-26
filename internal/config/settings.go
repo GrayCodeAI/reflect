@@ -115,6 +115,7 @@ type CustomProviderConfig struct {
 	BaseURL   string `json:"base_url"`
 	APIKeyEnv string `json:"api_key_env,omitempty"`
 	Model     string `json:"model,omitempty"`
+	Tools     *bool  `json:"tools,omitempty"`
 }
 
 // UnmarshalJSON accepts both Go-era snake_case keys and archive-style camelCase keys.

@@ -59,8 +59,6 @@ reflect-sec105b.log
 *.test
 
 # Agent instructions: this repo is AGENTS.md-only.
-# `gitnexus analyze` regenerates a root CLAUDE.md that would shadow AGENTS.md
-# for tools that prefer it; keep the regenerated copy out of git.
 /CLAUDE.md
 
 # Local module overlay for building against a sibling checkout (e.g. relay).

@@ -2,6 +2,8 @@ package config
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 
 	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
@@ -37,7 +39,7 @@ func customGatewayProviders(providers []CustomProviderConfig) []gateway.CustomPr
 		}
 		out = append(out, gateway.CustomProviderConfig{
 			Name: provider.Name, BaseURL: provider.BaseURL,
-			APIKeyEnv: provider.APIKeyEnv, Model: provider.Model,
+			APIKeyEnv: provider.APIKeyEnv, Model: provider.Model, Tools: provider.Tools,
 		})
 	}
 	return out
@@ -58,21 +60,67 @@ func CredentialStorageStatus(ctx context.Context) gateway.CredentialStorageRepor
 
 // EnginePreflightReport runs preflight against the default gateway.
 func EnginePreflightReport(ctx context.Context) EnginePreflight {
-	return gateway.PreflightWithProviders(ctx, nil, EnginePreflightOptions{})
+	return codingPreflight(ctx, nil, EnginePreflightOptions{})
 }
 
 // EnginePreflightReportWithOptions runs preflight against the default
 // gateway with explicit options. Kept for callers that need VerifyLive
 // or other non-default preflight checks.
 func EnginePreflightReportWithOptions(ctx context.Context, opts EnginePreflightOptions) EnginePreflight {
-	return gateway.PreflightWithProviders(ctx, nil, opts)
+	return codingPreflight(ctx, nil, opts)
 }
 
 // EnginePreflightReportWithSettings runs preflight against one invocation's
 // effective settings (including its custom gateways). The settings' provider
 // list is converted to the gateway spec at this boundary.
 func EnginePreflightReportWithSettings(ctx context.Context, settings Settings, opts EnginePreflightOptions) EnginePreflight {
-	return gateway.PreflightWithProviders(ctx, gatewayCustomGateways(settings.CustomProviders), opts)
+	return codingPreflight(ctx, gatewayCustomGateways(settings.CustomProviders), opts)
+}
+
+// codingPreflight keeps Reflect's tool requirement compatible with the Relay
+// revision pinned in go.mod until the new Relay host option is published.
+func codingPreflight(ctx context.Context, providers []gateway.CustomProviderConfig, opts EnginePreflightOptions) EnginePreflight {
+	_ = json.Unmarshal([]byte(`{"require_tools":true}`), &opts)
+	report := gateway.PreflightWithProviders(ctx, providers, opts)
+	for _, check := range report.Checks {
+		if check.Name == "model_tools" {
+			return report
+		}
+	}
+	if !report.Ready {
+		return report
+	}
+	eng, err := gateway.New(ctx, providers)
+	if err != nil {
+		return appendUnknownCodingTools(report, "selected model")
+	}
+	selection := eng.ActiveSelection(ctx)
+	models, err := eng.ListModels(ctx, selection.Provider, false)
+	if err != nil {
+		return appendUnknownCodingTools(report, selection.Model)
+	}
+	return appendCodingToolsFallback(report, selection.Model, models)
+}
+
+func appendCodingToolsFallback(report EnginePreflight, modelID string, models []EngineModel) EnginePreflight {
+	toolsKnown := false
+	for _, model := range models {
+		if model.ID == modelID || model.CanonicalID == modelID {
+			toolsKnown = slices.Contains(model.Capabilities, "tools")
+			break
+		}
+	}
+	if toolsKnown {
+		report.Checks = append(report.Checks, gateway.PreflightCheck{Name: "model_tools", Status: gateway.CheckOK, Detail: modelID + " supports coding tools"})
+		return report
+	}
+	return appendUnknownCodingTools(report, modelID)
+}
+
+func appendUnknownCodingTools(report EnginePreflight, modelID string) EnginePreflight {
+	report.Ready = false
+	report.Checks = append(report.Checks, gateway.PreflightCheck{Name: "model_tools", Status: gateway.CheckFail, Detail: modelID + " tool support is unknown; refresh the catalog or choose a verified model"})
+	return report
 }
 
 func FormatEnginePreflight(report EnginePreflight) string {

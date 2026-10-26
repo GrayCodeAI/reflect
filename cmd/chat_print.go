@@ -76,7 +76,7 @@ func runPrint(text string) error {
 	var printed strings.Builder
 	var countdownShown bool
 	var lastUsage *engine.StreamUsage
-	turns := 0
+	turns := 1 // One print invocation is one user turn, even if usage arrives in parts.
 	started := time.Now()
 	for ev := range ch {
 		switch ev.Type {
@@ -114,8 +114,7 @@ func runPrint(text string) error {
 			}
 		case "usage":
 			if ev.Usage != nil {
-				lastUsage = ev.Usage
-				turns++
+				lastUsage = mergePrintUsage(lastUsage, ev.Usage)
 			}
 			if outputFormat == "stream-json" && ev.Usage != nil {
 				writePrintUsageEvent(sessionID, ev.Usage)
@@ -128,7 +127,7 @@ func runPrint(text string) error {
 		case "done":
 			switch outputFormat {
 			case "text":
-				printTextResponse(printed.String())
+				finishPrintTextResponse(printed.String())
 				printTextUsageFooter(lastUsage, started, turns, effectiveModel)
 			case "transcript":
 				printTranscript(sessionID, effectiveModel, printed.String(), lastUsage, started, turns)
@@ -148,7 +147,7 @@ func runPrint(text string) error {
 	}
 	switch outputFormat {
 	case "text":
-		printTextResponse(printed.String())
+		finishPrintTextResponse(printed.String())
 		printTextUsageFooter(lastUsage, started, turns, effectiveModel)
 	case "json":
 		writePrintResult(printed.String(), sessionID, sess, false, nil)
@@ -159,6 +158,40 @@ func runPrint(text string) error {
 		saveRelaySession(sessionID, sess)
 	}
 	return nil
+}
+
+// Anthropic streams input and output usage in separate events. The footer and
+// transcript show the total for this invocation, not only the last event.
+func mergePrintUsage(total, next *engine.StreamUsage) *engine.StreamUsage {
+	if next == nil {
+		return total
+	}
+	if total == nil {
+		total = &engine.StreamUsage{}
+	}
+	total.PromptTokens += next.PromptTokens
+	total.CompletionTokens += next.CompletionTokens
+	total.CacheReadTokens += next.CacheReadTokens
+	total.CacheWriteTokens += next.CacheWriteTokens
+	if next.Provider != "" {
+		total.Provider = next.Provider
+	}
+	if next.Model != "" {
+		total.Model = next.Model
+	}
+	return total
+}
+
+// Plain text has already been streamed to stdout; only a trailing newline may
+// be needed. Markdown mode buffers content so it can be rendered once here.
+func finishPrintTextResponse(response string) {
+	if printMarkdown {
+		printTextResponse(response)
+		return
+	}
+	if !strings.HasSuffix(response, "\n") {
+		fmt.Println()
+	}
 }
 
 func writePrintUsageEvent(sessionID string, usage *engine.StreamUsage) {

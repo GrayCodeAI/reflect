@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewRelayEngineForSettingsIsInvocationScoped(t *testing.T) {
+	tools := true
 	previousStore := gateway.DefaultStore()
 	store := &gateway.MapStore{}
 	gateway.SetDefaultStore(store)
@@ -15,7 +16,7 @@ func TestNewRelayEngineForSettingsIsInvocationScoped(t *testing.T) {
 
 	settings := Settings{CustomProviders: []CustomProviderConfig{{
 		Name: "private-gateway", BaseURL: "https://private.example.test/v1",
-		APIKeyEnv: "PRIVATE_GATEWAY_API_KEY", Model: "private/model-v1",
+		APIKeyEnv: "PRIVATE_GATEWAY_API_KEY", Model: "private/model-v1", Tools: &tools,
 	}}}
 	engine, err := NewRelayEngineForSettings(settings)
 	if err != nil {
@@ -35,6 +36,9 @@ func TestNewRelayEngineForSettingsIsInvocationScoped(t *testing.T) {
 	models, err := ListEngineModelsWithSettings(ctx, settings, "private-gateway", false)
 	if err != nil || len(models) != 1 || models[0].ID != "private/model-v1" || models[0].GatewayID != "private_gateway" {
 		t.Fatalf("custom model surface = %+v, err=%v", models, err)
+	}
+	if len(models[0].Capabilities) != 1 || models[0].Capabilities[0] != "tools" {
+		t.Fatalf("custom tool capability was not passed to Relay: %+v", models[0].Capabilities)
 	}
 	if setErr := store.Set(ctx, gateway.AccountForEnv("PRIVATE_GATEWAY_API_KEY"), "private-live-secret-1234567890"); setErr != nil {
 		t.Fatal(setErr)
@@ -61,5 +65,18 @@ func TestNewRelayEngineForSettingsIsInvocationScoped(t *testing.T) {
 		if gateway.ID == "private_gateway" {
 			t.Fatal("custom gateway leaked into another settings-scoped engine")
 		}
+	}
+}
+
+func TestCodingPreflightFallbackDoesNotClaimUnknownTools(t *testing.T) {
+	model := EngineModel{ID: "openai/model", Capabilities: nil}
+	report := appendCodingToolsFallback(EnginePreflight{Ready: true}, model.ID, []EngineModel{model})
+	if report.Ready || len(report.Checks) != 1 || report.Checks[0].Name != "model_tools" || report.Checks[0].Status != gateway.CheckFail {
+		t.Fatalf("unknown tool support was reported ready: %+v", report)
+	}
+	model.Capabilities = []string{"tools"}
+	report = appendCodingToolsFallback(EnginePreflight{Ready: true}, model.ID, []EngineModel{model})
+	if !report.Ready || len(report.Checks) != 1 || report.Checks[0].Status != gateway.CheckOK {
+		t.Fatalf("known tool support was rejected: %+v", report)
 	}
 }
