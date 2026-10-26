@@ -55,16 +55,30 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	if err := os.WriteFile(record, []byte(recordScript), 0700); err != nil {
 		t.Fatal(err)
 	}
+	recall := filepath.Join(binDir, "recall")
+	if err := os.WriteFile(recall, []byte("#!/bin/sh\nif [ \"$1\" = list ]; then echo '[]'; else echo '{\"id\":\"memory123\"}'; fi\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	rally := filepath.Join(binDir, "rally")
+	if err := os.WriteFile(rally, []byte("#!/bin/sh\necho '{}'\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
 	oldRepo, oldVerify, oldAuto, oldModel := workRepo, workVerify, workAuto, workModel
 	oldResolve, oldRecord, oldAgent := workResolveBin, workRecordBin, workAgentJSON
+	oldRecall, oldRally, oldRequest := workRecallBin, workRallyBin, workRequest
+	oldRecallStore, oldRallyData := workRecallStore, workRallyData
 	oldOpenPR, oldPRBase := workOpenPR, workPRBase
 	t.Cleanup(func() {
 		workRepo, workVerify, workAuto, workModel = oldRepo, oldVerify, oldAuto, oldModel
 		workResolveBin, workRecordBin, workAgentJSON = oldResolve, oldRecord, oldAgent
+		workRecallBin, workRallyBin, workRequest = oldRecall, oldRally, oldRequest
+		workRecallStore, workRallyData = oldRecallStore, oldRallyData
 		workOpenPR, workPRBase = oldOpenPR, oldPRBase
 	})
 	workRepo, workVerify, workAuto, workModel = repo, "test -f change.txt", "semi", ""
 	workResolveBin, workRecordBin = resolve, record
+	workRecallBin, workRallyBin, workRequest = recall, rally, ""
+	workRecallStore, workRallyData = "", ""
 	workOpenPR, workPRBase = false, ""
 	workAgentJSON = func(_ context.Context, _ string, args []string, dst any) error {
 		var worktree string
@@ -161,5 +175,98 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	}
 	if strings.Count(string(logs), "comment\n") != 1 || strings.Count(string(logs), "status\n") != 1 {
 		t.Fatalf("failed verification advanced Resolve: %q", logs)
+	}
+}
+
+// Run with GRAYCODE_E2E_BIN_DIR pointing to real Resolve, Record, Recall and
+// Rally binaries. The model call is stubbed; all local product CLIs are real.
+func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
+	binDir := os.Getenv("GRAYCODE_E2E_BIN_DIR")
+	if binDir == "" {
+		t.Skip("set GRAYCODE_E2E_BIN_DIR to run the local product integration")
+	}
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test"}} {
+		if _, err := workGit(repo, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"add", "README.md"}, {"commit", "-m", "base"}} {
+		if _, err := workGit(repo, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Cleanup(func() {
+		listing, _ := workGit(repo, "worktree", "list", "--porcelain")
+		for _, line := range strings.Split(listing, "\n") {
+			if strings.HasPrefix(line, "worktree ") {
+				path := strings.TrimPrefix(line, "worktree ")
+				if path != repo {
+					_, _ = workGit(repo, "worktree", "remove", "--force", path)
+				}
+			}
+		}
+	})
+	oldRepo, oldVerify, oldAuto, oldModel := workRepo, workVerify, workAuto, workModel
+	oldResolve, oldRecord, oldRecall, oldRally := workResolveBin, workRecordBin, workRecallBin, workRallyBin
+	oldRecallStore, oldRallyData, oldRequest := workRecallStore, workRallyData, workRequest
+	oldOpenPR, oldPRBase, oldAgent := workOpenPR, workPRBase, workAgentJSON
+	t.Cleanup(func() {
+		workRepo, workVerify, workAuto, workModel = oldRepo, oldVerify, oldAuto, oldModel
+		workResolveBin, workRecordBin, workRecallBin, workRallyBin = oldResolve, oldRecord, oldRecall, oldRally
+		workRecallStore, workRallyData, workRequest = oldRecallStore, oldRallyData, oldRequest
+		workOpenPR, workPRBase, workAgentJSON = oldOpenPR, oldPRBase, oldAgent
+	})
+	workRepo, workVerify, workAuto, workModel = repo, "test -f change.txt", "semi", ""
+	workResolveBin, workRecordBin = filepath.Join(binDir, "resolve"), filepath.Join(binDir, "record")
+	workRecallBin, workRallyBin = filepath.Join(binDir, "recall"), filepath.Join(binDir, "rally")
+	workRecallStore, workRallyData = t.TempDir(), t.TempDir()
+	workRequest, workOpenPR, workPRBase = "Build a small verified change\nCreate change.txt", false, ""
+	workAgentJSON = func(_ context.Context, _ string, args []string, dst any) error {
+		for i := range args {
+			if args[i] == "--cwd" && i+1 < len(args) {
+				if err := os.WriteFile(filepath.Join(args[i+1], "change.txt"), []byte("built\n"), 0600); err != nil {
+					return err
+				}
+				*dst.(*ExecResult) = ExecResult{SessionID: "exec-e2e", ExitCode: 0}
+				return nil
+			}
+		}
+		return fmt.Errorf("missing worktree argument")
+	}
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	if err := runWork(cmd, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Ready for review") {
+		t.Fatal(out.String())
+	}
+	var tickets []workTicket
+	if err := workJSON(context.Background(), workResolveBin, []string{"list", "--repo", repo}, &tickets); err != nil {
+		t.Fatal(err)
+	}
+	if len(tickets) != 1 || tickets[0].Status != "in_review" {
+		t.Fatalf("Resolve items: %+v", tickets)
+	}
+	var memories []workMemory
+	if err := workJSON(context.Background(), workRecallBin, []string{"list", "--store", workRecallStore, "--scope", filepath.Base(repo)}, &memories); err != nil {
+		t.Fatal(err)
+	}
+	if len(memories) != 1 || !strings.HasPrefix(memories[0].Sources[0], "checkpoint:") {
+		t.Fatalf("Recall records: %+v", memories)
+	}
+	if !strings.Contains(out.String(), "Checkpoint: ") || !strings.Contains(out.String(), "Memory: ") {
+		t.Fatal(out.String())
+	}
+	files, err := filepath.Glob(filepath.Join(workRallyData, "messages", "*.json"))
+	if err != nil || len(files) != 2 {
+		t.Fatalf("Rally messages: %v, %v", files, err)
 	}
 }

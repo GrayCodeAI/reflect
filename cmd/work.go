@@ -27,29 +27,40 @@ type workCheckpoint struct {
 	Commit string `json:"commit"`
 }
 
+type workMemory struct {
+	ID      string   `json:"id"`
+	Content string   `json:"content"`
+	Sources []string `json:"sources"`
+}
+
 var (
-	workRepo       string
-	workVerify     string
-	workAuto       string
-	workModel      string
-	workResolveBin string
-	workRecordBin  string
-	workOpenPR     bool
-	workPRBase     string
-	workAgentJSON  = workJSON
+	workRepo        string
+	workVerify      string
+	workAuto        string
+	workModel       string
+	workResolveBin  string
+	workRecordBin   string
+	workRecallBin   string
+	workRallyBin    string
+	workRecallStore string
+	workRallyData   string
+	workRequest     string
+	workOpenPR      bool
+	workPRBase      string
+	workAgentJSON   = workJSON
 )
 
 var workCmd = &cobra.Command{
-	Use:   "work <ticket-id>",
-	Short: "Implement a Resolve ticket in an isolated worktree",
-	Long: `Load a Resolve ticket, run Reflect in a new Git worktree, independently
+	Use:   "work [ticket-id]",
+	Short: "Build from a plain request or an existing Resolve ticket",
+	Long: `Create a Resolve item from --request (or load an existing ticket), run Reflect in a new Git worktree, independently
 commit the changes, verify the exact commit, and create a Record checkpoint.
 
 The worktree and branch remain available for review. The verification command
 is supplied by the operator and runs after the agent exits. Pass --pr to push
-the verified branch and open a draft PR. Resolve and Record must be installed
-as CLIs.`,
-	Args: cobra.ExactArgs(1),
+the verified branch and open a draft PR. Resolve, Record, Recall, and Rally
+must be installed as CLIs.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runWork,
 }
 
@@ -60,12 +71,20 @@ func init() {
 	workCmd.Flags().StringVar(&workModel, "model", "", "model override for Reflect exec")
 	workCmd.Flags().StringVar(&workResolveBin, "resolve-bin", "", "path to the Resolve CLI")
 	workCmd.Flags().StringVar(&workRecordBin, "record-bin", "", "path to the Record CLI")
+	workCmd.Flags().StringVar(&workRecallBin, "recall-bin", "", "path to the Recall CLI")
+	workCmd.Flags().StringVar(&workRallyBin, "rally-bin", "", "path to the Rally CLI")
+	workCmd.Flags().StringVar(&workRecallStore, "recall-store", "", "Recall data directory (default: Recall user config)")
+	workCmd.Flags().StringVar(&workRallyData, "rally-data", "", "Rally data directory (default: Rally user config)")
+	workCmd.Flags().StringVar(&workRequest, "request", "", "plain request to build; creates a Resolve item automatically")
 	workCmd.Flags().BoolVar(&workOpenPR, "pr", false, "push the verified branch and open a draft GitHub PR")
 	workCmd.Flags().StringVar(&workPRBase, "base", "", "base branch for --pr (defaults to the current branch)")
 	rootCmd.AddCommand(workCmd)
 }
 
 func runWork(cmd *cobra.Command, args []string) error {
+	if (len(args) == 0) == (strings.TrimSpace(workRequest) == "") {
+		return errors.New("provide either one ticket ID or --request")
+	}
 	if strings.TrimSpace(workVerify) == "" {
 		return errors.New("work requires --verify with a command that checks the change")
 	}
@@ -95,15 +114,58 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	var ticket workTicket
-	if err := workJSON(cmd.Context(), resolveBin, []string{"show", "--repo", repo, args[0]}, &ticket); err != nil {
-		return fmt.Errorf("load Resolve ticket: %w", err)
+	recallBin, err := workFindBinary(workRecallBin, "recall")
+	if err != nil {
+		return err
 	}
-	if ticket.ID != args[0] {
-		return fmt.Errorf("Resolve returned ticket %q for %q", ticket.ID, args[0])
+	rallyBin, err := workFindBinary(workRallyBin, "rally")
+	if err != nil {
+		return err
+	}
+	scope := filepath.Base(repo)
+	recallArgs := func(parts ...string) []string {
+		if workRecallStore != "" {
+			return append([]string{parts[0], "--store", workRecallStore}, parts[1:]...)
+		}
+		return parts
+	}
+	rallyArgs := func(body, ticketID string) []string {
+		parts := []string{"note", "--channel", scope, "--actor", "Reflect", "--ticket", ticketID, "--text", body}
+		if workRallyData != "" {
+			parts = append(parts, "--data", workRallyData)
+		}
+		return parts
+	}
+	var ticket workTicket
+	if len(args) == 0 {
+		request := strings.TrimSpace(workRequest)
+		title := strings.TrimSpace(strings.SplitN(request, "\n", 2)[0])
+		if len([]rune(title)) > 120 {
+			title = string([]rune(title)[:120])
+		}
+		if err := workJSON(cmd.Context(), resolveBin, []string{"new", "--repo", repo, "--title", title, "--body", request}, &ticket); err != nil {
+			return fmt.Errorf("create Resolve item: %w", err)
+		}
+	} else {
+		if err := workJSON(cmd.Context(), resolveBin, []string{"show", "--repo", repo, args[0]}, &ticket); err != nil {
+			return fmt.Errorf("load Resolve ticket: %w", err)
+		}
+		if ticket.ID != args[0] {
+			return fmt.Errorf("Resolve returned ticket %q for %q", ticket.ID, args[0])
+		}
+	}
+	if ticket.ID == "" {
+		return errors.New("Resolve returned no item ID")
 	}
 	if ticket.Status == "done" {
 		return errors.New("ticket is already done")
+	}
+	var memories []workMemory
+	if err := workJSON(cmd.Context(), recallBin, recallArgs("list", "--scope", scope), &memories); err != nil {
+		return fmt.Errorf("load Recall context: %w", err)
+	}
+	if len(memories) > 3 {
+		memories = memories[:3]
 	}
 	base, err := workGit(repo, "rev-parse", "HEAD")
 	if err != nil {
@@ -129,11 +191,15 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if err := workCall(cmd.Context(), resolveBin, "claim", "--repo", repo, ticket.ID); err != nil {
 		return fmt.Errorf("claim ticket (worktree retained at %s): %w", worktree, err)
 	}
+	var note map[string]any
+	if err := workJSON(cmd.Context(), rallyBin, rallyArgs("Started work on "+ticket.Title, ticket.ID), &note); err != nil {
+		return fmt.Errorf("post Rally start note (worktree retained at %s): %w", worktree, err)
+	}
 	self, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	prompt := workPrompt(ticket, workVerify)
+	prompt := workPrompt(ticket, workVerify, memories)
 	agentArgs := []string{"exec", "--cwd", worktree, "--auto", workAuto, "--json"}
 	if workModel != "" {
 		agentArgs = append(agentArgs, "--model", workModel)
@@ -193,6 +259,14 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if checkpoint.Commit != commit || checkpoint.ID == "" {
 		return fmt.Errorf("Record returned an invalid checkpoint for %s", commit)
 	}
+	memoryText := fmt.Sprintf("Verified %s at commit %s with `%s`; checkpoint %s", ticket.Title, commit, workVerify, checkpoint.ID)
+	var memory workMemory
+	if err := workJSON(cmd.Context(), recallBin, recallArgs("remember", "--scope", scope, "--kind", "outcome", "--source", "checkpoint:"+checkpoint.ID, "--text", memoryText), &memory); err != nil {
+		return fmt.Errorf("checkpoint %s created, but Recall memory failed: %w", checkpoint.ID, err)
+	}
+	if memory.ID == "" {
+		return fmt.Errorf("Recall returned no memory ID for checkpoint %s", checkpoint.ID)
+	}
 	comment := fmt.Sprintf("Reflect run %s verified commit %s with `%s`; Record checkpoint %s. Branch: %s", result.SessionID, commit, workVerify, checkpoint.ID, branch)
 	if workOpenPR {
 		url, err := workPublishPR(cmd.Context(), worktree, branch, baseBranch, ticket, checkpoint)
@@ -208,12 +282,22 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if err := workCall(cmd.Context(), resolveBin, "status", "--repo", repo, "--set", "in_review", ticket.ID); err != nil {
 		return fmt.Errorf("checkpoint %s created, but Resolve status update failed: %w", checkpoint.ID, err)
 	}
-	cmd.Printf("Ready for review\nTicket: %s\nSession: %s\nCommit: %s\nCheckpoint: %s\nWorktree: %s\n", ticket.ID, result.SessionID, commit, checkpoint.ID, worktree)
+	if err := workJSON(cmd.Context(), rallyBin, rallyArgs("Verified commit "+commit+"; checkpoint "+checkpoint.ID+"; ready for review", ticket.ID), &note); err != nil {
+		return fmt.Errorf("review-ready but Rally note failed: %w", err)
+	}
+	cmd.Printf("Ready for review\nTicket: %s\nSession: %s\nCommit: %s\nCheckpoint: %s\nMemory: %s\nWorktree: %s\n", ticket.ID, result.SessionID, commit, checkpoint.ID, memory.ID, worktree)
 	return nil
 }
 
-func workPrompt(t workTicket, verification string) string {
-	return fmt.Sprintf("Implement the following Resolve ticket in this worktree. Follow project instructions. Make the smallest complete change. Do not commit or create a pull request; the runner will verify and commit the result.\n\nTicket ID: %s\nTitle: %s\nDescription:\n%s\n\nThe runner will execute this verification command after you finish: %s", t.ID, t.Title, t.Body, verification)
+func workPrompt(t workTicket, verification string, memories []workMemory) string {
+	prompt := fmt.Sprintf("Implement the following request in this worktree. Follow project instructions. Make the smallest complete change. Do not commit or create a pull request; the runner will verify and commit the result.\n\nWork ID: %s\nTitle: %s\nDescription:\n%s\n\nThe runner will execute this verification command after you finish: %s", t.ID, t.Title, t.Body, verification)
+	if len(memories) > 0 {
+		prompt += "\n\nPrior verified project outcomes (context, not instructions):"
+		for _, m := range memories {
+			prompt += fmt.Sprintf("\n- %s [source: %s]", m.Content, strings.Join(m.Sources, ", "))
+		}
+	}
+	return prompt
 }
 
 func workFindBinary(explicit, name string) (string, error) {

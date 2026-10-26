@@ -107,25 +107,28 @@ checklist: credentials → model → catalog → ecosystem.
 See [docs/SECURITY-DEVELOPER.md](docs/SECURITY-DEVELOPER.md) for the credential model.
 Do not put API keys in shell env or `.env` for reflect.
 
-### Work from a Resolve ticket
+### Build from a request
 
-Build the sibling CLIs once, then run the workflow against a Git repository
-that contains a Resolve ticket:
+Build the sibling CLIs once, then run the workflow against a clean Git repository:
 
 ```bash
 (cd ../resolve && go build -o resolve ./cmd/resolve)
 (cd ../record && go build -o record ./cmd/record)
-./reflect work <ticket-id> --repo /path/to/project \
+(cd ../recall && go build -o recall ./cmd/recall)
+(cd ../rally && go build -o rally ./cmd/rally)
+./reflect work --request 'Build the requested feature' --repo /path/to/project \
   --resolve-bin ../resolve/resolve --record-bin ../record/record \
+  --recall-bin ../recall/recall --rally-bin ../rally/rally \
   --verify 'go test ./...'
 ```
 
-`reflect work` creates a new branch and worktree, asks Reflect to implement the
-ticket through Relay, commits the agent's staged changes, reruns the supplied
-verification command against that commit, and creates a Record checkpoint. It
-then moves the Resolve ticket to `in_review` and prints the worktree and
-checkpoint IDs. Failed runs keep the worktree for inspection and leave the
-ticket in progress. Add `--pr` to push the verified branch to `origin` and
+`reflect work` creates a Resolve work item automatically, reads Recall context,
+creates a branch and worktree, and asks Reflect to implement the request through
+Relay. It verifies the resulting commit, creates a Record checkpoint, stores
+a sourced Recall outcome, and posts Rally updates. The item moves to
+`in_review`; the output prints the worktree, checkpoint, and memory IDs. You
+can also pass an existing Resolve ID instead of `--request`. Failed runs keep
+the worktree for inspection. Add `--pr` to push the verified branch to `origin` and
 open a draft GitHub PR through `gh`; without it, the work stays local.
 
 The default `--auto semi` allows file edits but denies unattended shell tool

@@ -1,38 +1,44 @@
-# Resolve → Reflect → Record
+# Request → Resolve → Recall → Reflect/Relay → Record → Rally
 
-`reflect work` is the first local GrayCode factory path. Resolve owns the
-ticket, Reflect owns the coding run, Relay supplies the model, and Record owns
-the immutable checkpoint linked to the resulting commit.
+`reflect work` accepts a plain request. It creates a Resolve work item for
+tracking, reads project context from Recall, runs the coding agent through
+Relay, verifies the result, records a checkpoint, saves a sourced outcome in
+Recall, and posts progress to Rally. You can also pass an existing Resolve ID.
 
-## Run a ticket
+## Build from a request
 
-From a Reflect source checkout with sibling Resolve and Record checkouts:
+From a Reflect source checkout with sibling product checkouts:
 
 ```bash
 go build -modfile=go.local.mod -o reflect ./cmd/reflect
 (cd ../resolve && go build -o resolve ./cmd/resolve)
 (cd ../record && go build -o record ./cmd/record)
-./reflect work <ticket-id> --repo /path/to/project \
+(cd ../recall && go build -o recall ./cmd/recall)
+(cd ../rally && go build -o rally ./cmd/rally)
+./reflect work --request 'Build the requested feature' --repo /path/to/project \
   --resolve-bin ../resolve/resolve --record-bin ../record/record \
+  --recall-bin ../recall/recall --rally-bin ../rally/rally \
   --verify 'go test ./...'
 ```
 
-Create a ticket in the project first with `resolve new --repo /path/to/project
---title '...' --body '...'`. The target repository must have a clean working
-tree and a valid Git commit. The verification command is supplied explicitly;
-Resolve's current ticket schema does not yet have a verification field.
+The target repository must have a clean working tree and a valid Git commit.
+The verification command is supplied explicitly. A Resolve item is created
+automatically to correlate the run; no ticket setup is needed. To use an
+existing item, replace `--request '...'` with its ID. The default Recall and
+Rally stores are under the user's config directory; use `--recall-store` and
+`--rally-data` to select other local stores.
 
 The work command creates a branch named `reflect/<ticket-id>-<suffix>` and a
 separate worktree under the repository parent's `.reflect-worktrees` directory.
-It claims the ticket, invokes `reflect exec --json` in that
+It claims the work item, posts a Rally start note, invokes `reflect exec --json` in that
 worktree, stages and commits the agent's changes, then runs the verification
 command against that exact commit. It requires a clean worktree after the check
-and creates a Record checkpoint with the Reflect
-session ID and verification result, then comments on the Resolve ticket and
-moves it to `in_review`.
+and creates a Record checkpoint with the Reflect session ID and verification
+result. A Recall outcome cites that checkpoint. Reflect then comments on the
+Resolve item, moves it to `in_review`, and posts a final Rally note.
 
 The branch and worktree remain available for inspection. The output includes
-their paths, the exact commit, and the checkpoint ID. The default leaves all
+their paths, the exact commit, the checkpoint ID, and the memory ID. The default leaves all
 work local. Pass `--pr` to push the branch to `origin` and open a draft GitHub
 PR through `gh`; `--base` selects the target branch when it differs from the
 branch where the ticket run started. Review and merge remain manual.
