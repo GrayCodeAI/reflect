@@ -284,7 +284,7 @@ func validateUsage(body map[string]any) error {
 			[]string{"sessionId", "provider", "model", "inputTokens", "outputTokens", "cachedInputTokens", "reasoningTokens", "tokensSaved", "estimatedCostMicros", "durationMs", "status", "errorCode"},
 		),
 		f.opaque("eventId"), f.opaque("deviceId"), f.opaque("projectId"), f.opaque("sessionId"),
-		f.enum("capability", "reflect", "graycode"),
+		f.enum("capability", "reflect", "rho", "graycode"),
 		f.str("provider", 0, 100, false), f.str("model", 0, 100, false), f.str("errorCode", 0, 100, false),
 		f.integer("tokensUsed", 0, 10_000_000),
 		f.integer("durationMs", 0, 86_400_000),
