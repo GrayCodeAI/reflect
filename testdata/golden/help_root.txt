@@ -8,6 +8,7 @@ Quick orientation:
   reflect                     Start interactive TUI
   reflect -p "prompt"         One-shot: send prompt, print response, exit
   reflect exec "task"         Autonomous multi-turn execution
+  reflect work <ticket-id>    Implement a Resolve ticket with verification
   reflect path                Check environment readiness
   reflect doctor              Run diagnostics
   reflect config              Manage settings and credentials
@@ -48,6 +49,7 @@ Workflow:
   resume      Restore a named session checkpoint and resume it
   review      Continuous AI code review on commits
   verify      Run local self-verification (security log, governance policy)
+  work        Build from a plain request or an existing Resolve ticket
 
 Context & memory:
   context     Export project context as a single document for use in any LLM

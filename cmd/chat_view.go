@@ -558,7 +558,8 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 		primary = "[y] Allow once\n[n] Deny"
 		secondary = "Allow action: [s] Session  [p] Project\nBlock: [d] Tool/session  [x] Action/project"
 	}
-	options := lipgloss.JoinVertical(lipgloss.Left,
+	options := lipgloss.JoinVertical(
+		lipgloss.Left,
 		lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Render(primary),
 		lipgloss.NewStyle().Foreground(textMuted).Render(secondary),
 	)
@@ -573,7 +574,8 @@ func renderPermissionBox(summary string, width int, timeoutAt time.Time) string 
 func renderApprovalBox(summary string, width int, timeoutAt time.Time) string {
 	title := lipgloss.NewStyle().Foreground(errorCoral).Bold(true).Render("High-risk action")
 	body := renderPromptBody(summary, width)
-	options := lipgloss.JoinVertical(lipgloss.Left,
+	options := lipgloss.JoinVertical(
+		lipgloss.Left,
 		lipgloss.NewStyle().Foreground(reflectColor).Bold(true).Render("[y] Approve once     [n] Deny"),
 		lipgloss.NewStyle().Foreground(textMuted).Render("[s] Approve category for session\n[5] Approve next 5 actions"),
 	)

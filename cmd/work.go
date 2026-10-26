@@ -197,7 +197,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	suffix := randomHex(3)
 	branch := "reflect/" + ticket.ID + "-" + suffix
 	worktree := filepath.Join(filepath.Dir(repo), ".reflect-worktrees", filepath.Base(repo), ticket.ID+"-"+suffix)
-	if err := os.MkdirAll(filepath.Dir(worktree), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(worktree), 0o700); err != nil {
 		return err
 	}
 	if _, err := workGit(repo, "worktree", "add", "-b", branch, worktree, base); err != nil {
@@ -435,8 +435,10 @@ func workPublishPR(ctx context.Context, worktree, branch, baseBranch string, tic
 	if _, err := workGit(worktree, "push", "-u", "origin", branch); err != nil {
 		return "", err
 	}
-	args := []string{"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
-		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit)}
+	args := []string{
+		"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
+		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit),
+	}
 	c := exec.CommandContext(ctx, "gh", args...)
 	c.Dir = worktree
 	out, err := c.CombinedOutput()

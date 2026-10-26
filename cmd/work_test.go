@@ -23,7 +23,7 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{{"add", "README.md"}, {"commit", "-m", "base"}} {
@@ -47,20 +47,20 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	resolveLog := filepath.Join(binDir, "resolve.log")
 	resolve := filepath.Join(binDir, "resolve")
 	resolveScript := fmt.Sprintf("#!/bin/sh\necho \"$1\" >> %q\nif [ \"$1\" = show ]; then printf '{\"id\":\"abc123\",\"title\":\"Fix onboarding\",\"body\":\"Make setup clear\",\"status\":\"open\"}\\n'; else printf '{}\\n'; fi\n", resolveLog)
-	if err := os.WriteFile(resolve, []byte(resolveScript), 0700); err != nil {
+	if err := os.WriteFile(resolve, []byte(resolveScript), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	record := filepath.Join(binDir, "record")
 	recordScript := "#!/bin/sh\nshift\nwhile [ $# -gt 0 ]; do if [ \"$1\" = --repo ]; then shift; repo=$1; break; fi; shift; done\ncommit=$(git -C \"$repo\" rev-parse HEAD)\nprintf '{\"id\":\"checkpoint123\",\"commit\":\"%s\"}\\n' \"$commit\"\n"
-	if err := os.WriteFile(record, []byte(recordScript), 0700); err != nil {
+	if err := os.WriteFile(record, []byte(recordScript), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	recall := filepath.Join(binDir, "recall")
-	if err := os.WriteFile(recall, []byte("#!/bin/sh\nif [ \"$1\" = list ]; then echo '[]'; else echo '{\"id\":\"memory123\"}'; fi\n"), 0700); err != nil {
+	if err := os.WriteFile(recall, []byte("#!/bin/sh\nif [ \"$1\" = list ]; then echo '[]'; else echo '{\"id\":\"memory123\"}'; fi\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	rally := filepath.Join(binDir, "rally")
-	if err := os.WriteFile(rally, []byte("#!/bin/sh\necho '{}'\n"), 0700); err != nil {
+	if err := os.WriteFile(rally, []byte("#!/bin/sh\necho '{}'\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	oldRepo, oldVerify, oldAuto, oldModel := workRepo, workVerify, workAuto, workModel
@@ -93,7 +93,7 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 		if worktree == "" {
 			return fmt.Errorf("missing worktree")
 		}
-		if err := os.WriteFile(filepath.Join(worktree, "change.txt"), []byte("fixed\n"), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(worktree, "change.txt"), []byte("fixed\n"), 0o600); err != nil {
 			return err
 		}
 		*dst.(*ExecResult) = ExecResult{SessionID: "exec-test", ExitCode: 0}
@@ -149,7 +149,7 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	}
 	gh := filepath.Join(binDir, "gh")
 	ghLog := filepath.Join(binDir, "gh.log")
-	if err := os.WriteFile(gh, []byte(fmt.Sprintf("#!/bin/sh\necho \"$*\" > %q\necho https://github.com/example/project/pull/1\n", ghLog)), 0700); err != nil {
+	if err := os.WriteFile(gh, []byte(fmt.Sprintf("#!/bin/sh\necho \"$*\" > %q\necho https://github.com/example/project/pull/1\n", ghLog)), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -184,14 +184,20 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 // Run with GRAYCODE_E2E_BIN_DIR pointing to real Resolve, Record, Recall and
 // Rally binaries. The model call is stubbed; all local product CLIs are real.
 func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
-	testWorkRealProductCLIs(t, false)
+	out := testWorkRealProductCLIs(t, false)
+	if !strings.Contains(out, "Ready for review") {
+		t.Fatalf("work output missing review handoff: %s", out)
+	}
 }
 
 func TestWorkRivetIntegration(t *testing.T) {
-	testWorkRealProductCLIs(t, true)
+	out := testWorkRealProductCLIs(t, true)
+	if !strings.Contains(out, "Verification log: ") {
+		t.Fatalf("Rivet verification log missing from output: %s", out)
+	}
 }
 
-func testWorkRealProductCLIs(t *testing.T, withRivet bool) {
+func testWorkRealProductCLIs(t *testing.T, withRivet bool) string {
 	binDir := os.Getenv("GRAYCODE_E2E_BIN_DIR")
 	if binDir == "" {
 		t.Skip("set GRAYCODE_E2E_BIN_DIR to run the local product integration")
@@ -208,16 +214,16 @@ func testWorkRealProductCLIs(t *testing.T, withRivet bool) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if withRivet {
 		source := t.TempDir()
 		script, check := filepath.Join(source, "run.sh"), filepath.Join(source, "verify.sh")
-		if err := os.WriteFile(script, []byte("#!/bin/sh\nset -eu\ntest -f \"$RIVET_PROJECT_ROOT/change.txt\"\n"), 0600); err != nil {
+		if err := os.WriteFile(script, []byte("#!/bin/sh\nset -eu\ntest -f \"$RIVET_PROJECT_ROOT/change.txt\"\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(check, []byte("#!/bin/sh\nset -eu\nsh \"$RIVET_SCRIPT\"\n"), 0600); err != nil {
+		if err := os.WriteFile(check, []byte("#!/bin/sh\nset -eu\nsh \"$RIVET_SCRIPT\"\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if err := workCall(context.Background(), rivet, "add", "--project", repo, "--description", "Check requested change", "--script", script, "--check", check, "change-check"); err != nil {
@@ -265,7 +271,7 @@ func testWorkRealProductCLIs(t *testing.T, withRivet bool) {
 	workAgentJSON = func(_ context.Context, _ string, args []string, dst any) error {
 		for i := range args {
 			if args[i] == "--cwd" && i+1 < len(args) {
-				if err := os.WriteFile(filepath.Join(args[i+1], "change.txt"), []byte("built\n"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(args[i+1], "change.txt"), []byte("built\n"), 0o600); err != nil {
 					return err
 				}
 				*dst.(*ExecResult) = ExecResult{SessionID: "exec-e2e", ExitCode: 0}
@@ -338,4 +344,5 @@ func testWorkRealProductCLIs(t *testing.T, withRivet bool) {
 	if err != nil || len(files) != 2 {
 		t.Fatalf("Rally messages: %v, %v", files, err)
 	}
+	return out.String()
 }
