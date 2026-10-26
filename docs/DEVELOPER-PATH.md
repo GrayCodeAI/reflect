@@ -58,9 +58,20 @@ reflect credentials status
 reflect preflight
 ```
 
-`reflect preflight` is a local-ready check; it does not contact a provider. To
-live-verify the selected provider credential and connectivity, use `/config`
-validation or `reflect models list <provider> --live`.
+`reflect preflight` checks local configuration without contacting the provider.
+`reflect preflight --live` checks provider connectivity, authentication, and
+whether the selected model appears in the provider's live model list. It does
+not send a chat request or prove that the model supports Reflect's coding tools.
+After setup, run a short prompt to verify the full path:
+
+```bash
+reflect preflight --live
+reflect -p "Say hello"
+```
+
+If the prompt reports that the model does not satisfy requested capabilities,
+refresh the model catalog with `reflect models refresh` and select a model with
+tool support in `/config`. The live preflight check alone cannot catch this.
 
 ### 3. Select a model
 
@@ -114,7 +125,8 @@ If `reflect path` says you are not ready, this is the intended order:
 2. Open `/config`
 3. Paste an API key or configure Ollama
 4. Pick a model
-5. Re-run `reflect preflight`
-6. Re-run `reflect path`
+5. Run `reflect preflight --live`
+6. Run `reflect -p "Say hello"` to verify a complete chat turn
+7. Re-run `reflect path`
 
 If security items still fail, fix those before treating the machine as ready.

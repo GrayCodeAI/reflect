@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
@@ -149,27 +150,11 @@ func RunSetup() error {
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 
-	idx := 0
-	switch input {
-	case "1":
-		idx = 0
-	case "2":
-		idx = 1
-	case "3":
-		idx = 2
-	case "4":
-		idx = 3
-	case "5":
-		idx = 4
-	case "6":
-		idx = 5
-	case "7":
-		idx = 6
-	default:
-		idx = 0 // default to anthropic
+	idx, err := strconv.Atoi(input)
+	if err != nil || idx < 1 || idx > len(providers) {
+		return fmt.Errorf("select a provider number from 1 to %d", len(providers))
 	}
-
-	selected := providers[idx]
+	selected := providers[idx-1]
 	fmt.Println()
 	fmt.Printf("  Selected: %s%s%s\n", teal, selected.name, reset)
 
@@ -188,7 +173,7 @@ func RunSetup() error {
 			return fmt.Errorf("no API key")
 		}
 
-		// Validate key format before saving
+		// Check for an empty key before saving. Relay validates provider access.
 		if warning, valid := validateAPIKey(selected.name, apiKey); !valid {
 			fmt.Printf("  %s"+icons.Alert()+" %s%s\n", red, warning, reset)
 			fmt.Println(red + "  API key not saved. Please check your key and try again." + reset)
@@ -228,30 +213,55 @@ func RunSetup() error {
 	fmt.Println()
 	fmt.Println(dim + "  ─────────────────────────────────────────" + reset)
 	fmt.Println()
-	fmt.Print("  Press Enter to start... ")
+	fmt.Print("  Press Enter to load models... ")
 	_, _ = reader.ReadString('\n')
 
 	reflectconfig.DiscoverCatalogAfterSetup(context.Background(), os.Stdout)
+	models, err := reflectconfig.ModelIDsForProvider(selected.name)
+	if err != nil || len(models) == 0 {
+		return fmt.Errorf("no cached models for %s; run reflect models refresh, then use /config to select a model", selected.name)
+	}
+	currentModel := reflectconfig.ActiveModel(context.Background())
+	defaultModel := reflectconfig.DefaultModelForProvider(selected.name)
+	defaultIdx := 0
+	for i, model := range models {
+		if model == currentModel {
+			defaultIdx = i
+			break
+		}
+		if model == defaultModel {
+			defaultIdx = i
+		}
+	}
+	fmt.Println("  Choose a model:")
+	for i, model := range models {
+		fmt.Printf("  %d) %s\n", i+1, model)
+	}
+	fmt.Printf("  Enter number (default %d): ", defaultIdx+1)
+	choice, _ := reader.ReadString('\n')
+	choice = strings.TrimSpace(choice)
+	modelIdx := defaultIdx
+	if choice != "" {
+		n, err := strconv.Atoi(choice)
+		if err != nil || n < 1 || n > len(models) {
+			return fmt.Errorf("select a model number from 1 to %d", len(models))
+		}
+		modelIdx = n - 1
+	}
+	if err := reflectconfig.SetActiveModel(context.Background(), models[modelIdx]); err != nil {
+		return fmt.Errorf("save selected model: %w", err)
+	}
+	fmt.Printf("  %s"+icons.CheckBold()+" Model selected: %s%s\n", teal, models[modelIdx], reset)
+	fmt.Println("  Next: run reflect preflight --live, then reflect -p \"Say hello\"")
 
 	return nil
 }
 
-// validateAPIKey checks the key format for known providers.
-// Returns (warning, isValid). A warning with isValid=true means the key is
-// acceptable but may have an unusual format.
+// validateAPIKey leaves key format validation to the selected provider.
+// Provider tokens may use custom prefixes or opaque formats.
 func validateAPIKey(provider, key string) (string, bool) {
-	if len(key) <= 10 {
-		return "API key seems too short", false
-	}
-	switch strings.ToLower(provider) {
-	case "anthropic":
-		if !strings.HasPrefix(key, "sk-ant-") {
-			return "Anthropic keys typically start with 'sk-ant-'", false
-		}
-	case "openai":
-		if !strings.HasPrefix(key, "sk-") {
-			return "OpenAI keys typically start with 'sk-'", false
-		}
+	if strings.TrimSpace(key) == "" {
+		return "API key is empty", false
 	}
 	return "", true
 }
