@@ -68,9 +68,8 @@ Delivered in this branch on top of Phase 0:
 - `internal/engine/approval_waterfall.go` + test: `approval.request` waterfall
   with "no answerer = deny" (fail-closed).
 
-GitNexus `detect-changes` flags CRITICAL risk on `EventBus` because it is a
-high-degree node; the changed symbols are all additive (`waterfall*`), and no
-pre-existing caller or execution path is altered.
+The changed `EventBus` symbols are additive (`waterfall*`); no pre-existing
+caller or execution path is altered.
 
 Remaining for Phase 1 (subsequent PRs, each gated):
 

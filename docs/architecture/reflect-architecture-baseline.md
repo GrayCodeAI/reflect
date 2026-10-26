@@ -171,10 +171,6 @@ go test ./... -count=1 -timeout=120s
 go vet ./...
 ```
 
-The GitNexus workspace index also reports the baseline commit as up to date.
-Architecture work must still run impact analysis before changing code symbols
-and change-scope detection before committing.
-
 ## Next phase
 
 Phase 1 adds AST/package-graph dependency checks. Phase 2 continues the safe
