@@ -10,8 +10,6 @@ import (
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 	internaltheme "github.com/GrayCodeAI/reflect/internal/theme"
-	"github.com/mattn/go-runewidth"
-	"golang.org/x/term"
 
 	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
@@ -49,63 +47,14 @@ func initColorCodes() {
 	brand = internaltheme.BrandANSI
 }
 
-// Welcome prints the reflect welcome banner.
+// Welcome prints a short setup introduction.
 func Welcome(version string) {
-	reflectC := brand
-
-	totalW := 80
-	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 40 {
-		totalW = w
-	}
-
-	center := func(s string, visLen int) string {
-		pad := (totalW - visLen) / 2
-		if pad < 0 {
-			pad = 0
-		}
-		return strings.Repeat(" ", pad) + s
-	}
-
-	art := []string{
-		"█████████    █████████    ███       ███  ███   █████████",
-		"███    ███   ███    ███   ███       ███  ███  ███       ",
-		"███    ███   ███    ███   ███       ███  ███ ███        ",
-		"███    ███   ███    ███   ███   █   ███  ██████         ",
-		"█████████    █████████    ███  ███  ███  ██████         ",
-		"███    ███   ███    ███   ████ ███ ████  ███ ███        ",
-		"███    ███   ███    ███   ████████████   ███  ███       ",
-		"███    ███   ███    ███   █████   █████  ███   ███      ",
-		"███    ███   ███    ███   ████     ████  ███    ███     ",
-	}
-
 	fmt.Println()
-	for _, line := range art {
-		w := runewidth.StringWidth(line)
-		fmt.Println(center(reflectC+line+reset, w))
-	}
-
+	fmt.Printf("  %s%sReflect%s  %sv%s%s\n", brand, bold, reset, dim, version, reset)
+	fmt.Println("  Set up a provider and model to start coding in this folder.")
 	fmt.Println()
-	verLine := fmt.Sprintf("v%s", version)
-	fmt.Println(center(dim+verLine+reset, len(verLine)))
-
-	fmt.Println()
-	fmt.Println(center(bold+"Welcome to Reflect!"+reset, 16))
-	fmt.Println(center(dim+"Built for developers — one machine, keychain credentials"+reset, 48))
-
-	fmt.Println()
-	fmt.Println(center(bold+"Quick start:"+reset, 12))
-	fmt.Println(center(reflectC+"reflect"+reset+"                            interactive REPL (/config on first run)", 58))
-	fmt.Println(center(reflectC+"reflect path"+reset+"                       check readiness", 49))
-	fmt.Println(center(reflectC+"reflect exec"+reset+" \"explain this repo\"   headless / CI (add --json --ephemeral)", 58))
-	fmt.Println(center(reflectC+"reflect"+reset+" -c                          continue last session", 54))
-	fmt.Println(center(reflectC+"/config"+reset+"                         API key (keychain) + model", 54))
-
-	fmt.Println()
-	fmt.Println(center(bold+"Control plane (in chat):"+reset, 24))
-	fmt.Println(center(reflectC+"/start"+reset+"  ·  "+reflectC+"/mode plan|act"+reset+"  ·  "+reflectC+"/isolation"+reset+"  ·  "+reflectC+"/trust"+reset, 52))
-
-	fmt.Println()
-	fmt.Println(center(reflectC+"? for shortcuts"+reset, 15))
+	fmt.Println("  Keys stay in your OS secret store.")
+	fmt.Println("  You can change the model later with /config.")
 	fmt.Println()
 }
 

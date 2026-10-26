@@ -2,10 +2,13 @@
 
 Status: in progress, based on the 2026-10-26 Linux first-run walkthrough.
 
-Implemented locally: `reflect setup` now rejects invalid provider choices,
-accepts opaque nonempty keys, and prompts for a cached model after catalog
-discovery. Provider options still come from a hard-coded list, and readiness
-still needs capability-aware checks.
+Implemented locally: `reflect setup` rejects invalid provider choices, accepts
+opaque nonempty keys, and prompts for a cached model after catalog discovery.
+Reflect preflight requests a provider-scoped tool capability check from Relay
+and reports supported, unsupported, or unknown metadata. Provider options still
+come from a hard-coded list; live preflight does not send a chat request. The
+startup welcome now uses a compact text header, and permission prompts put
+one-time allow/deny first while naming the scope of remembered rules.
 
 ## User outcome
 

@@ -63,7 +63,7 @@ func convertCustomProviders(in []reflectconfig.CustomProviderConfig) []gateway.C
 			continue
 		}
 		out = append(out, gateway.CustomProviderConfig{
-			Name: p.Name, BaseURL: p.BaseURL, APIKeyEnv: p.APIKeyEnv, Model: p.Model,
+			Name: p.Name, BaseURL: p.BaseURL, APIKeyEnv: p.APIKeyEnv, Model: p.Model, Tools: p.Tools,
 		})
 	}
 	return out

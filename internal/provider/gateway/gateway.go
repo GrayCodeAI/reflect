@@ -86,10 +86,14 @@ func BuildCustomGateways(providers []CustomProviderConfig) []relayengine.CustomG
 		if provider.Name == "" && provider.BaseURL == "" {
 			continue
 		}
-		gateways = append(gateways, relayengine.CustomGateway{
+		custom := relayengine.CustomGateway{
 			ID: provider.Name, BaseURL: provider.BaseURL,
 			CredentialEnv: provider.APIKeyEnv, DefaultModel: provider.Model,
-		})
+		}
+		if provider.Tools != nil {
+			custom.Capabilities = &relayengine.CustomGatewayCapabilities{Tools: *provider.Tools}
+		}
+		gateways = append(gateways, custom)
 	}
 	return gateways
 }
@@ -107,6 +111,7 @@ type CustomProviderConfig struct {
 	BaseURL   string
 	APIKeyEnv string
 	Model     string
+	Tools     *bool
 }
 
 // ModelInfo is Reflect's product-facing view of Relay model metadata.
@@ -346,6 +351,7 @@ func NormalizeProviderID(id string) string {
 type (
 	PreflightReport         = relayengine.PreflightReport
 	PreflightOptions        = relayengine.PreflightOptions
+	PreflightCheck          = relayengine.PreflightCheck
 	ProviderStateSecurity   = relayengine.ProviderStateSecurity
 	DeploymentSummary       = relayengine.DeploymentSummary
 	CredentialStorageReport = relayengine.CredentialStorageReport
@@ -359,6 +365,10 @@ type (
 	SelectionOptions        = relayengine.SelectionOptions
 	Selection               = relayengine.Selection
 	NativeCompactionRequest = relayengine.NativeCompactionRequest
+)
+
+const (
+	CheckOK = relayengine.CheckOK
 )
 
 // Package-level Relay helpers that config delegates to (gateway stays the only importer).

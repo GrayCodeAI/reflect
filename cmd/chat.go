@@ -541,7 +541,7 @@ func (m *chatModel) refreshInputPlaceholder() {
 }
 
 func (m chatModel) Init() tea.Cmd {
-	cmds := []tea.Cmd{initTerminalMouseCmd(m.mouseEnabled()), promptKeepAliveCmd(), eyeBlinkTickCmd()}
+	cmds := []tea.Cmd{initTerminalMouseCmd(m.mouseEnabled()), promptKeepAliveCmd()}
 	if m.mascotEnabled {
 		cmds = append(cmds, emitReflectMascotCmd())
 	}

@@ -762,10 +762,21 @@ var preflightCmd = &cobra.Command{
 			cmd.Println(out)
 		}
 		if !r.Ready {
-			if preflightLiveFlag {
-				return fmt.Errorf("live preflight failed — check the selected provider credential and network access")
+			for _, check := range r.Checks {
+				if check.Name == "model_tools" && string(check.Status) == "fail" {
+					if strings.Contains(check.Detail, "custom gateway") {
+						return fmt.Errorf("%s", check.Detail)
+					}
+					if strings.Contains(check.Detail, "unknown") {
+						return fmt.Errorf("model tool support is unknown — run reflect models refresh or choose a verified model in /config")
+					}
+					return fmt.Errorf("selected model does not support coding tools — choose another model in /config")
+				}
 			}
-			return fmt.Errorf("preflight failed — run reflect and complete /config")
+			if preflightLiveFlag {
+				return fmt.Errorf("live preflight failed — review the checks above")
+			}
+			return fmt.Errorf("preflight failed — review the checks above and use /config to fix the selection")
 		}
 		return nil
 	},

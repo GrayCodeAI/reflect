@@ -60,8 +60,11 @@ reflect preflight
 
 `reflect preflight` checks local configuration without contacting the provider.
 `reflect preflight --live` checks provider connectivity, authentication, and
-whether the selected model appears in the provider's live model list. It does
-not send a chat request or prove that the model supports Reflect's coding tools.
+whether the selected model appears in the provider's live model list. Both
+preflight modes also check whether the selected model's cached offering declares
+support for Reflect's coding tools. Unknown or unsupported tool capability is
+reported separately, with a catalog refresh or model selection hint. Preflight
+does not send a chat request.
 After setup, run a short prompt to verify the full path:
 
 ```bash
@@ -69,9 +72,9 @@ reflect preflight --live
 reflect -p "Say hello"
 ```
 
-If the prompt reports that the model does not satisfy requested capabilities,
-refresh the model catalog with `reflect models refresh` and select a model with
-tool support in `/config`. The live preflight check alone cannot catch this.
+If tool support is unknown, refresh the model catalog with `reflect models
+refresh`. If unsupported, select another model in `/config`. A successful chat
+request remains the final verification of the full path.
 
 ### 3. Select a model
 

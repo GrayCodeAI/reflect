@@ -53,7 +53,7 @@ func (p promptInput) readLine(prompt string) (string, error) {
 
 func configureInteractivePrompts(sess *engine.Session, input promptInput) {
 	sess.PermSvc().SetPermissionFn(func(req safety.PermissionRequest) {
-		answer, err := input.readLine(fmt.Sprintf("\nAllow %s: %s [y/N, s=session, d=deny session, p=allow project, x=deny project] ", req.ToolName, req.Summary))
+		answer, err := input.readLine(formatInteractivePermissionPrompt(req))
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "\nAllow %s: %s (denied: %v)\n", req.ToolName, req.Summary, err)
 			resolvePermissionResponse(&req, false)
@@ -93,4 +93,8 @@ func configureInteractivePrompts(sess *engine.Session, input promptInput) {
 	sess.SetAskUserFn(func(question string) (string, error) {
 		return input.readLine(fmt.Sprintf("\n%s\n> ", question))
 	})
+}
+
+func formatInteractivePermissionPrompt(req safety.PermissionRequest) string {
+	return fmt.Sprintf("\nPermission request\n%s\n\n[y] Allow once  [n] Deny\n[s] Allow action for session  [p] Allow action for project\n[d] Block tool for session  [x] Block action for project\nChoice (default deny): ", safety.FormatPermissionDisplay(req.ToolName, req.Summary))
 }

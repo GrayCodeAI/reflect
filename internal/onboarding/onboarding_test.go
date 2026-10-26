@@ -1,6 +1,9 @@
 package onboarding
 
 import (
+	"io"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -37,7 +40,22 @@ func TestValidateAPIKey(t *testing.T) {
 }
 
 func TestWelcome(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldStdout := os.Stdout
+	os.Stdout = writer
+	t.Cleanup(func() { os.Stdout = oldStdout })
 	Welcome("1.0.0")
+	_ = writer.Close()
+	output, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(output), "Reflect  v1.0.0") || strings.Contains(string(output), "██") {
+		t.Fatalf("welcome should use the plain wordmark: %q", output)
+	}
 }
 
 func TestColorConstants(t *testing.T) {

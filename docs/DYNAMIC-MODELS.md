@@ -93,6 +93,17 @@ metadata is snapshotted per Engine instance. Do not register custom gateways
 in Relay process-global state: tests, parallel sessions, and future multi-tenant
 hosts must be isolated from one another.
 
+For a custom gateway, add `"tools": true` to its `custom_providers` entry only
+when the model and gateway support tool calling. Omit it when support is unknown;
+`reflect preflight` will then report an unknown tool capability. For example:
+
+```json
+{"custom_providers":[{"name":"private","base_url":"https://example.test/v1","api_key_env":"PRIVATE_API_KEY","model":"private/model","tools":true}]}
+```
+
+Store the API key in the OS secret store through Reflect; do not put it in this
+settings entry.
+
 ## Adding or changing a provider
 
 1. Implement registry, discovery, credentials, aliases, and transport behavior
