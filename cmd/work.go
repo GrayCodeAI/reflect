@@ -167,11 +167,11 @@ func runWork(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("load Resolve ticket: %w", err)
 		}
 		if ticket.ID != args[0] {
-			return fmt.Errorf("Resolve returned ticket %q for %q", ticket.ID, args[0])
+			return fmt.Errorf("ticket mismatch: Resolve returned %q for %q", ticket.ID, args[0])
 		}
 	}
 	if ticket.ID == "" {
-		return errors.New("Resolve returned no item ID")
+		return errors.New("no item ID from Resolve")
 	}
 	if ticket.Status == "done" {
 		return errors.New("ticket is already done")
@@ -223,10 +223,10 @@ func runWork(cmd *cobra.Command, args []string) error {
 	agentArgs = append(agentArgs, prompt)
 	var result ExecResult
 	if err := workAgentJSON(cmd.Context(), self, agentArgs, &result); err != nil {
-		return fmt.Errorf("Reflect run failed (worktree retained at %s): %w", worktree, err)
+		return fmt.Errorf("agent run failed (Reflect, worktree retained at %s): %w", worktree, err)
 	}
 	if result.ExitCode != 0 {
-		return fmt.Errorf("Reflect run exited %d (worktree retained at %s)", result.ExitCode, worktree)
+		return fmt.Errorf("agent run exited %d (Reflect, worktree retained at %s)", result.ExitCode, worktree)
 	}
 	// Stage and commit the agent's changes before verification so the test
 	// result refers to a stable, exact commit.
@@ -242,7 +242,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if changed == "" && head == base {
-		return fmt.Errorf("Reflect made no code change (worktree retained at %s)", worktree)
+		return fmt.Errorf("no code change from Reflect (worktree retained at %s)", worktree)
 	}
 	if changed != "" {
 		message := fmt.Sprintf("resolve %s: %s", ticket.ID, ticket.Title)
@@ -283,7 +283,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create Record checkpoint for %s: %w", commit, err)
 	}
 	if checkpoint.Commit != commit || checkpoint.ID == "" {
-		return fmt.Errorf("Record returned an invalid checkpoint for %s", commit)
+		return fmt.Errorf("invalid checkpoint from Record for %s", commit)
 	}
 	memoryText := fmt.Sprintf("Verified %s at commit %s with `%s`; checkpoint %s", ticket.Title, commit, verificationLabel, checkpoint.ID)
 	var memory workMemory
@@ -291,7 +291,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checkpoint %s created, but Recall memory failed: %w", checkpoint.ID, err)
 	}
 	if memory.ID == "" {
-		return fmt.Errorf("Recall returned no memory ID for checkpoint %s", checkpoint.ID)
+		return fmt.Errorf("no memory ID from Recall for checkpoint %s", checkpoint.ID)
 	}
 	comment := fmt.Sprintf("Reflect run %s verified commit %s with `%s`; Record checkpoint %s. Branch: %s", result.SessionID, commit, verificationLabel, checkpoint.ID, branch)
 	if workOpenPR {
@@ -344,6 +344,7 @@ func workFindBinary(explicit, name string) (string, error) {
 }
 
 func workJSON(ctx context.Context, binary string, args []string, dst any) error {
+	//nolint:gosec // G204: external product CLI is selected by the caller
 	c := exec.CommandContext(ctx, binary, args...)
 	var out, stderr bytes.Buffer
 	c.Stdout, c.Stderr = &out, &stderr
@@ -357,6 +358,7 @@ func workJSON(ctx context.Context, binary string, args []string, dst any) error 
 }
 
 func workCall(ctx context.Context, binary string, args ...string) error {
+	//nolint:gosec // G204: external product CLI is selected by the caller
 	c := exec.CommandContext(ctx, binary, args...)
 	var stderr bytes.Buffer
 	c.Stdout, c.Stderr = &bytes.Buffer{}, &stderr
@@ -367,7 +369,8 @@ func workCall(ctx context.Context, binary string, args ...string) error {
 }
 
 func workGit(dir string, args ...string) (string, error) {
-	c := exec.Command("git", args...)
+	//nolint:gosec // G204: git arguments are constructed internally
+	c := exec.CommandContext(context.Background(), "git", args...)
 	c.Dir = dir
 	out, err := c.CombinedOutput()
 	if err != nil {
@@ -378,13 +381,16 @@ func workGit(dir string, args ...string) (string, error) {
 
 func workVerificationCommand(ctx context.Context, command string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
+		//nolint:gosec // G204: verification command is operator-provided
 		return exec.CommandContext(ctx, "cmd", "/C", command)
 	}
+	//nolint:gosec // G204: verification command is operator-provided
 	return exec.CommandContext(ctx, "sh", "-c", command)
 }
 
 func workRivetVerify(ctx context.Context, binary, worktree, logDir, command, block string, stdout, stderr io.Writer) (string, error) {
 	if block != "" {
+		//nolint:gosec // G204: Rivet binary is operator-provided
 		verify := exec.CommandContext(ctx, binary, "verify", "--project", worktree, block)
 		verify.Dir, verify.Stdout, verify.Stderr = worktree, stdout, stderr
 		if err := verify.Run(); err != nil {
@@ -399,6 +405,7 @@ func workRivetVerify(ctx context.Context, binary, worktree, logDir, command, blo
 		}
 		args = []string{"exec", "--project", worktree, "--log-dir", logDir, "--json", "--", shell, flag, command}
 	}
+	//nolint:gosec // G204: external product CLI is selected by the caller
 	c := exec.CommandContext(ctx, binary, args...)
 	c.Dir = worktree
 	var data, diagnostics bytes.Buffer
@@ -414,7 +421,7 @@ func workRivetVerify(ctx context.Context, binary, worktree, logDir, command, blo
 		return "", fmt.Errorf("decode Rivet result: %w: %s", err, strings.TrimSpace(diagnostics.String()))
 	}
 	if result.Summary != "" {
-		fmt.Fprintln(stdout, result.Summary)
+		_, _ = fmt.Fprintln(stdout, result.Summary)
 	}
 	if runErr != nil {
 		return "", fmt.Errorf("rivet %s exited %d: %w", args[0], result.ExitCode, runErr)
@@ -423,10 +430,10 @@ func workRivetVerify(ctx context.Context, binary, worktree, logDir, command, blo
 		return "", fmt.Errorf("rivet %s exited %d", args[0], result.ExitCode)
 	}
 	if result.LogPath == "" {
-		return "", errors.New("Rivet returned an empty raw log path")
+		return "", errors.New("empty raw log path from Rivet")
 	}
 	if _, err := os.Stat(result.LogPath); err != nil {
-		return "", fmt.Errorf("Rivet raw log unavailable: %w", err)
+		return "", fmt.Errorf("raw log from Rivet unavailable: %w", err)
 	}
 	return result.LogPath, nil
 }
@@ -439,6 +446,7 @@ func workPublishPR(ctx context.Context, worktree, branch, baseBranch string, tic
 		"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
 		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit),
 	}
+	//nolint:gosec // G204: gh arguments are constructed internally
 	c := exec.CommandContext(ctx, "gh", args...)
 	c.Dir = worktree
 	out, err := c.CombinedOutput()
