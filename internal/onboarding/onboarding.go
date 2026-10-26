@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 	internaltheme "github.com/GrayCodeAI/reflect/internal/theme"
+	"golang.org/x/term"
 
 	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
@@ -81,13 +83,22 @@ func RunSetup() error {
 		envKey string
 		desc   string
 	}{
-		{"anthropic", "ANTHROPIC_API_KEY", "Claude (recommended)"},
-		{"openai", "OPENAI_API_KEY", "GPT-4o, o1, o3"},
-		{"gemini", "GEMINI_API_KEY", "Gemini 2.5"},
-		{"openrouter", "OPENROUTER_API_KEY", "200+ models"},
-		{"groq", "GROQ_API_KEY", "Fast inference"},
-		{"poolside", "POOLSIDE_API_KEY", "Poolside models"},
+		{name: "anthropic", desc: "Claude models"},
+		{name: "openai", desc: "OpenAI models"},
+		{name: "gemini", desc: "Gemini models"},
+		{name: "openrouter", desc: "Models through OpenRouter"},
+		{name: "groq", desc: "Fast inference"},
+		{name: "poolside", desc: "Poolside models"},
 		{"ollama", "", "Local models (no API key needed)"},
+	}
+	for i := range providers {
+		if !reflectconfig.IsSetupGateway(providers[i].name) {
+			return fmt.Errorf("%s is not available in the Relay gateway catalog", providers[i].name)
+		}
+		providers[i].envKey = reflectconfig.SetupGatewayCredentialEnv(providers[i].name)
+		if providers[i].envKey == "" && providers[i].name != "ollama" {
+			return fmt.Errorf("%s credential mapping is unavailable; use /config", providers[i].name)
+		}
 	}
 
 	for i, p := range providers {
@@ -114,8 +125,10 @@ func RunSetup() error {
 		fmt.Printf("  %s(Get one at the provider's website)%s\n", dim, reset)
 		fmt.Print("  > ")
 
-		apiKey, _ := reader.ReadString('\n')
-		apiKey = strings.TrimSpace(apiKey)
+		apiKey, err := readSetupSecret(reader)
+		if err != nil {
+			return fmt.Errorf("read API key: %w", err)
+		}
 
 		if apiKey == "" {
 			fmt.Println(red + "  No API key entered. Run reflect and use /config to save a key securely." + reset)
@@ -138,72 +151,144 @@ func RunSetup() error {
 		}
 
 		if err := reflectconfig.SetActiveProvider(context.Background(), selected.name); err != nil {
-			fmt.Printf("  %sWarning: couldn't save provider: %s%s\n", dim, err, reset)
+			return fmt.Errorf("save selected provider: %w", err)
 		}
 
 		fmt.Println()
 		fmt.Printf("  %s"+icons.CheckBold()+" API key saved to %s%s\n", teal, reflectconfig.CredentialStoreName(), reset)
 	} else if selected.name == "ollama" {
-		_ = reflectconfig.SetActiveProvider(context.Background(), "ollama")
+		if err := reflectconfig.SetActiveProvider(context.Background(), "ollama"); err != nil {
+			return fmt.Errorf("save selected provider: %w", err)
+		}
 		fmt.Printf("  %s"+icons.CheckBold()+" Ollama selected (make sure ollama is running)%s\n", teal, reset)
 	} else {
-		_ = reflectconfig.SetActiveProvider(context.Background(), selected.name)
+		if err := reflectconfig.SetActiveProvider(context.Background(), selected.name); err != nil {
+			return fmt.Errorf("save selected provider: %w", err)
+		}
 		fmt.Printf("  %s"+icons.CheckBold()+" Using %s (credential already in %s)%s\n", teal, selected.name, reflectconfig.CredentialStoreName(), reset)
 	}
 
-	// Security notes
-	fmt.Println()
-	fmt.Println(dim + "  ─────────────────────────────────────────" + reset)
-	fmt.Println()
-	fmt.Println("  " + bold + "Security notes:" + reset)
-	fmt.Println("  1. reflect can make mistakes — always review changes")
-	fmt.Println("  2. reflect will ask before running commands or writing files")
-	fmt.Println("  3. Use /autonomy allow <tool> to auto-approve tools")
-	fmt.Println()
-	fmt.Println(dim + "  ─────────────────────────────────────────" + reset)
-	fmt.Println()
-	fmt.Print("  Press Enter to load models... ")
-	_, _ = reader.ReadString('\n')
-
+	fmt.Println("  Loading models...")
 	reflectconfig.DiscoverCatalogAfterSetup(context.Background(), os.Stdout)
-	models, err := reflectconfig.ModelIDsForProvider(selected.name)
+	models, err := reflectconfig.ListEngineModels(context.Background(), selected.name, false)
 	if err != nil || len(models) == 0 {
 		return fmt.Errorf("no cached models for %s; run reflect models refresh, then use /config to select a model", selected.name)
 	}
 	currentModel := reflectconfig.ActiveModel(context.Background())
 	defaultModel := reflectconfig.DefaultModelForProvider(selected.name)
-	defaultIdx := 0
-	for i, model := range models {
-		if model == currentModel {
-			defaultIdx = i
-			break
-		}
-		if model == defaultModel {
-			defaultIdx = i
-		}
-	}
+	defaultIdx := preferredSetupModel(models, currentModel, defaultModel)
 	fmt.Println("  Choose a model:")
 	for i, model := range models {
-		fmt.Printf("  %d) %s\n", i+1, model)
-	}
-	fmt.Printf("  Enter number (default %d): ", defaultIdx+1)
-	choice, _ := reader.ReadString('\n')
-	choice = strings.TrimSpace(choice)
-	modelIdx := defaultIdx
-	if choice != "" {
-		n, err := strconv.Atoi(choice)
-		if err != nil || n < 1 || n > len(models) {
-			return fmt.Errorf("select a model number from 1 to %d", len(models))
+		badge := "tool support unverified"
+		if slices.Contains(model.Capabilities, "tools") {
+			badge = "coding tools listed"
 		}
-		modelIdx = n - 1
+		fmt.Printf("  %d) %s  ·  %s\n", i+1, model.ID, badge)
 	}
-	if err := reflectconfig.SetActiveModel(context.Background(), models[modelIdx]); err != nil {
-		return fmt.Errorf("save selected model: %w", err)
+	for {
+		fmt.Printf("  Enter number (default %d): ", defaultIdx+1)
+		choice, readErr := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+		modelIdx := defaultIdx
+		if choice != "" {
+			n, err := strconv.Atoi(choice)
+			if err != nil || n < 1 || n > len(models) {
+				if readErr != nil {
+					return fmt.Errorf("model selection ended before a valid choice")
+				}
+				fmt.Printf("  Select a model number from 1 to %d.\n", len(models))
+				continue
+			}
+			modelIdx = n - 1
+		}
+		if err := reflectconfig.SetActiveModel(context.Background(), models[modelIdx].ID); err != nil {
+			return fmt.Errorf("save selected model: %w", err)
+		}
+		fmt.Printf("  %s"+icons.CheckBold()+" Model selected: %s%s\n", teal, models[modelIdx].ID, reset)
+		report := reflectconfig.EnginePreflightReport(context.Background())
+		var toolCheckFound bool
+		retry := false
+		for _, check := range report.Checks {
+			if check.Name != "model_tools" {
+				continue
+			}
+			toolCheckFound = true
+			if string(check.Status) == "fail" {
+				fmt.Printf("  %s"+icons.Alert()+" %s%s\n", red, check.Detail, reset)
+				hasVerifiedAlternative := false
+				for i, model := range models {
+					if i != modelIdx && slices.Contains(model.Capabilities, "tools") {
+						hasVerifiedAlternative = true
+						break
+					}
+				}
+				if !hasVerifiedAlternative {
+					fmt.Println("  Run reflect models refresh or use /config before starting a coding task.")
+					return nil
+				}
+				fmt.Print("  Choose another model? [Y/n]: ")
+				answer, answerErr := reader.ReadString('\n')
+				if answerErr != nil || strings.EqualFold(strings.TrimSpace(answer), "n") {
+					fmt.Println("  Run reflect models refresh or use /config before starting a coding task.")
+					return nil
+				}
+				defaultIdx = preferredSetupModel(models, "", defaultModel)
+				retry = true
+				break
+			}
+		}
+		if retry {
+			continue
+		}
+		if !toolCheckFound {
+			return fmt.Errorf("could not verify model tool support; run reflect preflight")
+		}
+		fmt.Println("  Cached model metadata confirms coding tools.")
+		break
 	}
-	fmt.Printf("  %s"+icons.CheckBold()+" Model selected: %s%s\n", teal, models[modelIdx], reset)
 	fmt.Println("  Next: run reflect preflight --live, then reflect -p \"Say hello\"")
 
 	return nil
+}
+
+func readSetupSecret(reader *bufio.Reader) (string, error) {
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		secret, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		return strings.TrimSpace(string(secret)), err
+	}
+	secret, err := reader.ReadString('\n')
+	if err != nil && strings.TrimSpace(secret) == "" {
+		return "", err
+	}
+	return strings.TrimSpace(secret), nil
+}
+
+func preferredSetupModel(models []reflectconfig.EngineModel, current, recommended string) int {
+	for _, id := range []string{current, recommended} {
+		for i, model := range models {
+			if setupModelMatches(model, id) && slices.Contains(model.Capabilities, "tools") {
+				return i
+			}
+		}
+	}
+	for i, model := range models {
+		if slices.Contains(model.Capabilities, "tools") {
+			return i
+		}
+	}
+	for _, id := range []string{current, recommended} {
+		for i, model := range models {
+			if setupModelMatches(model, id) {
+				return i
+			}
+		}
+	}
+	return 0
+}
+
+func setupModelMatches(model reflectconfig.EngineModel, id string) bool {
+	return id != "" && (model.ID == id || model.CanonicalID == id)
 }
 
 // validateAPIKey leaves key format validation to the selected provider.

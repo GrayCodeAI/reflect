@@ -1,15 +1,49 @@
 package onboarding
 
 import (
+	"bufio"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 )
 
 func TestNeedsSetup_AlwaysFalseForTUI(t *testing.T) {
 	if NeedsSetup() {
 		t.Error("NeedsSetup() should be false; use /config or reflect setup instead")
+	}
+}
+
+func TestPreferredSetupModelChoosesVerifiedToolModel(t *testing.T) {
+	models := []reflectconfig.EngineModel{
+		{ID: "model-unknown", CanonicalID: "provider/model-unknown"},
+		{ID: "model-tools", CanonicalID: "provider/model-tools", Capabilities: []string{"tools"}},
+	}
+	if got := preferredSetupModel(models, "provider/model-unknown", "model-tools"); got != 1 {
+		t.Fatalf("default model = %d, want verified tool model", got)
+	}
+	if got := preferredSetupModel(models, "provider/model-tools", "model-unknown"); got != 1 {
+		t.Fatalf("saved canonical model = %d, want matching tool model", got)
+	}
+}
+
+func TestReadSetupSecretFromNonTerminalInput(t *testing.T) {
+	got, err := readSetupSecret(bufio.NewReader(strings.NewReader("  opaque-provider-key  \n")))
+	if err != nil || got != "opaque-provider-key" {
+		t.Fatalf("secret read = %q, err=%v", got, err)
+	}
+}
+
+func TestSetupProvidersHaveRelayCredentialMappings(t *testing.T) {
+	for _, provider := range []string{"anthropic", "openai", "gemini", "openrouter", "groq", "poolside"} {
+		if !reflectconfig.IsSetupGateway(provider) || reflectconfig.SetupGatewayCredentialEnv(provider) == "" {
+			t.Errorf("%s cannot be configured through Relay", provider)
+		}
+	}
+	if !reflectconfig.IsSetupGateway("ollama") {
+		t.Fatal("Ollama is missing from Relay gateways")
 	}
 }
 

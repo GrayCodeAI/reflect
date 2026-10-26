@@ -5,8 +5,10 @@ Status: in progress, based on the 2026-10-26 Linux first-run walkthrough.
 Implemented locally: `reflect setup` rejects invalid provider choices, accepts
 opaque nonempty keys, and prompts for a cached model after catalog discovery.
 Reflect preflight requests a provider-scoped tool capability check from Relay
-and reports supported, unsupported, or unknown metadata. Provider options still
-come from a hard-coded list; live preflight does not send a chat request. The
+and reports supported, unsupported, or unknown metadata. Setup keeps a curated
+seven-provider menu, using Relay's credential mappings, and prefers models with
+known tool support. The full provider catalog remains available in `/config`.
+Live preflight does not send a chat request. The
 startup welcome now uses a compact text header, and permission prompts put
 one-time allow/deny first while naming the scope of remembered rules.
 
@@ -40,9 +42,9 @@ workflow. These paths should lead to the same final state.
 
 ### 1. One setup journey in Reflect
 
-- Make `reflect setup` and first-run `/config` use the same provider and model
-  selection flow. Derive provider options from Relay's host-facing catalog or
-  gateway API; remove the hard-coded menu when the replacement is ready.
+- Keep `reflect setup` focused on seven common providers and expose the full
+  provider catalog through `/config`. Derive credential mappings and model
+  metadata from Relay so both routes reach the same saved selection.
 - Preserve already stored credentials. Treat an empty or invalid selection as a
   retry or explicit cancel, never silently select Anthropic.
 - Accept opaque provider keys after basic nonempty input validation. Let Relay
