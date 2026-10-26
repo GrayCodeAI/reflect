@@ -555,7 +555,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 						if ev.Usage != nil {
 							lastUsage = ev.Usage
 							if usageLedger.shouldRecord(ev.Usage, false) {
-								s.recordStreamUsage(ch, ev.Usage.PromptTokens, ev.Usage.CompletionTokens, resolvedProvider, resolvedModel, taskType, apiStart)
+								s.recordStreamUsage(ch, ev.Usage, resolvedProvider, resolvedModel, taskType, apiStart)
 							}
 						}
 					case "error":
@@ -573,7 +573,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 						if ev.Usage != nil {
 							lastUsage = ev.Usage
 							if usageLedger.shouldRecord(ev.Usage, true) {
-								s.recordStreamUsage(ch, ev.Usage.PromptTokens, ev.Usage.CompletionTokens, resolvedProvider, resolvedModel, taskType, apiStart)
+								s.recordStreamUsage(ch, ev.Usage, resolvedProvider, resolvedModel, taskType, apiStart)
 							}
 						}
 					}
@@ -596,7 +596,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 					}
 					if resp.Usage != nil {
 						lastUsage = resp.Usage
-						s.recordStreamUsage(ch, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resolvedProvider, resolvedModel, taskType, apiStart)
+						s.recordStreamUsage(ch, resp.Usage, resolvedProvider, resolvedModel, taskType, apiStart)
 					}
 					streamErr = nil
 					break
@@ -669,11 +669,11 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		if lastUsage == nil && (textContent.Len() > 0 || len(toolCalls) > 0) {
 			completionEst := estimateStreamCompletionTokens(textContent.String(), toolCalls)
 			if inputTokens > 0 || completionEst > 0 {
-				s.recordStreamUsage(ch, inputTokens, completionEst, resolvedProvider, resolvedModel, taskType, apiStart)
 				lastUsage = &types.RelayUsage{
 					PromptTokens:     inputTokens,
 					CompletionTokens: completionEst,
 				}
+				s.recordStreamUsage(ch, lastUsage, resolvedProvider, resolvedModel, taskType, apiStart)
 			}
 		}
 

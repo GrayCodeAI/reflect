@@ -119,3 +119,32 @@ func TestPrintTextUsageFooter(t *testing.T) {
 		}
 	})
 }
+
+func TestMergePrintUsageAcrossProviderEvents(t *testing.T) {
+	got := mergePrintUsage(nil, &engine.StreamUsage{PromptTokens: 11, CacheReadTokens: 90})
+	got = mergePrintUsage(got, &engine.StreamUsage{CompletionTokens: 42, CacheWriteTokens: 7})
+	if got.PromptTokens != 11 || got.CompletionTokens != 42 || got.CacheReadTokens != 90 || got.CacheWriteTokens != 7 {
+		t.Fatalf("partial provider usage was lost: %+v", got)
+	}
+}
+
+func TestFinishPrintTextResponseDoesNotRepeatStreamedContent(t *testing.T) {
+	oldMarkdown := printMarkdown
+	printMarkdown = false
+	defer func() { printMarkdown = oldMarkdown }()
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = oldStdout }()
+	finishPrintTextResponse("Hello")
+	_ = w.Close()
+	buf := make([]byte, 64)
+	n, _ := r.Read(buf)
+	_ = r.Close()
+	if got := string(buf[:n]); got != "\n" {
+		t.Fatalf("completion repeated streamed text: %q", got)
+	}
+}

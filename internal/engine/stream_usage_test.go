@@ -59,7 +59,7 @@ func TestRecordStreamUsageAttributesResolvedRoute(t *testing.T) {
 	sess := NewSessionWithClient(NewMockClientForTest(), "anthropic", "anthropic/requested-test-model", "", nil, true)
 	ch := make(chan StreamEvent, 1)
 
-	sess.recordStreamUsage(ch, 1_000_000, 1_000_000, resolvedProvider, resolvedModel, "test", time.Now())
+	sess.recordStreamUsage(ch, &types.RelayUsage{PromptTokens: 1_000_000, CompletionTokens: 1_000_000}, resolvedProvider, resolvedModel, "test", time.Now())
 
 	if sess.Cost.Model != resolvedModel {
 		t.Fatalf("cost model = %q, want resolved model %q", sess.Cost.Model, resolvedModel)
@@ -74,5 +74,18 @@ func TestRecordStreamUsageAttributesResolvedRoute(t *testing.T) {
 	tracker := sess.currentUsageTracker()
 	if tracker == nil || tracker.GetUsage().SessionTokens != 2_000_000 {
 		t.Fatalf("Shrike tracker did not receive deduplicated stream usage")
+	}
+}
+
+func TestRecordStreamUsagePreservesCacheTokens(t *testing.T) {
+	sess := NewSessionWithClient(NewMockClientForTest(), "anthropic", "anthropic/cache-test-model", "", nil, true)
+	ch := make(chan StreamEvent, 1)
+	sess.recordStreamUsage(ch, &types.RelayUsage{
+		CacheReadTokens:     120,
+		CacheCreationTokens: 30,
+	}, "anthropic", "anthropic/cache-test-model", "test", time.Now())
+	event := <-ch
+	if event.Usage == nil || event.Usage.CacheReadTokens != 120 || event.Usage.CacheWriteTokens != 30 {
+		t.Fatalf("cache token counts lost: %+v", event.Usage)
 	}
 }
