@@ -2,10 +2,13 @@ package config
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
 	"github.com/GrayCodeAI/reflect/internal/provider/gateway"
+	"github.com/zalando/go-keyring"
 )
 
 func TestRemoveStoredCredential_ByProvider(t *testing.T) {
@@ -70,6 +73,33 @@ func TestFormatCredentialCLIStatus(t *testing.T) {
 	}
 	if strings.Contains(out, "Keys stored:") {
 		t.Fatal("should not show legacy key count")
+	}
+}
+
+func TestCredentialStatusUsesReflectKeychainNamespace(t *testing.T) {
+	// Run in a fresh process: the first keychain read is what exposed this bug.
+	if os.Getenv("REFLECT_CREDENTIAL_STATUS_TEST_CHILD") != "1" {
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(self, "-test.run=^TestCredentialStatusUsesReflectKeychainNamespace$")
+		cmd.Env = append(os.Environ(), "REFLECT_CREDENTIAL_STATUS_TEST_CHILD=1")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("credential status subprocess: %v\n%s", err, out)
+		}
+		return
+	}
+
+	keyring.MockInit()
+	gateway.SetDefaultStore(nil)
+	InvalidateConfigUICache()
+	if err := keyring.Set("reflect", "anthropic_api_key", "sk-ant-test-key-1234567890"); err != nil {
+		t.Fatal(err)
+	}
+	out := FormatCredentialCLIStatus(context.Background())
+	if !strings.Contains(out, "Configured: anthropic") {
+		t.Fatalf("Reflect key was hidden by credential status: %s", out)
 	}
 }
 
