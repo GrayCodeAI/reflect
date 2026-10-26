@@ -68,18 +68,21 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	oldRecall, oldRally, oldRequest := workRecallBin, workRallyBin, workRequest
 	oldRecallStore, oldRallyData := workRecallStore, workRallyData
 	oldOpenPR, oldPRBase := workOpenPR, workPRBase
+	oldRivetBin, oldVerifyBlock := workRivetBin, workVerifyBlock
 	t.Cleanup(func() {
 		workRepo, workVerify, workAuto, workModel = oldRepo, oldVerify, oldAuto, oldModel
 		workResolveBin, workRecordBin, workAgentJSON = oldResolve, oldRecord, oldAgent
 		workRecallBin, workRallyBin, workRequest = oldRecall, oldRally, oldRequest
 		workRecallStore, workRallyData = oldRecallStore, oldRallyData
 		workOpenPR, workPRBase = oldOpenPR, oldPRBase
+		workRivetBin, workVerifyBlock = oldRivetBin, oldVerifyBlock
 	})
 	workRepo, workVerify, workAuto, workModel = repo, "test -f change.txt", "semi", ""
 	workResolveBin, workRecordBin = resolve, record
 	workRecallBin, workRallyBin, workRequest = recall, rally, ""
 	workRecallStore, workRallyData = "", ""
 	workOpenPR, workPRBase = false, ""
+	workRivetBin, workVerifyBlock = "", ""
 	workAgentJSON = func(_ context.Context, _ string, args []string, dst any) error {
 		var worktree string
 		for i := range args {
@@ -181,9 +184,23 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 // Run with GRAYCODE_E2E_BIN_DIR pointing to real Resolve, Record, Recall and
 // Rally binaries. The model call is stubbed; all local product CLIs are real.
 func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
+	testWorkRealProductCLIs(t, false)
+}
+
+func TestWorkRivetIntegration(t *testing.T) {
+	testWorkRealProductCLIs(t, true)
+}
+
+func testWorkRealProductCLIs(t *testing.T, withRivet bool) {
 	binDir := os.Getenv("GRAYCODE_E2E_BIN_DIR")
 	if binDir == "" {
 		t.Skip("set GRAYCODE_E2E_BIN_DIR to run the local product integration")
+	}
+	rivet := filepath.Join(binDir, "rivet")
+	if withRivet {
+		if _, err := os.Stat(rivet); err != nil {
+			t.Skip("build the Rivet CLI in GRAYCODE_E2E_BIN_DIR to run this integration")
+		}
 	}
 	repo := t.TempDir()
 	for _, args := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test"}} {
@@ -194,7 +211,20 @@ func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("base\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"add", "README.md"}, {"commit", "-m", "base"}} {
+	if withRivet {
+		source := t.TempDir()
+		script, check := filepath.Join(source, "run.sh"), filepath.Join(source, "verify.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/sh\nset -eu\ntest -f \"$RIVET_PROJECT_ROOT/change.txt\"\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(check, []byte("#!/bin/sh\nset -eu\nsh \"$RIVET_SCRIPT\"\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := workCall(context.Background(), rivet, "add", "--project", repo, "--description", "Check requested change", "--script", script, "--check", check, "change-check"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, args := range [][]string{{"add", "-A"}, {"commit", "-m", "base"}} {
 		if _, err := workGit(repo, args...); err != nil {
 			t.Fatal(err)
 		}
@@ -214,13 +244,20 @@ func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
 	oldResolve, oldRecord, oldRecall, oldRally := workResolveBin, workRecordBin, workRecallBin, workRallyBin
 	oldRecallStore, oldRallyData, oldRequest := workRecallStore, workRallyData, workRequest
 	oldOpenPR, oldPRBase, oldAgent := workOpenPR, workPRBase, workAgentJSON
+	oldRivetBin, oldVerifyBlock := workRivetBin, workVerifyBlock
 	t.Cleanup(func() {
 		workRepo, workVerify, workAuto, workModel = oldRepo, oldVerify, oldAuto, oldModel
 		workResolveBin, workRecordBin, workRecallBin, workRallyBin = oldResolve, oldRecord, oldRecall, oldRally
 		workRecallStore, workRallyData, workRequest = oldRecallStore, oldRallyData, oldRequest
 		workOpenPR, workPRBase, workAgentJSON = oldOpenPR, oldPRBase, oldAgent
+		workRivetBin, workVerifyBlock = oldRivetBin, oldVerifyBlock
 	})
 	workRepo, workVerify, workAuto, workModel = repo, "test -f change.txt", "semi", ""
+	workRivetBin, workVerifyBlock = "", ""
+	if withRivet {
+		workVerify = ""
+		workRivetBin, workVerifyBlock = rivet, "change-check"
+	}
 	workResolveBin, workRecordBin = filepath.Join(binDir, "resolve"), filepath.Join(binDir, "record")
 	workRecallBin, workRallyBin = filepath.Join(binDir, "recall"), filepath.Join(binDir, "rally")
 	workRecallStore, workRallyData = t.TempDir(), t.TempDir()
@@ -247,6 +284,38 @@ func TestWorkPlainRequestWithRealProductCLIs(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "Ready for review") {
 		t.Fatal(out.String())
+	}
+	if withRivet {
+		if !strings.Contains(out.String(), "Verification log: ") {
+			t.Fatalf("Rivet raw log missing from output: %s", out.String())
+		}
+		logLine := strings.SplitN(strings.SplitN(out.String(), "Verification log: ", 2)[1], "\n", 2)[0]
+		if _, err := os.Stat(logLine); err != nil {
+			t.Fatalf("Rivet log unavailable: %s: %v", logLine, err)
+		}
+		checkpointID := strings.SplitN(strings.SplitN(out.String(), "Checkpoint: ", 2)[1], "\n", 2)[0]
+		var checkpoint struct {
+			Verification []string `json:"verification"`
+		}
+		if err := workJSON(context.Background(), workRecordBin, []string{"show", "--repo", repo, checkpointID}, &checkpoint); err != nil {
+			t.Fatal(err)
+		}
+		if len(checkpoint.Verification) != 1 || !strings.Contains(checkpoint.Verification[0], logLine) {
+			t.Fatalf("Record checkpoint missing Rivet evidence: %+v", checkpoint.Verification)
+		}
+		plainLog, err := workRivetVerify(context.Background(), rivet, repo, t.TempDir(), "test -f README.md", "", &bytes.Buffer{}, &bytes.Buffer{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(plainLog); err != nil {
+			t.Fatal(err)
+		}
+		if clean, err := workGit(repo, "status", "--porcelain"); err != nil || clean != "" {
+			t.Fatalf("Rivet exec changed source repository: %q, %v", clean, err)
+		}
+		if _, err := workRivetVerify(context.Background(), rivet, repo, t.TempDir(), "exit 7", "", &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "exited 7") {
+			t.Fatalf("Rivet failed command was accepted: %v", err)
+		}
 	}
 	var tickets []workTicket
 	if err := workJSON(context.Background(), workResolveBin, []string{"list", "--repo", repo}, &tickets); err != nil {

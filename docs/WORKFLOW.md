@@ -15,14 +15,20 @@ go build -modfile=go.local.mod -o reflect ./cmd/reflect
 (cd ../record && go build -o record ./cmd/record)
 (cd ../recall && go build -o recall ./cmd/recall)
 (cd ../rally && go build -o rally ./cmd/rally)
+(cd ../rivet && go build -o rivet ./cmd/rivet)
 ./reflect work --request 'Build the requested feature' --repo /path/to/project \
   --resolve-bin ../resolve/resolve --record-bin ../record/record \
   --recall-bin ../recall/recall --rally-bin ../rally/rally \
-  --verify 'go test ./...'
+  --rivet-bin ../rivet/rivet --verify 'go test ./...'
 ```
 
 The target repository must have a clean working tree and a valid Git commit.
-The verification command is supplied explicitly. A Resolve item is created
+The verification command is supplied explicitly. Passing `--rivet-bin` runs it
+through Rivet, which prints a compact result and retains the raw output in a
+private log outside the worktree. The Record checkpoint cites that log. You can
+instead pass `--verify-block NAME` to verify and run a Rivet block committed in
+the target repository; Reflect finds `rivet` on `PATH` unless `--rivet-bin` is
+given. A Resolve item is created
 automatically to correlate the run; no ticket setup is needed. To use an
 existing item, replace `--request '...'` with its ID. The default Recall and
 Rally stores are under the user's config directory; use `--recall-store` and

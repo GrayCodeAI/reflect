@@ -116,10 +116,11 @@ Build the sibling CLIs once, then run the workflow against a clean Git repositor
 (cd ../record && go build -o record ./cmd/record)
 (cd ../recall && go build -o recall ./cmd/recall)
 (cd ../rally && go build -o rally ./cmd/rally)
+(cd ../rivet && go build -o rivet ./cmd/rivet)
 ./reflect work --request 'Build the requested feature' --repo /path/to/project \
   --resolve-bin ../resolve/resolve --record-bin ../record/record \
   --recall-bin ../recall/recall --rally-bin ../rally/rally \
-  --verify 'go test ./...'
+  --rivet-bin ../rivet/rivet --verify 'go test ./...'
 ```
 
 `reflect work` creates a Resolve work item automatically, reads Recall context,
@@ -130,6 +131,9 @@ a sourced Recall outcome, and posts Rally updates. The item moves to
 can also pass an existing Resolve ID instead of `--request`. Failed runs keep
 the worktree for inspection. Add `--pr` to push the verified branch to `origin` and
 open a draft GitHub PR through `gh`; without it, the work stays local.
+With `--rivet-bin`, verification keeps a full raw log outside the worktree and
+shows a compact result. Use `--verify-block NAME` instead of `--verify` to
+verify and run a Rivet block already committed in the target repository.
 
 The default `--auto semi` allows file edits but denies unattended shell tool
 calls. Use `--auto full` when the agent needs shell tools and you trust the
