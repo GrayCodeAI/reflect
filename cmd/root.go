@@ -104,6 +104,7 @@ Quick orientation:
   reflect                     Start interactive TUI
   reflect -p "prompt"         One-shot: send prompt, print response, exit
   reflect exec "task"         Autonomous multi-turn execution
+  reflect work <ticket-id>    Implement a Resolve ticket with verification
   reflect path                Check environment readiness
   reflect doctor              Run diagnostics
   reflect config              Manage settings and credentials
@@ -352,6 +353,7 @@ func groupRootCommands() {
 		"harness":    groupWorkflow,
 		"eval":       groupWorkflow,
 		"issue":      groupWorkflow,
+		"work":       groupWorkflow,
 		"pr":         groupWorkflow,
 		"checkpoint": groupWorkflow,
 		"resume":     groupWorkflow,

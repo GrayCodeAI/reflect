@@ -107,6 +107,31 @@ checklist: credentials → model → catalog → ecosystem.
 See [docs/SECURITY-DEVELOPER.md](docs/SECURITY-DEVELOPER.md) for the credential model.
 Do not put API keys in shell env or `.env` for reflect.
 
+### Work from a Resolve ticket
+
+Build the sibling CLIs once, then run the workflow against a Git repository
+that contains a Resolve ticket:
+
+```bash
+(cd ../resolve && go build -o resolve ./cmd/resolve)
+(cd ../record && go build -o record ./cmd/record)
+./reflect work <ticket-id> --repo /path/to/project \
+  --resolve-bin ../resolve/resolve --record-bin ../record/record \
+  --verify 'go test ./...'
+```
+
+`reflect work` creates a new branch and worktree, asks Reflect to implement the
+ticket through Relay, commits the agent's staged changes, reruns the supplied
+verification command against that commit, and creates a Record checkpoint. It
+then moves the Resolve ticket to `in_review` and prints the worktree and
+checkpoint IDs. Failed runs keep the worktree for inspection and leave the
+ticket in progress. The command does not push or open a pull request.
+
+The default `--auto semi` allows file edits but denies unattended shell tool
+calls. Use `--auto full` when the agent needs shell tools and you trust the
+ticket and repository. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the full
+local workflow and its current limits.
+
 Optional: install the current `main` with the Go toolchain. Historical
 higher-numbered hawk tags mean `@latest` cannot be relied on for the reset
 version series. Use `@main` or an explicit Reflect release tag.
