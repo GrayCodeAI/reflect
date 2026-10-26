@@ -57,12 +57,15 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	}
 	oldRepo, oldVerify, oldAuto, oldModel := workRepo, workVerify, workAuto, workModel
 	oldResolve, oldRecord, oldAgent := workResolveBin, workRecordBin, workAgentJSON
+	oldOpenPR, oldPRBase := workOpenPR, workPRBase
 	t.Cleanup(func() {
 		workRepo, workVerify, workAuto, workModel = oldRepo, oldVerify, oldAuto, oldModel
 		workResolveBin, workRecordBin, workAgentJSON = oldResolve, oldRecord, oldAgent
+		workOpenPR, workPRBase = oldOpenPR, oldPRBase
 	})
 	workRepo, workVerify, workAuto, workModel = repo, "test -f change.txt", "semi", ""
 	workResolveBin, workRecordBin = resolve, record
+	workOpenPR, workPRBase = false, ""
 	workAgentJSON = func(_ context.Context, _ string, args []string, dst any) error {
 		var worktree string
 		for i := range args {
@@ -119,6 +122,34 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	}
 	if clean, err := workGit(worktree, "status", "--porcelain"); err != nil || clean != "" {
 		t.Fatalf("worktree is not clean: %q, %v", clean, err)
+	}
+	remote := filepath.Join(t.TempDir(), "remote.git")
+	if _, err := workGit(repo, "init", "--bare", remote); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := workGit(repo, "remote", "add", "origin", remote); err != nil {
+		t.Fatal(err)
+	}
+	gh := filepath.Join(binDir, "gh")
+	ghLog := filepath.Join(binDir, "gh.log")
+	if err := os.WriteFile(gh, []byte(fmt.Sprintf("#!/bin/sh\necho \"$*\" > %q\necho https://github.com/example/project/pull/1\n", ghLog)), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	branch, err := workGit(worktree, "branch", "--show-current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	url, err := workPublishPR(context.Background(), worktree, branch, "main", workTicket{ID: "abc123", Title: "Fix onboarding"}, workCheckpoint{ID: "checkpoint123", Commit: commit})
+	if err != nil || url != "https://github.com/example/project/pull/1" {
+		t.Fatalf("publish draft PR: %q, %v", url, err)
+	}
+	ghArgs, err := os.ReadFile(ghLog)
+	if err != nil || !strings.Contains(string(ghArgs), "pr create --draft --base main") {
+		t.Fatalf("gh args: %q, %v", ghArgs, err)
+	}
+	if pushed, err := workGit(repo, "ls-remote", "origin", "refs/heads/"+branch); err != nil || !strings.HasPrefix(pushed, commit) {
+		t.Fatalf("verified commit not pushed: %q, %v", pushed, err)
 	}
 	workVerify = "false"
 	if err := runWork(cmd, []string{"abc123"}); err == nil || !strings.Contains(err.Error(), "verification failed") {

@@ -34,6 +34,8 @@ var (
 	workModel      string
 	workResolveBin string
 	workRecordBin  string
+	workOpenPR     bool
+	workPRBase     string
 	workAgentJSON  = workJSON
 )
 
@@ -41,11 +43,12 @@ var workCmd = &cobra.Command{
 	Use:   "work <ticket-id>",
 	Short: "Implement a Resolve ticket in an isolated worktree",
 	Long: `Load a Resolve ticket, run Reflect in a new Git worktree, independently
-	commit the changes, verify the exact commit, and create a Record checkpoint.
+commit the changes, verify the exact commit, and create a Record checkpoint.
 
 The worktree and branch remain available for review. The verification command
-is supplied by the operator and runs after the agent exits. No PR is pushed or
-opened automatically. Resolve and Record must be installed as CLIs.`,
+is supplied by the operator and runs after the agent exits. Pass --pr to push
+the verified branch and open a draft PR. Resolve and Record must be installed
+as CLIs.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runWork,
 }
@@ -57,6 +60,8 @@ func init() {
 	workCmd.Flags().StringVar(&workModel, "model", "", "model override for Reflect exec")
 	workCmd.Flags().StringVar(&workResolveBin, "resolve-bin", "", "path to the Resolve CLI")
 	workCmd.Flags().StringVar(&workRecordBin, "record-bin", "", "path to the Record CLI")
+	workCmd.Flags().BoolVar(&workOpenPR, "pr", false, "push the verified branch and open a draft GitHub PR")
+	workCmd.Flags().StringVar(&workPRBase, "base", "", "base branch for --pr (defaults to the current branch)")
 	rootCmd.AddCommand(workCmd)
 }
 
@@ -103,6 +108,13 @@ func runWork(cmd *cobra.Command, args []string) error {
 	base, err := workGit(repo, "rev-parse", "HEAD")
 	if err != nil {
 		return err
+	}
+	baseBranch := workPRBase
+	if workOpenPR && baseBranch == "" {
+		baseBranch, err = workGit(repo, "symbolic-ref", "--short", "HEAD")
+		if err != nil {
+			return fmt.Errorf("--pr needs --base when the repository is in detached HEAD: %w", err)
+		}
 	}
 	suffix := randomHex(3)
 	branch := "reflect/" + ticket.ID + "-" + suffix
@@ -182,6 +194,14 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Record returned an invalid checkpoint for %s", commit)
 	}
 	comment := fmt.Sprintf("Reflect run %s verified commit %s with `%s`; Record checkpoint %s. Branch: %s", result.SessionID, commit, workVerify, checkpoint.ID, branch)
+	if workOpenPR {
+		url, err := workPublishPR(cmd.Context(), worktree, branch, baseBranch, ticket, checkpoint)
+		if err != nil {
+			return fmt.Errorf("verified checkpoint %s created, but PR publishing failed: %w", checkpoint.ID, err)
+		}
+		comment += ". Draft PR: " + url
+		cmd.Printf("Draft PR: %s\n", url)
+	}
 	if err := workCall(cmd.Context(), resolveBin, "comment", "--repo", repo, "--text", comment, ticket.ID); err != nil {
 		return fmt.Errorf("checkpoint %s created, but Resolve comment failed: %w", checkpoint.ID, err)
 	}
@@ -251,4 +271,23 @@ func workVerificationCommand(ctx context.Context, command string) *exec.Cmd {
 		return exec.CommandContext(ctx, "cmd", "/C", command)
 	}
 	return exec.CommandContext(ctx, "sh", "-c", command)
+}
+
+func workPublishPR(ctx context.Context, worktree, branch, baseBranch string, ticket workTicket, checkpoint workCheckpoint) (string, error) {
+	if _, err := workGit(worktree, "push", "-u", "origin", branch); err != nil {
+		return "", err
+	}
+	args := []string{"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
+		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit)}
+	c := exec.CommandContext(ctx, "gh", args...)
+	c.Dir = worktree
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("gh pr create: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	url := strings.TrimSpace(string(out))
+	if url == "" {
+		return "", errors.New("gh pr create returned no PR URL")
+	}
+	return url, nil
 }

@@ -125,7 +125,8 @@ ticket through Relay, commits the agent's staged changes, reruns the supplied
 verification command against that commit, and creates a Record checkpoint. It
 then moves the Resolve ticket to `in_review` and prints the worktree and
 checkpoint IDs. Failed runs keep the worktree for inspection and leave the
-ticket in progress. The command does not push or open a pull request.
+ticket in progress. Add `--pr` to push the verified branch to `origin` and
+open a draft GitHub PR through `gh`; without it, the work stays local.
 
 The default `--auto semi` allows file edits but denies unattended shell tool
 calls. Use `--auto full` when the agent needs shell tools and you trust the

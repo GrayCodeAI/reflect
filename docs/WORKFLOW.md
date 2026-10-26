@@ -32,8 +32,10 @@ session ID and verification result, then comments on the Resolve ticket and
 moves it to `in_review`.
 
 The branch and worktree remain available for inspection. The output includes
-their paths, the exact commit, and the checkpoint ID. Open a PR using your
-normal Git workflow after reviewing the commit. Nothing is pushed by `work`.
+their paths, the exact commit, and the checkpoint ID. The default leaves all
+work local. Pass `--pr` to push the branch to `origin` and open a draft GitHub
+PR through `gh`; `--base` selects the target branch when it differs from the
+branch where the ticket run started. Review and merge remain manual.
 
 ## Failure and permissions
 
