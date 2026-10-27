@@ -19,7 +19,17 @@ build_go() {
   (cd "$workspace_dir/$repo" && GOWORK=off "$go_bin" build -o "$factory_bin/$binary" "./cmd/$binary")
 }
 
-build_go reflect reflect
+if [[ ! -f "$workspace_dir/relay/go.mod" ]]; then
+  echo "Missing sibling checkout: $workspace_dir/relay" >&2
+  exit 1
+fi
+overlay_dir=$(mktemp -d "${TMPDIR:-/tmp}/graycode-relay-overlay-XXXXXX")
+trap 'rm -r "$overlay_dir"' EXIT
+cp "$reflect_dir/go.mod" "$overlay_dir/reflect.mod"
+cp "$reflect_dir/go.sum" "$overlay_dir/reflect.sum"
+echo "Building reflect with local relay from $workspace_dir/relay"
+(cd "$reflect_dir" && GOWORK=off "$go_bin" mod edit -modfile="$overlay_dir/reflect.mod" -replace="github.com/GrayCodeAI/relay=$workspace_dir/relay")
+(cd "$reflect_dir" && GOWORK=off "$go_bin" build -modfile="$overlay_dir/reflect.mod" -o "$factory_bin/reflect" ./cmd/reflect)
 for product in resolve record recall rally rivet rein; do
   build_go "$product" "$product"
 done

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -94,6 +95,9 @@ func collectFactoryWorkspace(ctx context.Context) (factoryWorkspaceStatus, error
 		} else if _, err := exec.LookPath(strings.Fields(entry.Verify)[0]); err != nil {
 			entry.Error = strings.Fields(entry.Verify)[0] + " is not on PATH"
 		}
+		if repo.name == "reflect" {
+			entry.Verify += " (local Relay overlay)"
+		}
 		if head, err := workGit(path, "rev-parse", "--short", "HEAD"); err == nil {
 			entry.Head = head
 		}
@@ -103,7 +107,10 @@ func collectFactoryWorkspace(ctx context.Context) (factoryWorkspaceStatus, error
 		}
 		local, err := collectFactoryStatusAt(ctx, path)
 		if err != nil {
-			entry.Error = strings.TrimSpace(strings.Join([]string{entry.Error, err.Error()}, "; "))
+			if entry.Error != "" {
+				entry.Error += "; "
+			}
+			entry.Error += err.Error()
 		} else {
 			entry.Tickets = len(local.Tickets)
 			entry.Checkpoints = local.VerifiedCheckpoints
@@ -173,6 +180,12 @@ func runFactoryWorkspaceVerify(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		cmd.Printf("Verifying %s: %s\n", repo.name, verify)
+		if repo.name == "reflect" {
+			if err := verifyReflectWithLocalRelay(cmd, path, filepath.Join(root, "relay")); err != nil {
+				failed = append(failed, fmt.Sprintf("%s: %v", repo.name, err))
+			}
+			continue
+		}
 		check := workVerificationCommand(cmd.Context(), verify)
 		check.Dir, check.Stdout, check.Stderr = path, cmd.OutOrStdout(), cmd.ErrOrStderr()
 		if err := check.Run(); err != nil {
@@ -183,4 +196,37 @@ func runFactoryWorkspaceVerify(cmd *cobra.Command, args []string) error {
 		return errors.New(strings.Join(failed, "; "))
 	}
 	return nil
+}
+
+func verifyReflectWithLocalRelay(cmd *cobra.Command, reflectPath, relayPath string) error {
+	if !factoryFileExists(filepath.Join(relayPath, "go.mod")) {
+		return errors.New("local Relay checkout missing")
+	}
+	overlay, err := os.MkdirTemp("", "graycode-relay-overlay-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(overlay)
+	for _, file := range []struct{ source, dest string }{{"go.mod", "reflect.mod"}, {"go.sum", "reflect.sum"}} {
+		data, err := os.ReadFile(filepath.Join(reflectPath, file.source))
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(overlay, file.dest), data, 0o600); err != nil {
+			return err
+		}
+	}
+	goBin := os.Getenv("GO_BIN")
+	if goBin == "" {
+		goBin = "go"
+	}
+	modfile := filepath.Join(overlay, "reflect.mod")
+	edit := exec.CommandContext(cmd.Context(), goBin, "mod", "edit", "-modfile="+modfile, "-replace=github.com/GrayCodeAI/relay="+relayPath)
+	edit.Dir, edit.Env, edit.Stdout, edit.Stderr = reflectPath, append(os.Environ(), "GOWORK=off"), cmd.OutOrStdout(), cmd.ErrOrStderr()
+	if err := edit.Run(); err != nil {
+		return fmt.Errorf("prepare local Relay overlay: %w", err)
+	}
+	test := exec.CommandContext(cmd.Context(), goBin, "test", "-modfile="+modfile, "./...")
+	test.Dir, test.Env, test.Stdout, test.Stderr = reflectPath, append(os.Environ(), "GOWORK=off"), cmd.OutOrStdout(), cmd.ErrOrStderr()
+	return test.Run()
 }

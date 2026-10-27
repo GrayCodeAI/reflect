@@ -21,7 +21,9 @@ verified checkpoint. The summary is the same one-line view Ridge displays
 after `:factory status`; Ridge can launch `reflect factory run` in a pane with
 `:factory run <request>` or `:factory ticket <id>`. The setup script builds
 Reflect, Resolve, Record, Recall, Rally, Rivet, and Rein. Relay is linked into
-Reflect. Set `FACTORY_BUILD_RIDGE=1` to build the sibling Ridge checkout too.
+Reflect from the local sibling checkout using a temporary module overlay; no
+repository dependency file is changed. Set `FACTORY_BUILD_RIDGE=1` to build the
+sibling Ridge checkout too.
 Rein is installed for policy evaluation but is not yet in Reflect's tool
 execution path.
 
@@ -39,6 +41,8 @@ and evidence per checkout. `workspace verify NAME` runs one local check;
 `pnpm check` and never deploys through this command. The logo repo validates
 its SVG and PNG assets with `scripts/check-assets.py`. Run a ticket in any
 checkout with `reflect factory run --repo /path/to/checkout --request '...'`.
+The Reflect workspace check also tests against the local Relay checkout through
+a temporary module overlay.
 
 `reflect work` accepts a plain request. It creates a Resolve work item for
 tracking, reads project context from Recall, runs the coding agent through
