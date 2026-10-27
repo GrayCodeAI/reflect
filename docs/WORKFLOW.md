@@ -1,5 +1,34 @@
 # Request → Resolve → Recall → Reflect/Relay → Record → Rally
 
+## Local factory setup and status
+
+From the Reflect checkout, build the sibling CLIs into one directory:
+
+```bash
+scripts/factory-setup.sh /path/to/factory/bin
+export PATH="/path/to/factory/bin:$PATH"
+reflect factory doctor --repo /path/to/project
+reflect factory status --repo /path/to/project
+reflect factory summary --repo /path/to/project
+reflect factory run --repo /path/to/project --request 'Fix the failing test'
+```
+
+The status command joins Resolve tickets to local Record checkpoints, Recall
+outcomes, and Rally messages. It reports whether an `in_review` ticket has a
+verified checkpoint. The summary is the same one-line view Ridge displays
+after `:factory status`; Ridge can launch `reflect factory run` in a pane with
+`:factory run <request>` or `:factory ticket <id>`. The setup script builds
+Reflect, Resolve, Record, Recall, Rally, Rivet, and Rein. Relay is linked into
+Reflect. Set `FACTORY_BUILD_RIDGE=1` to build the sibling Ridge checkout too.
+Rein is installed for policy evaluation but is not yet in Reflect's tool
+execution path.
+
+`reflect factory run` chooses a test command from `go.mod`, `Cargo.toml`,
+`pnpm-lock.yaml`, or `package-lock.json`, then runs it through Rivet and keeps
+the raw verification log. Use `--verify COMMAND` for another project layout.
+It leaves the verified branch for review; `--pr` opens a draft PR when the
+GitHub CLI is configured.
+
 `reflect work` accepts a plain request. It creates a Resolve work item for
 tracking, reads project context from Recall, runs the coding agent through
 Relay, verifies the result, records a checkpoint, saves a sourced outcome in
@@ -57,7 +86,10 @@ branch where the ticket run started. Review and merge remain manual.
 If Reflect, verification, commit, or Record fails, the worktree remains for
 inspection. A failed verification may leave an unverified commit, but creates no
 checkpoint or review-ready ticket status.
-Resolve remains `in_progress` until a verified checkpoint is created. After a
+Reflect adds a short failure-stage comment to Resolve and a Rally note without
+copying raw stderr into either store. `reflect factory status` includes the
+latest note, and `reflect factory summary` counts stopped tickets. Resolve
+remains `in_progress` until a verified checkpoint is created. After a
 late failure, inspect the worktree and complete the handoff manually; automatic
 resume and retry are future work.
 

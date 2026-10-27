@@ -182,8 +182,8 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Count(string(logs), "comment\n") != 1 || strings.Count(string(logs), "status\n") != 1 {
-		t.Fatalf("failed verification advanced Resolve: %q", logs)
+	if strings.Count(string(logs), "comment\n") != 2 || strings.Count(string(logs), "status\n") != 1 {
+		t.Fatalf("failed verification did not leave a diagnostic comment: %q", logs)
 	}
 }
 
