@@ -51,12 +51,14 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	record := filepath.Join(binDir, "record")
-	recordScript := "#!/bin/sh\nshift\nwhile [ $# -gt 0 ]; do if [ \"$1\" = --repo ]; then shift; repo=$1; break; fi; shift; done\ncommit=$(git -C \"$repo\" rev-parse HEAD)\nprintf '{\"id\":\"checkpoint123\",\"commit\":\"%s\"}\\n' \"$commit\"\n"
+	recordScript := "#!/bin/sh\nshift\nwhile [ $# -gt 0 ]; do if [ \"$1\" = --repo ]; then shift; repo=$1; break; fi; shift; done\ncommit=$(git -C \"$repo\" rev-parse HEAD)\nprintf '{\"id\":\"checkpoint123\",\"commit\":\"%s\",\"verification\":[\"test -f change.txt: passed\"]}\\n' \"$commit\"\n"
 	if err := os.WriteFile(record, []byte(recordScript), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	recall := filepath.Join(binDir, "recall")
-	if err := os.WriteFile(recall, []byte("#!/bin/sh\nif [ \"$1\" = list ]; then echo '[]'; else echo '{\"id\":\"memory123\"}'; fi\n"), 0o700); err != nil {
+	recallLog := filepath.Join(binDir, "recall.log")
+	recallScript := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = list ]; then echo '[]'; else printf '%%s\\n' \"$@\" > %q; echo '{\"id\":\"memory123\"}'; fi\n", recallLog)
+	if err := os.WriteFile(recall, []byte(recallScript), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	rally := filepath.Join(binDir, "rally")
@@ -140,6 +142,10 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	if clean, err := workGit(worktree, "status", "--porcelain"); err != nil || clean != "" {
 		t.Fatalf("worktree is not clean: %q, %v", clean, err)
 	}
+	recallArgs, err := os.ReadFile(recallLog)
+	if err != nil || !strings.Contains(string(recallArgs), "commit:"+commit) || strings.Contains(string(recallArgs), "checkpoint:checkpoint123") {
+		t.Fatalf("Recall source is not portable: %q, %v", recallArgs, err)
+	}
 	remote := filepath.Join(t.TempDir(), "remote.git")
 	if _, err := workGit(repo, "init", "--bare", remote); err != nil {
 		t.Fatal(err)
@@ -157,12 +163,12 @@ func TestWorkConnectsResolveReflectAndRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	url, err := workPublishPR(context.Background(), worktree, branch, "main", workTicket{ID: "abc123", Title: "Fix onboarding"}, workCheckpoint{ID: "checkpoint123", Commit: commit})
+	url, err := workPublishPR(context.Background(), worktree, branch, "main", workTicket{ID: "abc123", Title: "Fix onboarding"}, workCheckpoint{ID: "checkpoint123", Commit: commit, Verification: []string{"test -f change.txt: passed"}})
 	if err != nil || url != "https://github.com/example/project/pull/1" {
 		t.Fatalf("publish draft PR: %q, %v", url, err)
 	}
 	ghArgs, err := os.ReadFile(ghLog)
-	if err != nil || !strings.Contains(string(ghArgs), "pr create --draft --base main") {
+	if err != nil || !strings.Contains(string(ghArgs), "pr create --draft --base main") || !strings.Contains(string(ghArgs), "Verification: test -f change.txt: passed") {
 		t.Fatalf("gh args: %q, %v", ghArgs, err)
 	}
 	if pushed, err := workGit(repo, "ls-remote", "origin", "refs/heads/"+branch); err != nil || !strings.HasPrefix(pushed, commit) {
@@ -334,7 +340,7 @@ func testWorkRealProductCLIs(t *testing.T, withRivet bool) string {
 	if err := workJSON(context.Background(), workRecallBin, []string{"list", "--store", workRecallStore, "--scope", filepath.Base(repo)}, &memories); err != nil {
 		t.Fatal(err)
 	}
-	if len(memories) != 1 || !strings.HasPrefix(memories[0].Sources[0], "checkpoint:") {
+	if len(memories) != 1 || !strings.HasPrefix(memories[0].Sources[0], "commit:") {
 		t.Fatalf("Recall records: %+v", memories)
 	}
 	if !strings.Contains(out.String(), "Checkpoint: ") || !strings.Contains(out.String(), "Memory: ") {

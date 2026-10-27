@@ -40,7 +40,10 @@ It claims the work item, posts a Rally start note, invokes `reflect exec --json`
 worktree, stages and commits the agent's changes, then runs the verification
 command against that exact commit. It requires a clean worktree after the check
 and creates a Record checkpoint with the Reflect session ID and verification
-result. A Recall outcome cites that checkpoint. Reflect then comments on the
+result. A Recall outcome cites the Git commit, which remains resolvable from
+another clone once the branch is pushed; the local checkpoint ID remains in
+the outcome text. With `--pr`, the draft PR also includes the verification
+result. Reflect then comments on the
 Resolve item, moves it to `in_review`, and posts a final Rally note.
 
 The branch and worktree remain available for inspection. The output includes

@@ -24,8 +24,9 @@ type workTicket struct {
 }
 
 type workCheckpoint struct {
-	ID     string `json:"id"`
-	Commit string `json:"commit"`
+	ID           string   `json:"id"`
+	Commit       string   `json:"commit"`
+	Verification []string `json:"verification"`
 }
 
 type workMemory struct {
@@ -287,7 +288,9 @@ func runWork(cmd *cobra.Command, args []string) error {
 	}
 	memoryText := fmt.Sprintf("Verified %s at commit %s with `%s`; checkpoint %s", ticket.Title, commit, verificationLabel, checkpoint.ID)
 	var memory workMemory
-	if err := workJSON(cmd.Context(), recallBin, recallArgs("remember", "--scope", scope, "--kind", "outcome", "--source", "checkpoint:"+checkpoint.ID, "--text", memoryText), &memory); err != nil {
+	// Record checkpoints are local to the Git common directory. Cite the commit
+	// as the portable source so another clone can resolve the memory after push.
+	if err := workJSON(cmd.Context(), recallBin, recallArgs("remember", "--scope", scope, "--kind", "outcome", "--source", "commit:"+commit, "--text", memoryText), &memory); err != nil {
 		return fmt.Errorf("checkpoint %s created, but Recall memory failed: %w", checkpoint.ID, err)
 	}
 	if memory.ID == "" {
@@ -444,7 +447,7 @@ func workPublishPR(ctx context.Context, worktree, branch, baseBranch string, tic
 	}
 	args := []string{
 		"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
-		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit),
+		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nVerified commit: %s\nVerification: %s\nLocal Record checkpoint: %s", ticket.ID, checkpoint.Commit, strings.Join(checkpoint.Verification, "; "), checkpoint.ID),
 	}
 	//nolint:gosec // G204: gh arguments are constructed internally
 	c := exec.CommandContext(ctx, "gh", args...)
