@@ -11,6 +11,8 @@ reflect factory doctor --repo /path/to/project
 reflect factory status --repo /path/to/project
 reflect factory summary --repo /path/to/project
 reflect factory run --repo /path/to/project --request 'Fix the failing test'
+reflect factory workspace summary --root /path/to/GrayCodeAI
+reflect factory workspace verify relay --root /path/to/GrayCodeAI
 ```
 
 The status command joins Resolve tickets to local Record checkpoints, Recall
@@ -28,6 +30,15 @@ execution path.
 the raw verification log. Use `--verify COMMAND` for another project layout.
 It leaves the verified branch for review; `--pr` opens a draft PR when the
 GitHub CLI is configured.
+
+The workspace commands cover all 11 sibling repositories, including the Relay
+library, Ridge, the separate company platform, and private logo assets.
+`workspace status` emits JSON with Git state, verification command, tickets,
+and evidence per checkout. `workspace verify NAME` runs one local check;
+`workspace verify all` runs every check in sequence. The platform uses
+`pnpm check` and never deploys through this command. The logo repo validates
+its SVG and PNG assets with `scripts/check-assets.py`. Run a ticket in any
+checkout with `reflect factory run --repo /path/to/checkout --request '...'`.
 
 `reflect work` accepts a plain request. It creates a Resolve work item for
 tracking, reads project context from Recall, runs the coding agent through

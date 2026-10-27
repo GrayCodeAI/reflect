@@ -38,3 +38,5 @@ fi
 echo "Factory binaries: $factory_bin"
 echo "Add to your shell: export PATH=\"$factory_bin:\$PATH\""
 echo "Then run: reflect factory doctor --repo /path/to/project"
+echo "All checkouts: reflect factory workspace summary --root $workspace_dir"
+echo "Verify one: reflect factory workspace verify NAME --root $workspace_dir"

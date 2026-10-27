@@ -96,6 +96,10 @@ func init() {
 
 func factoryVerification(root string) string {
 	switch {
+	case factoryFileExists(filepath.Join(root, "deployment", "vaultly.json")) && factoryFileExists(filepath.Join(root, "pnpm-lock.yaml")):
+		return "pnpm check"
+	case factoryFileExists(filepath.Join(root, "scripts", "check-assets.py")):
+		return "python3 scripts/check-assets.py"
 	case factoryFileExists(filepath.Join(root, "go.mod")):
 		return "go test ./..."
 	case factoryFileExists(filepath.Join(root, "Cargo.toml")):
@@ -182,6 +186,10 @@ func collectFactoryStatus(ctx context.Context) (factoryStatus, error) {
 	if err != nil {
 		return factoryStatus{}, err
 	}
+	return collectFactoryStatusAt(ctx, root)
+}
+
+func collectFactoryStatusAt(ctx context.Context, root string) (factoryStatus, error) {
 	bins, err := factoryBins()
 	if err != nil {
 		return factoryStatus{}, err

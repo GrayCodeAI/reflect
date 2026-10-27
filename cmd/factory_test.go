@@ -98,4 +98,26 @@ func TestFactoryVerification(t *testing.T) {
 	if got := factoryVerification(repo); got != "go test ./..." {
 		t.Fatalf("Go project gate = %q", got)
 	}
+	platform := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(platform, "deployment"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"deployment/vaultly.json", "pnpm-lock.yaml"} {
+		if err := os.WriteFile(filepath.Join(platform, name), []byte("test"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := factoryVerification(platform); got != "pnpm check" {
+		t.Fatalf("platform gate = %q", got)
+	}
+	logo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(logo, "scripts"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(logo, "scripts", "check-assets.py"), []byte("pass\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := factoryVerification(logo); got != "python3 scripts/check-assets.py" {
+		t.Fatalf("logo gate = %q", got)
+	}
 }
