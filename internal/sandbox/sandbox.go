@@ -24,9 +24,9 @@ const (
 	ModeOff          Mode = "off"
 	ModeDocker       Mode = "docker"
 	ModeMicrosandbox Mode = "microsandbox"
-	ModeBwrap        Mode = "bwrap"        // Linux: bubblewrap OS-level sandbox
-	ModeSeatbelt     Mode = "seatbelt"    // macOS: sandbox-exec profile
-	ModeOS           Mode = "os"          // auto: bwrap on Linux, seatbelt on macOS
+	ModeBwrap        Mode = "bwrap"    // Linux: bubblewrap OS-level sandbox
+	ModeSeatbelt     Mode = "seatbelt" // macOS: sandbox-exec profile
+	ModeOS           Mode = "os"       // auto: bwrap on Linux, seatbelt on macOS
 )
 
 // Config holds sandbox settings.
