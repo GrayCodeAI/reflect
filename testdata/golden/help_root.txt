@@ -1,6 +1,6 @@
 reflect is an AI coding agent that reads, writes, and runs code in your terminal.
 
-It connects to 28 first-class LLM providers through relay, executes tools (file I/O, shell,
+It connects to 29 first-class LLM providers through relay, executes tools (file I/O, shell,
 git, web search), and manages sessions — all from a keyboard-driven TUI or
 headless mode for scripts and CI.
 
@@ -9,6 +9,7 @@ Quick orientation:
   reflect -p "prompt"         One-shot: send prompt, print response, exit
   reflect exec "task"         Autonomous multi-turn execution
   reflect work <ticket-id>    Implement a Resolve ticket with verification
+  reflect factory status      Inspect tickets and linked evidence
   reflect path                Check environment readiness
   reflect doctor              Run diagnostics
   reflect config              Manage settings and credentials
@@ -92,6 +93,7 @@ Diagnose:
 
 Reference:
   completion  Generate shell completion script
+  factory     Inspect the local ticket-to-review software factory
   feedback    Submit feedback about reflect
   graph       Export a portable execution graph
   history     Search and browse command history

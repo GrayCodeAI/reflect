@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	reflectgateway "github.com/GrayCodeAI/reflect/internal/provider/gateway"
 )
 
 func TestFriendlyErrorNil(t *testing.T) {
@@ -407,6 +408,11 @@ func TestValidateStartupMissingKey(t *testing.T) {
 			os.Setenv("ANTHROPIC_API_KEY", orig)
 		}
 	}()
+
+	// Isolate from any OS keychain secret so the missing-key warning fires.
+	store := &reflectgateway.MapStore{Data: map[string]string{}}
+	reflectgateway.SetDefaultStore(store)
+	t.Cleanup(func() { reflectgateway.SetDefaultStore(nil) })
 
 	settings := emptySettings()
 	settings.Provider = "anthropic"
