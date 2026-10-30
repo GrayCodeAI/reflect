@@ -145,6 +145,7 @@ Flags:
   -r, --resume string                      resume a saved session by ID
       --session-id string                  use a specific session ID for the conversation
       --settings string                    path to a settings JSON file or a JSON string to load for this session
+      --showcase                           explore the UI with synthetic conversation history (no model or real tools)
       --startup-profile                    print startup performance profile
       --system-prompt string               system prompt to use for the session
       --system-prompt-file string          read system prompt from a file

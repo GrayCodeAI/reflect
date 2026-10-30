@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -101,6 +102,9 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 	var b strings.Builder
 	b.WriteString("\n")
 	heading := ansiBold + "Reflect" + ansiReset + ansiDim + "  " + version + ansiReset
+	if gitBranch := currentGitBranch(); gitBranch != "" {
+		heading += ansiDim + "  ·  " + gitBranch + ansiReset
+	}
 	selection := "Choose a model with /config"
 	if sess != nil && strings.TrimSpace(sess.Model()) != "" {
 		selection = shortModelID(sess.Model())
@@ -125,7 +129,7 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 	} else {
 		b.WriteString(line(`Try "explain this repo" or describe a task.`))
 	}
-	b.WriteString(line(ansiDim + "/help for commands" + ansiReset))
+	b.WriteString(line(ansiDim + "/help · Shift+Tab spec · Ctrl+L tier · Ctrl+Shift+C copy" + ansiReset))
 	if resume := actLine(saved, sessionID); resume != "" {
 		b.WriteString("\n")
 		b.WriteString(line(ansiDim + resume + ansiReset))
@@ -317,6 +321,17 @@ func apiKeyStatusLines() []string {
 		lines = append(lines, fmt.Sprintf("%s: %s", provider, reflectconfig.EnvKeyStatus(provider)))
 	}
 	return lines
+}
+
+var ansiPrimary = ansiTeal
+
+// currentGitBranch returns the current git branch name, or "" if not in a repo.
+func currentGitBranch() string {
+	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func displayConfigValue(value string) string {

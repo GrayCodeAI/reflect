@@ -175,15 +175,23 @@ func (p *AutonomyProfile) NeedsPermission(toolName string, isSafe bool) bool {
 		if isReadOnlyTool(toolName) {
 			return false
 		}
-		// Writes are auto-allowed at Semi.
+		// Writes are auto-allowed at Semi only when the file-write classifier
+		// marks them safe (within project, not a secrets file). Unsafe writes
+		// prompt the user.
 		if isWriteTool(toolName) {
-			return false
+			return !isSafe
 		}
 		if isNetworkTool(toolName) {
 			return !autoNetwork
 		}
-		// Bash asks unless explicitly overridden on.
+		// Bash: safe (read-only) commands auto-allow; otherwise ask unless
+		// explicitly overridden on. Mirrors Full-tier behaviour so common
+		// read-only shell calls (ls, git status/log/diff, cat, ...) do not
+		// prompt at the Builder tier.
 		if isShellExecutionTool(toolName) {
+			if isSafe {
+				return false
+			}
 			return !autoBash
 		}
 		return true

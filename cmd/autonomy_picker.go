@@ -25,9 +25,7 @@ type autonomyPickerEntry struct {
 // accident — the picker is a deliberate selection, so Supervised is fine here.
 var allAutonomyTiers = []safety.AutonomyLevel{
 	safety.AutonomySupervised,
-	safety.AutonomyBasic,
 	safety.AutonomySemi,
-	safety.AutonomyFull,
 	safety.AutonomyYOLO,
 }
 

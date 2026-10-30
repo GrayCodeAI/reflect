@@ -810,15 +810,7 @@ func init() {
 	})
 
 	// /autonomy — show/set trust tier, permissions, and rules
-	subcommandRegistry.Register(&delegatingCommand{
-		name:        "autonomy",
-		description: "show/set trust tier, permissions, and rules (delegates to handleAutonomyCommand)",
-		usage:       "/autonomy [subcommand]",
-		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			next, cmd := m.handleAutonomyCommand(append([]string{"/autonomy"}, args...))
-			return next, cmd
-		},
-	})
+	// /autonomy removed — unified into /permission (development cleanup).
 
 	// /permission — focused control plane for access decisions and folder trust.
 	subcommandRegistry.Register(&delegatingCommand{

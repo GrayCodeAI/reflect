@@ -363,6 +363,16 @@ func (s *PermissionService) ApplyPolicySnapshot(snapshot safety.PolicySnapshot) 
 	if s.perm.UnifiedGrants != nil {
 		s.perm.UnifiedGrants = permissions.NewUnifiedGrants(s.perm.Memory)
 	}
+	// Sync the unified rule store from the (possibly new) memory snapshot.
+	if s.perm.Rules != nil {
+		s.perm.Rules = permissions.NewRememberedRules()
+		for _, g := range s.perm.Memory.Grants() {
+			s.perm.Rules.Add(permissions.RememberedRule{
+				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
+				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+			})
+		}
+	}
 	s.allowedDirs = append([]string(nil), snapshot.AllowedDirs...)
 }
 
@@ -903,6 +913,19 @@ func (s *PermissionService) SpecStage() safety.SpecStage {
 	return s.perm.Stage
 }
 
+// SpecStageDecision delegates to the permission engine's spec-stage gate.
+func (s *PermissionService) SpecStageDecision(ctx context.Context, tc safety.ToolCallInfo, toolName string) (safety.Decision, bool) {
+	if s == nil {
+		return safety.Decision{}, false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.perm == nil {
+		return safety.Decision{}, false
+	}
+	return s.perm.SpecStageDecision(ctx, tc, toolName)
+}
+
 // SpecPhaseProgress returns the current and total implementation phases.
 func (s *PermissionService) SpecPhaseProgress() (current, total int) {
 	if s == nil {
@@ -993,6 +1016,15 @@ func (s *PermissionService) SetMemory(m *safety.PermissionMemory) {
 	// consulting a replaced store.
 	if s.perm.UnifiedGrants != nil {
 		s.perm.UnifiedGrants = permissions.NewUnifiedGrants(m)
+	}
+	if s.perm.Rules != nil {
+		s.perm.Rules = permissions.NewRememberedRules()
+		for _, g := range m.Grants() {
+			s.perm.Rules.Add(permissions.RememberedRule{
+				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
+				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+			})
+		}
 	}
 	s.perm.Revision++
 }
@@ -1097,6 +1129,16 @@ func (s *PermissionService) ReplaceSessionRules(allowSpecs, denySpecs []string) 
 	}
 	for _, spec := range denySpecs {
 		mem.DenySpec(spec)
+	}
+	// Sync unified rule store from the (possibly new) memory contents.
+	if s.perm.Rules != nil {
+		s.perm.Rules = permissions.NewRememberedRules()
+		for _, g := range mem.Grants() {
+			s.perm.Rules.Add(permissions.RememberedRule{
+				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
+				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+			})
+		}
 	}
 	s.perm.Revision++
 	return true

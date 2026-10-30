@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -23,6 +24,9 @@ const (
 	ModeOff          Mode = "off"
 	ModeDocker       Mode = "docker"
 	ModeMicrosandbox Mode = "microsandbox"
+	ModeBwrap        Mode = "bwrap"        // Linux: bubblewrap OS-level sandbox
+	ModeSeatbelt     Mode = "seatbelt"    // macOS: sandbox-exec profile
+	ModeOS           Mode = "os"          // auto: bwrap on Linux, seatbelt on macOS
 )
 
 // Config holds sandbox settings.
@@ -44,6 +48,19 @@ func Available(cfg Config) bool {
 		return err == nil
 	case ModeMicrosandbox:
 		_, err := exec.LookPath("msb")
+		return err == nil
+	case ModeBwrap:
+		_, err := exec.LookPath("bwrap")
+		return err == nil
+	case ModeSeatbelt:
+		_, err := exec.LookPath("sandbox-exec")
+		return err == nil
+	case ModeOS:
+		if runtime.GOOS == "darwin" {
+			_, err := exec.LookPath("sandbox-exec")
+			return err == nil
+		}
+		_, err := exec.LookPath("bwrap")
 		return err == nil
 	}
 	return false
@@ -68,6 +85,14 @@ func MicrosandboxAvailable() bool {
 // Returns combined stdout+stderr and an error. Falls back to host execution
 // when mode is off.
 func Run(ctx context.Context, cfg Config, workdir, command string) (string, error) {
+	// Resolve the auto mode to a concrete backend.
+	if cfg.Mode == ModeOS {
+		if runtime.GOOS == "darwin" {
+			cfg.Mode = ModeSeatbelt
+		} else {
+			cfg.Mode = ModeBwrap
+		}
+	}
 	if cfg.Mode == ModeOff || cfg.Mode == "" {
 		// Caller should handle host execution; sandbox.Run is a no-op passthrough
 		// marker. Return empty to signal "not sandboxed".
@@ -99,13 +124,39 @@ func Run(ctx context.Context, cfg Config, workdir, command string) (string, erro
 		args := []string{"run", image, "--", "sh", "-c", command}
 		out, err := exec.CommandContext(ctx, "msb", args...).CombinedOutput() // #nosec G204 -- args are controlled
 		return string(out), err
+	case ModeBwrap:
+		if _, err := exec.LookPath("bwrap"); err != nil {
+			return "", fmt.Errorf("sandbox: bwrap not found on PATH")
+		}
+		args := []string{
+			"--ro-bind", "/", "/",
+			"--bind", workdir, workdir,
+			"--dev", "/dev",
+			"--proc", "/proc",
+			"--unshare-net",
+			"sh", "-c", command,
+		}
+		out, err := exec.CommandContext(ctx, "bwrap", args...).CombinedOutput() // #nosec G204
+		return string(out), err
+	case ModeSeatbelt:
+		if _, err := exec.LookPath("sandbox-exec"); err != nil {
+			return "", fmt.Errorf("sandbox: sandbox-exec not found on PATH")
+		}
+		profile := `(version 1)(allow default)(deny network*)`
+		args := []string{"-p", profile, "sh", "-c", command}
+		out, err := exec.CommandContext(ctx, "sandbox-exec", args...).CombinedOutput() // #nosec G204
+		return string(out), err
 	}
 	return "", fmt.Errorf("sandbox: unknown mode %q", cfg.Mode)
 }
 
 // Enabled reports whether sandboxing is active.
 func Enabled(cfg Config) bool {
-	return cfg.Mode == ModeDocker || cfg.Mode == ModeMicrosandbox
+	switch cfg.Mode {
+	case ModeDocker, ModeMicrosandbox, ModeBwrap, ModeSeatbelt, ModeOS:
+		return true
+	}
+	return false
 }
 
 // NormalizeMode coerces a raw string into a Mode.
@@ -115,6 +166,12 @@ func NormalizeMode(raw string) Mode {
 		return ModeDocker
 	case "microsandbox", "msb", "micro-vm", "microvm":
 		return ModeMicrosandbox
+	case "bwrap", "bubblewrap":
+		return ModeBwrap
+	case "seatbelt", "sandbox-exec":
+		return ModeSeatbelt
+	case "os", "auto":
+		return ModeOS
 	case "off", "":
 		return ModeOff
 	}

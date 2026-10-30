@@ -56,6 +56,7 @@ var (
 	appendSystemPromptFile     string
 	autoCommitFlag             bool
 	watchFlag                  bool
+	showcaseFlag               bool
 	repoMapFlag                bool
 	mapTokensFlag              int
 	replFlag                   bool
@@ -251,6 +252,7 @@ func init() {
 	rootCmd.Flags().StringVar(&appendSystemPromptFile, "append-system-prompt-file", "", "read text from a file and append it to the system prompt")
 	rootCmd.Flags().BoolVar(&autoCommitFlag, "auto-commit", false, "auto-commit file changes made by Write and Edit tools")
 	rootCmd.Flags().BoolVar(&watchFlag, "watch", false, "watch the working directory for file changes and re-run on changes")
+	rootCmd.Flags().BoolVar(&showcaseFlag, "showcase", false, "explore the UI with synthetic conversation history (no model or real tools)")
 	rootCmd.Flags().BoolVar(&repoMapFlag, "repo-map", false, "inject an AST-ranked repository map (Aider-style) into the system prompt")
 	rootCmd.Flags().IntVar(&mapTokensFlag, "map-tokens", 1024, "token budget for the --repo-map overview")
 	rootCmd.Flags().BoolVar(&replFlag, "repl", false, "start interactive REPL mode (like aider) for multi-turn conversation without TUI")

@@ -479,6 +479,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		}
 
 		var textContent strings.Builder
+		var thinkingContent strings.Builder
 		var toolCalls []types.ToolCall
 		var stopReason string
 		var lastUsage *types.RelayUsage
@@ -532,6 +533,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 					case "thinking":
 						if strings.TrimSpace(ev.Thinking) != "" {
 							sawThinking = true
+							thinkingContent.WriteString(ev.Thinking)
 							if j := s.Persistence().Journal(); j != nil {
 								j.AppendAssistantThinkingChunk(turnCount, 1, ev.Thinking)
 							}
@@ -649,6 +651,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			}
 			// Reset accumulated state for the retry
 			textContent.Reset()
+			thinkingContent.Reset()
 			toolCalls = nil
 			stopReason = ""
 			lastUsage = nil
@@ -757,7 +760,11 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		// change behavior while they migrate to the facade.
 		if !managesResilience && stopReason == "max_tokens" && len(toolCalls) == 0 && recoveryCount < maxRecoveryRetries {
 			recoveryCount++
-			s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String()})
+			assistantThinking := thinkingContent.String()
+			if strings.TrimSpace(assistantThinking) == "" {
+				assistantThinking = " "
+			}
+			s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String(), Thinking: assistantThinking})
 			s.Persistence().AppendUserJournaled(types.RelayMessage{Role: "user", Content: "Continue from where you left off."})
 			continue
 		}
@@ -781,7 +788,11 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 				}
 			}
 			if textContent.Len() > 0 {
-				s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String()})
+				assistantThinking := thinkingContent.String()
+				if strings.TrimSpace(assistantThinking) == "" {
+					assistantThinking = " "
+				}
+				s.Persistence().AppendAssistantJournaled(types.RelayMessage{Role: "assistant", Content: textContent.String(), Thinking: assistantThinking})
 				// Auto-remember corrections and learnings. Best-effort
 				// fire-and-forget, bounded so a hung backend cannot leak.
 				if s.MemorySvc().Memory() != nil && shouldRemember(textContent.String()) {
@@ -938,10 +949,15 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		if assistContent == "" && len(toolCalls) > 0 {
 			assistContent = " " // non-empty to satisfy APIs that reject empty content
 		}
+		assistantThinking := thinkingContent.String()
+		if strings.TrimSpace(assistantThinking) == "" {
+			assistantThinking = " "
+		}
 		s.Persistence().AppendAssistantJournaled(types.RelayMessage{
-			Role:    "assistant",
-			Content: assistContent,
-			ToolUse: toolCalls,
+			Role:     "assistant",
+			Content:  assistContent,
+			Thinking: assistantThinking,
+			ToolUse:  toolCalls,
 		})
 		// Append tool results as proper tool_result messages. Tool output is
 		// redacted before it is appended so secrets never reach the model;

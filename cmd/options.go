@@ -397,9 +397,17 @@ func configureSessionStartup(sess *engine.Session, settings reflectconfig.Settin
 	sess.EnsureAutoCompactor()
 
 	if settings.AutonomyExplicit {
-		sess.PermSvc().SetAutonomy(safety.AutonomySupervised)
+		if lvl := autonomyFromSettings(settings.Autonomy); lvl != 0 {
+			sess.PermSvc().SetAutonomy(lvl)
+		} else {
+			sess.PermSvc().SetAutonomy(safety.AutonomySupervised)
+		}
 	} else if lvl := autonomyFromSettings(settings.Autonomy); lvl != 0 {
 		sess.PermSvc().SetAutonomy(lvl)
+	} else {
+		// Default to auto-safe (Semi/Builder) for new installs, matching
+		// the industry trend (Claude Code auto-mode, Codex, Gemini CLI).
+		sess.PermSvc().SetAutonomy(safety.AutonomySemi)
 	}
 	// CLI safety overrides saved settings: the explicit dangerous-skip flag
 	// must not be silently downgraded by a persisted autonomy tier.

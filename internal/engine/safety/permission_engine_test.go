@@ -23,16 +23,16 @@ func TestCheckTool_SpecStageBlocksEvenYOLO(t *testing.T) {
 		pe.Stage = stage
 		pe.Autonomy = AutonomyYOLO
 
-		allowed, reason := pe.CheckTool(context.Background(), ToolCallInfo{Name: "Write"})
-		if allowed {
+		d, handled := pe.SpecStageDecision(context.Background(), ToolCallInfo{Name: "Write"}, "Write")
+		if !handled || d.Outcome == DecisionAllow {
 			t.Errorf("stage %v: YOLO autonomy bypassed spec gate for Write, want denied", stage)
 		}
-		if reason == "" {
+		if d.Message == "" && d.Reason == "" {
 			t.Errorf("stage %v: expected a deny reason", stage)
 		}
 
-		allowed, _ = pe.CheckTool(context.Background(), ToolCallInfo{Name: "Bash", Args: map[string]interface{}{"command": "rm -rf /"}})
-		if allowed {
+		d, handled = pe.SpecStageDecision(context.Background(), ToolCallInfo{Name: "Bash", Args: map[string]interface{}{"command": "rm -rf /"}}, "Bash")
+		if !handled || d.Outcome == DecisionAllow {
 			t.Errorf("stage %v: YOLO autonomy bypassed spec gate for Bash, want denied", stage)
 		}
 	}

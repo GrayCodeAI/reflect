@@ -424,6 +424,14 @@ func (s *ToolService) ExecuteOne(ctx context.Context, tc types.ToolCall, overrid
 		s.deps.permissions.MarkToolUntrusted(tc.Name)
 	}
 	result.state = ToolStatePermissionWait
+	// Spec-stage gate (proposal C): enforced here, in the tool execution layer,
+	// independent of the permission/autonomy engine. Blocks writes/exec during
+	// an active spec workflow until ApproveImplementation.
+	if s.deps.permissions != nil {
+		if d, handled := s.deps.permissions.SpecStageDecision(ctx, safety.ToolCallInfo{Name: tc.Name, ID: tc.ID, Args: tc.Arguments}, tc.Name); handled && d.Outcome != safety.DecisionAllow {
+			return finishDenied("denied", d.Message)
+		}
+	}
 	granted, denyMsg := s.deps.permissions.CheckTool(ctx, safety.ToolCallInfo{Name: tc.Name, ID: tc.ID, Args: tc.Arguments})
 	if s.deps.recordPolicy != nil {
 		s.deps.recordPolicy(tc, "permission", granted, denyMsg)
