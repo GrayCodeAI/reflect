@@ -190,12 +190,23 @@ func (m *chatModel) handlePolicyCommand(args []string) (chatModel, tea.Cmd) {
 			return *next, cmd
 		}
 		return *m, cmd
-	case "mode", "autonomy":
+	case "spec", "plan":
+		spec := &specSubcommand{}
+		model, cmd := spec.Handle(m, args[1:], strings.Join(args[1:], " "))
+		if next, ok := model.(*chatModel); ok && next != nil {
+			return *next, cmd
+		}
+		return *m, cmd
+	case "tier", "mode", "autonomy":
 		if len(args) == 1 {
 			return m.handleAutonomyCommand([]string{"/autonomy"})
 		}
-		return m.handleAutonomyCommand([]string{"/autonomy", "tier", args[1]})
+		if _, _, ok := normalizePermissionTier(args[1]); ok {
+			return m.handleAutonomyCommand([]string{"/autonomy", "tier", args[1]})
+		}
+		return m.handleAutonomyCommand(append([]string{"/autonomy"}, args[1:]...))
 	default:
+		// allow, deny, rules, reset, save, dry-run, etc.
 		return m.handleAutonomyCommand(append([]string{"/autonomy"}, args...))
 	}
 }

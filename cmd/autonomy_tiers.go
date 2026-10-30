@@ -14,20 +14,12 @@ import (
 // deliberate double-press to land on (see chat_update.go ctrl+l handling) so
 // repeated key-presses can't accidentally drop the user into max-friction mode.
 var autonomyTiers = []safety.AutonomyLevel{
-	safety.AutonomyBasic,
 	safety.AutonomySemi,
-	safety.AutonomyFull,
 	safety.AutonomyYOLO,
 	safety.AutonomySupervised,
 }
 
-var autonomyTierNames = []string{
-	"Scout",
-	"Builder",
-	"Operator",
-	"Autonomous",
-	"Always Ask",
-}
+// autonomyTierNames removed — names resolved by autonomyTierName switch.
 
 // DefaultAutonomy is the default host-execution permission tier.
 const DefaultAutonomy = safety.AutonomySemi
@@ -37,13 +29,17 @@ const DefaultAutonomy = safety.AutonomySemi
 const yoloConfirmToken = "continue"
 
 func autonomyTierName(level safety.AutonomyLevel) string {
-	if level == safety.AutonomySupervised {
+	switch level {
+	case safety.AutonomySupervised:
 		return "Always Ask"
-	}
-	for i, l := range autonomyTiers {
-		if l == level {
-			return autonomyTierNames[i]
-		}
+	case safety.AutonomyBasic:
+		return "Scout"
+	case safety.AutonomySemi:
+		return "Builder"
+	case safety.AutonomyFull:
+		return "Operator"
+	case safety.AutonomyYOLO:
+		return "Autonomous"
 	}
 	return "Builder"
 }

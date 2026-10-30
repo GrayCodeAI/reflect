@@ -76,11 +76,17 @@ type PermissionEngine struct {
 	// agent state or user-granted bypass can loosen an administrator-set
 	// ceiling. Nil means fail-open (no governance policy installed).
 	Governance *governance.Engine
+	// Rules is the unified remembered-rule store (proposal B). When non-nil it
+	// is the single source of truth for remembered allow/deny decisions,
+	// superseding UnifiedGrants/Memory/ExactRules.
+	Rules *permissions.RememberedRules
 	// UnifiedGrants is the precedence-ordered view of session permission rules.
-	// When non-nil it replaces the direct Memory.Check lookup.
+	// When non-nil it replaces the direct Memory.Check lookup. Deprecated in
+	// favour of Rules; kept for backward compatibility.
 	UnifiedGrants *permissions.UnifiedGrants
 	// ExactRules is the optional persisted project rule store. It is kept
 	// separate from session memory so durable rules are explicit and auditable.
+	// Deprecated in favour of Rules.
 	ExactRules *permissions.StableRuleStore
 	// Profile is the per-flag autonomy profile consulted by the decision path.
 	// When non-nil its NeedsPermission is the single autonomy policy path.
@@ -224,6 +230,7 @@ func (pe *PermissionEngine) clone() *PermissionEngine {
 		Memory:           pe.Memory,
 		ExactRules:       pe.ExactRules,
 		UnifiedGrants:    pe.UnifiedGrants,
+		Rules:            pe.Rules,
 		Profile:          pe.Profile,
 		KnownTools:       pe.KnownTools,
 		UntrustedTools:   pe.UntrustedTools,
@@ -247,6 +254,15 @@ func NewPermissionEngine() *PermissionEngine {
 		Governance: governance.New(),
 	}
 	pe.UnifiedGrants = permissions.NewUnifiedGrants(pe.Memory)
+	// Unified rule store (proposal B): seed from the legacy memory grants so
+	// callers that consult pe.Rules see the same data.
+	pe.Rules = permissions.NewRememberedRules()
+	for _, g := range pe.Memory.Grants() {
+		pe.Rules.Add(permissions.RememberedRule{
+			Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
+			Source: g.Source, Scope: permissions.ScopeSession, Label: g.Label,
+		})
+	}
 	pe.Metrics = metrics.NewPermissionMetrics()
 	pe.auditLog = newPermissionAuditLog(256)
 	pe.Profile = ProfileFromLevel(pe.Autonomy)
@@ -271,6 +287,10 @@ func (pe *PermissionEngine) CheckTool(ctx context.Context, tc ToolCallInfo) (boo
 // policy snapshot. Mutable rule stores and the prompt callback remain owned by
 // the engine so remembered decisions and user approval keep their semantics.
 func (pe *PermissionEngine) CheckToolSnapshot(ctx context.Context, tc ToolCallInfo, snapshot PolicySnapshot) Decision {
+	// Spec-stage gate (proposal C): consulted for preview accuracy.
+	if d, handled := pe.specStageDecision(ctx, tc, canonicalToolName(tc.Name)); handled {
+		return pe.decorateDecision(tc, d, true)
+	}
 	// Build a fresh engine from the snapshot instead of copying *pe. Copying
 	// would clone the sync.RWMutex; clone copies only the non-locking
 	// configuration and the snapshot then replaces the mutable policy inputs.
@@ -325,6 +345,10 @@ func (pe *PermissionEngine) decorateDecision(tc ToolCallInfo, d Decision, record
 // It returns DecisionAsk when the only remaining step is user approval.
 // CheckToolDecision remains the compatibility API that performs the prompt.
 func (pe *PermissionEngine) EvaluateTool(ctx context.Context, tc ToolCallInfo) Decision {
+	// Spec-stage gate (proposal C): consulted for preview accuracy.
+	if d, handled := pe.specStageDecision(ctx, tc, canonicalToolName(tc.Name)); handled {
+		return pe.decorateDecision(tc, d, false)
+	}
 	// Build a fresh engine with PromptFn nil (so it returns Ask instead of
 	// blocking). We avoid copying *pe to dodge the vet copylocks warning from
 	// the embedded sync.RWMutex.
@@ -375,34 +399,11 @@ func (pe *PermissionEngine) evaluateToolDecision(ctx context.Context, tc ToolCal
 		return Decision{Outcome: DecisionDeny, Reason: ReasonHookDenied, Message: reason}
 	}
 
-	// Spec-stage gate — independent of trust tier, so no autonomy level can
-	// bypass it. While a spec workflow is active and not yet approved for
-	// implementation, only the workflow's own tools and reads may proceed.
-	if pe.Stage != SpecStageNone && pe.Stage != SpecStageImplementing {
-		switch toolName {
-		case "Proposal", "Specify", "Design", "Plan", "Tasks", "AskUserQuestion", "SpecStatus", "SpecEdit", "SpecList", "SpecReset", "SpecConfig", "Clarify", "Analyze", "Checklist", "Constitution", "Converge":
-			if !pe.specToolAllowed(toolName) {
-				return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: pe.specStageReason(toolName)}
-			}
-			return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}
-		case "ApproveImplementation":
-			if pe.Stage != SpecStageTasks {
-				return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: ApproveImplementation is available only after Tasks completes."}
-			}
-			return pe.promptDecisionWithSummary(ctx, tc, specApprovalSummary(pe.SpecSlug))
-		default:
-			if tool.IsReadOnly(tc.Name) {
-				return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}
-			}
-			// When SpecAllowTests is enabled, safe test commands are permitted
-			// during the spec workflow so the agent can verify its spec work.
-			if pe.specAllowTests && tc.Name == "Bash" {
-				if cmd, ok := tc.Args["command"].(string); ok && isSafeTestCommand(cmd) {
-					return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}
-				}
-			}
-			return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: only spec workflow tools (and reads) are allowed until ApproveImplementation."}
-		}
+	// Spec-stage gate (proposal C): enforced here for previews and as the
+	// authoritative check; also enforced by ToolService.ExecuteOne before the
+	// permission check (defense in depth). Isolated behind specStageDecision.
+	if d, handled := pe.specStageDecision(ctx, tc, toolName); handled {
+		return d
 	}
 
 	summary := ToolSummary(tc.Name, tc.Args)
@@ -432,28 +433,14 @@ func (pe *PermissionEngine) evaluateToolDecision(ctx context.Context, tc ToolCal
 	}
 	// Explicit remembered decisions are policy rules. They must be consulted
 	// before autonomy can short-circuit the request, especially for deny rules.
-	// When UnifiedGrants is wired up it provides one precedence-ordered lookup:
-	// deny > allow, most
-	// specific wins. Otherwise fall back to the legacy separate lookups so the
-	// field can be rolled out gradually.
-	if pe.UnifiedGrants != nil {
-		if allowed, found := pe.UnifiedGrants.CheckWithIdentity(toolName, summary, ToolIdentity(tc.Name, tc.Args), time.Now()); found {
-			if allowed {
-				return Decision{Outcome: DecisionAllow, Reason: ReasonGrantAllowed}
-			}
-			return Decision{Outcome: DecisionDeny, Reason: ReasonGrantDenied, Message: "Permission denied (rule)."}
+	// Unified lookup (proposal B): one precedence-ordered check across the
+	// grant stores — deny > allow, most specific wins. Falls back to legacy
+	// separate lookups when UnifiedGrants is not wired.
+	if allowed, found, msg := pe.lookupRememberedRule(tc, toolName, summary); found {
+		if allowed {
+			return Decision{Outcome: DecisionAllow, Reason: ReasonGrantAllowed, Message: msg}
 		}
-	} else {
-		var memoryDecision *bool
-		if pe.Memory != nil {
-			memoryDecision = pe.Memory.CheckWithIdentity(tc.Name, summary, ToolIdentity(tc.Name, tc.Args))
-		}
-		if memoryDecision != nil && !*memoryDecision {
-			return Decision{Outcome: DecisionDeny, Reason: ReasonRuleDenied, Message: "Permission denied (rule)."}
-		}
-		if memoryDecision != nil && *memoryDecision {
-			return Decision{Outcome: DecisionAllow, Reason: ReasonRuleAllowed}
-		}
+		return Decision{Outcome: DecisionDeny, Reason: ReasonGrantDenied, Message: msg}
 	}
 	// External tools do not get implicit trust from being registered. An
 	// explicit remembered rule above is still honored; otherwise they follow
@@ -488,6 +475,15 @@ func (pe *PermissionEngine) evaluateToolDecision(ctx context.Context, tc ToolCal
 		isSafe = pe.Classifier != nil && pe.Classifier.Classify(summary) == "safe"
 	} else if toolName == "PowerShell" {
 		isSafe = false
+	} else if isWriteTool(toolName) {
+		// File-write classifier (proposal E): a write is "safe" only when it
+		// stays inside the project and avoids sensitive/secret files. Unsafe
+		// writes prompt even at the auto-safe tier.
+		if path, ok := pathArgument(tc.Args); ok {
+			isSafe = isSafeFileWrite(path)
+		} else {
+			isSafe = false
+		}
 	}
 	// When a Profile is active (always, after NewPermissionEngine) it consults
 	// The profile is normally initialized by NewPermissionEngine. Construct a
@@ -557,6 +553,39 @@ func (pe *PermissionEngine) isRegisteredOrPolicyKnown(name string) bool {
 	}
 	_, ok := pe.KnownTools[strings.TrimSpace(name)]
 	return ok
+}
+
+// lookupRememberedRule consults the unified rule store (proposal B). The
+// RememberedRules table is the single source of truth; the legacy
+// UnifiedGrants/Memory fields are consulted only as fallbacks for callers that
+// have not migrated yet.
+func (pe *PermissionEngine) lookupRememberedRule(tc ToolCallInfo, toolName, summary string) (bool, bool, string) {
+	identity := ToolIdentity(tc.Name, tc.Args)
+	if pe.Rules != nil {
+		if allowed, found := pe.Rules.Check(toolName, summary, identity, time.Now()); found {
+			if allowed {
+				return true, true, "Permission allowed by remembered rule."
+			}
+			return false, true, "Permission denied (rule)."
+		}
+	}
+	if pe.UnifiedGrants != nil {
+		if allowed, found := pe.UnifiedGrants.CheckWithIdentity(toolName, summary, identity, time.Now()); found {
+			if allowed {
+				return true, true, "Permission allowed by remembered rule."
+			}
+			return false, true, "Permission denied (rule)."
+		}
+	}
+	if pe.Memory != nil {
+		if md := pe.Memory.CheckWithIdentity(tc.Name, summary, identity); md != nil {
+			if *md {
+				return true, true, "Permission allowed by remembered rule."
+			}
+			return false, true, "Permission denied (rule)."
+		}
+	}
+	return false, false, ""
 }
 
 func (pe *PermissionEngine) resolveExactRule(rawName, toolName, identity, summary string) (stableid.Decision, bool) {
@@ -652,6 +681,46 @@ func (pe *PermissionEngine) AuditLog() *permissionAuditLog {
 // PermissionMetrics returns the engine's metrics, or nil if disabled.
 func (pe *PermissionEngine) PermissionMetrics() *metrics.PermissionMetrics {
 	return pe.Metrics
+}
+
+// specStageDecision handles the spec-workflow gate. It returns (decision, true)
+// when the spec stage applies and the decision is final; otherwise (zero, false)
+// and the caller continues with the normal permission flow. Extracted from
+// evaluateToolDecision (proposal C) so the spec gate can later move out of the
+// permission engine into a plan-mode flag on the session.
+// SpecStageDecision is the exported entry point used by the tool execution
+// layer (proposal C).
+func (pe *PermissionEngine) SpecStageDecision(ctx context.Context, tc ToolCallInfo, toolName string) (Decision, bool) {
+	return pe.specStageDecision(ctx, tc, toolName)
+}
+
+func (pe *PermissionEngine) specStageDecision(ctx context.Context, tc ToolCallInfo, toolName string) (Decision, bool) {
+	toolName = canonicalToolName(toolName)
+	if pe.Stage == SpecStageNone || pe.Stage == SpecStageImplementing {
+		return Decision{}, false
+	}
+	switch toolName {
+	case "Proposal", "Specify", "Design", "Plan", "Tasks", "AskUserQuestion", "SpecStatus", "SpecEdit", "SpecList", "SpecReset", "SpecConfig", "Clarify", "Analyze", "Checklist", "Constitution", "Converge":
+		if !pe.specToolAllowed(toolName) {
+			return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: pe.specStageReason(toolName)}, true
+		}
+		return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}, true
+	case "ApproveImplementation":
+		if pe.Stage != SpecStageTasks {
+			return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: ApproveImplementation is available only after Tasks completes."}, true
+		}
+		return pe.promptDecisionWithSummary(ctx, tc, specApprovalSummary(pe.SpecSlug)), true
+	default:
+		if tool.IsReadOnly(tc.Name) {
+			return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}, true
+		}
+		if pe.specAllowTests && tc.Name == "Bash" {
+			if cmd, ok := tc.Args["command"].(string); ok && isSafeTestCommand(cmd) {
+				return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}, true
+			}
+		}
+		return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: only spec workflow tools (and reads) are allowed until ApproveImplementation."}, true
+	}
 }
 
 func (pe *PermissionEngine) specToolAllowed(toolName string) bool {

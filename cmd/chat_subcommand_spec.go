@@ -157,6 +157,5 @@ func handleSpecConfig(m *chatModel, arg string) (tea.Model, tea.Cmd) {
 	}
 }
 
-func init() {
-	subcommandRegistry.Register(&specSubcommand{})
-}
+// /spec removed — unified into /permission spec (development cleanup).
+// specSubcommand type retained for direct Handle calls in tests.

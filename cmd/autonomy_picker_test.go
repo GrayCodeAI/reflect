@@ -40,14 +40,13 @@ func TestPadRight_MultibyteDisplayWidth(t *testing.T) {
 	}
 }
 
-func TestAutonomyPicker_HasAllFiveTiers(t *testing.T) {
+func TestAutonomyPicker_HasThreeTiers(t *testing.T) {
 	ap := NewAutonomyPicker(80)
-	if len(ap.entries) != 5 {
-		t.Fatalf("expected 5 tiers, got %d", len(ap.entries))
+	if len(ap.entries) != 3 {
+		t.Fatalf("expected 3 tiers, got %d", len(ap.entries))
 	}
 	wantOrder := []safety.AutonomyLevel{
-		safety.AutonomySupervised, safety.AutonomyBasic, safety.AutonomySemi,
-		safety.AutonomyFull, safety.AutonomyYOLO,
+		safety.AutonomySupervised, safety.AutonomySemi, safety.AutonomyYOLO,
 	}
 	for i, level := range wantOrder {
 		if ap.entries[i].Level != level {
@@ -58,13 +57,13 @@ func TestAutonomyPicker_HasAllFiveTiers(t *testing.T) {
 
 func TestAutonomyPicker_OpenPreselectsCurrentTier(t *testing.T) {
 	ap := NewAutonomyPicker(80)
-	ap.Open(safety.AutonomyFull)
+	ap.Open(safety.AutonomyYOLO)
 	if !ap.IsOpen() {
 		t.Fatal("expected picker to be open")
 	}
 	sel := ap.Selected()
-	if sel == nil || sel.Level != safety.AutonomyFull {
-		t.Fatalf("expected preselected tier AutonomyFull, got %+v", sel)
+	if sel == nil || sel.Level != safety.AutonomyYOLO {
+		t.Fatalf("expected preselected tier AutonomyYOLO, got %+v", sel)
 	}
 }
 
@@ -76,16 +75,16 @@ func TestAutonomyPicker_EnterSelectsAndCloses(t *testing.T) {
 	if !handled || chosen != nil {
 		t.Fatalf("KeyDown should navigate, not select: chosen=%v handled=%v", chosen, handled)
 	}
-	if ap.Selected().Level != safety.AutonomyBasic {
-		t.Fatalf("expected selection to move to AutonomyBasic, got %v", ap.Selected().Level)
+	if ap.Selected().Level != safety.AutonomySemi {
+		t.Fatalf("expected selection to move to AutonomySemi, got %v", ap.Selected().Level)
 	}
 
 	chosen, handled = ap.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if !handled {
 		t.Fatal("expected Enter to be handled")
 	}
-	if chosen == nil || chosen.Level != safety.AutonomyBasic {
-		t.Fatalf("expected chosen AutonomyBasic, got %v", chosen)
+	if chosen == nil || chosen.Level != safety.AutonomySemi {
+		t.Fatalf("expected chosen AutonomySemi, got %v", chosen)
 	}
 	if ap.IsOpen() {
 		t.Error("expected picker to close after Enter")
@@ -94,7 +93,7 @@ func TestAutonomyPicker_EnterSelectsAndCloses(t *testing.T) {
 
 func TestAutonomyPicker_EscClosesWithoutSelecting(t *testing.T) {
 	ap := NewAutonomyPicker(80)
-	ap.Open(safety.AutonomyBasic)
+	ap.Open(safety.AutonomySemi)
 
 	chosen, handled := ap.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	if !handled || chosen != nil {
@@ -107,12 +106,12 @@ func TestAutonomyPicker_EscClosesWithoutSelecting(t *testing.T) {
 
 func TestAutonomyPicker_FilterByName(t *testing.T) {
 	ap := NewAutonomyPicker(80)
-	ap.Open(safety.AutonomyBasic)
+	ap.Open(safety.AutonomySemi)
 
-	for _, r := range "scout" {
+	for _, r := range "builder" {
 		ap.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 	}
-	if len(ap.filtered) != 1 || ap.filtered[0].Level != safety.AutonomyBasic {
-		t.Fatalf("expected filter 'scout' to match only Basic tier, got %+v", ap.filtered)
+	if len(ap.filtered) != 1 || ap.filtered[0].Level != safety.AutonomySemi {
+		t.Fatalf("expected filter 'builder' to match only Builder tier, got %+v", ap.filtered)
 	}
 }

@@ -9,6 +9,7 @@ Quick orientation:
   reflect -p "prompt"         One-shot: send prompt, print response, exit
   reflect exec "task"         Autonomous multi-turn execution
   reflect work <ticket-id>    Implement a Resolve ticket with verification
+  reflect factory status      Inspect tickets and linked evidence
   reflect path                Check environment readiness
   reflect doctor              Run diagnostics
   reflect config              Manage settings and credentials
@@ -92,6 +93,7 @@ Diagnose:
 
 Reference:
   completion  Generate shell completion script
+  factory     Inspect the local ticket-to-review software factory
   feedback    Submit feedback about reflect
   graph       Export a portable execution graph
   history     Search and browse command history
@@ -143,6 +145,7 @@ Flags:
   -r, --resume string                      resume a saved session by ID
       --session-id string                  use a specific session ID for the conversation
       --settings string                    path to a settings JSON file or a JSON string to load for this session
+      --showcase                           explore the UI with synthetic conversation history (no model or real tools)
       --startup-profile                    print startup performance profile
       --system-prompt string               system prompt to use for the session
       --system-prompt-file string          read system prompt from a file

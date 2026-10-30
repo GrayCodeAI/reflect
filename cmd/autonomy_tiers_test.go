@@ -23,11 +23,11 @@ func TestAutonomyTierNames(t *testing.T) {
 }
 
 func TestNextAutonomyTier(t *testing.T) {
-	if nextAutonomyTier(safety.AutonomyYOLO) != safety.AutonomyBasic {
-		t.Fatal("expected Autonomous -> Scout wrap")
+	if nextAutonomyTier(safety.AutonomyYOLO) != safety.AutonomySemi {
+		t.Fatal("expected Autonomous -> Builder wrap")
 	}
-	if nextAutonomyTier(safety.AutonomySemi) != safety.AutonomyFull {
-		t.Fatal("expected Builder -> Operator")
+	if nextAutonomyTier(safety.AutonomySemi) != safety.AutonomyYOLO {
+		t.Fatal("expected Builder -> Autonomous")
 	}
 }
 

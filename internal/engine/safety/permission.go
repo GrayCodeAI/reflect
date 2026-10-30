@@ -2,6 +2,7 @@ package safety
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -488,6 +489,52 @@ func pathArgument(args map[string]interface{}) (string, bool) {
 		return p, true
 	}
 	return "", false
+}
+
+// isSafeFileWrite reports whether writing to path is safe to auto-approve
+// without a prompt: it must stay inside the current project, must not touch a
+// sensitive/secret file, and must not live under .git. Mirrors the Bash
+// classifier's safe/unsafe split for file mutations (proposal E).
+func isSafeFileWrite(path string) bool {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return false
+	}
+	if tool.IsSensitivePath(path) != "" {
+		return false
+	}
+	base := strings.ToLower(filepath.Base(path))
+	if base == ".env" || strings.HasPrefix(base, ".env.") {
+		return false
+	}
+	for _, ext := range []string{".pem", ".key", ".p12", ".pfx", ".crt"} {
+		if strings.HasSuffix(base, ext) {
+			return false
+		}
+	}
+	for _, needle := range []string{"credential", "secret", "token", "password"} {
+		if strings.Contains(base, needle) {
+			return false
+		}
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	if strings.Contains(filepath.ToSlash(abs), "/.git/") || strings.HasSuffix(filepath.ToSlash(abs), "/.git") {
+		return false
+	}
+	cwd, err := os.Getwd()
+	if err == nil && cwd != "" {
+		rel, err := filepath.Rel(cwd, abs)
+		if err != nil {
+			return false
+		}
+		if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return false
+		}
+	}
+	return true
 }
 
 func canonicalToolName(name string) string {

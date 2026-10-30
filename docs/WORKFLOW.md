@@ -1,5 +1,49 @@
 # Request → Resolve → Recall → Reflect/Relay → Record → Rally
 
+## Local factory setup and status
+
+From the Reflect checkout, build the sibling CLIs into one directory:
+
+```bash
+scripts/factory-setup.sh /path/to/factory/bin
+export PATH="/path/to/factory/bin:$PATH"
+reflect factory doctor --repo /path/to/project
+reflect factory status --repo /path/to/project
+reflect factory summary --repo /path/to/project
+reflect factory run --repo /path/to/project --request 'Fix the failing test'
+reflect factory workspace summary --root /path/to/GrayCodeAI
+reflect factory workspace verify relay --root /path/to/GrayCodeAI
+```
+
+The status command joins Resolve tickets to local Record checkpoints, Recall
+outcomes, and Rally messages. It reports whether an `in_review` ticket has a
+verified checkpoint. The summary is the same one-line view Ridge displays
+after `:factory status`; Ridge can launch `reflect factory run` in a pane with
+`:factory run <request>` or `:factory ticket <id>`. The setup script builds
+Reflect, Resolve, Record, Recall, Rally, Rivet, and Rein. Relay is linked into
+Reflect from the local sibling checkout using a temporary module overlay; no
+repository dependency file is changed. Set `FACTORY_BUILD_RIDGE=1` to build the
+sibling Ridge checkout too.
+Rein is installed for policy evaluation but is not yet in Reflect's tool
+execution path.
+
+`reflect factory run` chooses a test command from `go.mod`, `Cargo.toml`,
+`pnpm-lock.yaml`, or `package-lock.json`, then runs it through Rivet and keeps
+the raw verification log. Use `--verify COMMAND` for another project layout.
+It leaves the verified branch for review; `--pr` opens a draft PR when the
+GitHub CLI is configured.
+
+The workspace commands cover all 11 sibling repositories, including the Relay
+library, Ridge, the separate company platform, and private logo assets.
+`workspace status` emits JSON with Git state, verification command, tickets,
+and evidence per checkout. `workspace verify NAME` runs one local check;
+`workspace verify all` runs every check in sequence. The platform uses
+`pnpm check` and never deploys through this command. The logo repo validates
+its SVG and PNG assets with `scripts/check-assets.py`. Run a ticket in any
+checkout with `reflect factory run --repo /path/to/checkout --request '...'`.
+The Reflect workspace check also tests against the local Relay checkout through
+a temporary module overlay.
+
 `reflect work` accepts a plain request. It creates a Resolve work item for
 tracking, reads project context from Recall, runs the coding agent through
 Relay, verifies the result, records a checkpoint, saves a sourced outcome in
@@ -40,7 +84,10 @@ It claims the work item, posts a Rally start note, invokes `reflect exec --json`
 worktree, stages and commits the agent's changes, then runs the verification
 command against that exact commit. It requires a clean worktree after the check
 and creates a Record checkpoint with the Reflect session ID and verification
-result. A Recall outcome cites that checkpoint. Reflect then comments on the
+result. A Recall outcome cites the Git commit, which remains resolvable from
+another clone once the branch is pushed; the local checkpoint ID remains in
+the outcome text. With `--pr`, the draft PR also includes the verification
+result. Reflect then comments on the
 Resolve item, moves it to `in_review`, and posts a final Rally note.
 
 The branch and worktree remain available for inspection. The output includes
@@ -54,7 +101,10 @@ branch where the ticket run started. Review and merge remain manual.
 If Reflect, verification, commit, or Record fails, the worktree remains for
 inspection. A failed verification may leave an unverified commit, but creates no
 checkpoint or review-ready ticket status.
-Resolve remains `in_progress` until a verified checkpoint is created. After a
+Reflect adds a short failure-stage comment to Resolve and a Rally note without
+copying raw stderr into either store. `reflect factory status` includes the
+latest note, and `reflect factory summary` counts stopped tickets. Resolve
+remains `in_progress` until a verified checkpoint is created. After a
 late failure, inspect the worktree and complete the handoff manually; automatic
 resume and retry are future work.
 

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -24,8 +25,9 @@ type workTicket struct {
 }
 
 type workCheckpoint struct {
-	ID     string `json:"id"`
-	Commit string `json:"commit"`
+	ID           string   `json:"id"`
+	Commit       string   `json:"commit"`
+	Verification []string `json:"verification"`
 }
 
 type workMemory struct {
@@ -86,7 +88,7 @@ func init() {
 	rootCmd.AddCommand(workCmd)
 }
 
-func runWork(cmd *cobra.Command, args []string) error {
+func runWork(cmd *cobra.Command, args []string) (runErr error) {
 	if (len(args) == 0) == (strings.TrimSpace(workRequest) == "") {
 		return errors.New("provide either one ticket ID or --request")
 	}
@@ -176,6 +178,24 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if ticket.Status == "done" {
 		return errors.New("ticket is already done")
 	}
+	phase := "setup"
+	var worktree string
+	defer func() {
+		if runErr == nil {
+			return
+		}
+		message := "Work stopped during " + phase
+		if worktree != "" {
+			message += "; inspect worktree " + worktree
+		}
+		// Keep the original error. These updates make a failed run visible to
+		// Resolve and Rally without copying potentially sensitive stderr there.
+		reportCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = workCall(reportCtx, resolveBin, "comment", "--repo", repo, "--text", message, ticket.ID)
+		var failureNote map[string]any
+		_ = workJSON(reportCtx, rallyBin, rallyArgs(message, ticket.ID), &failureNote)
+	}()
 	var memories []workMemory
 	if err := workJSON(cmd.Context(), recallBin, recallArgs("list", "--scope", scope), &memories); err != nil {
 		return fmt.Errorf("load Recall context: %w", err)
@@ -196,7 +216,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	}
 	suffix := randomHex(3)
 	branch := "reflect/" + ticket.ID + "-" + suffix
-	worktree := filepath.Join(filepath.Dir(repo), ".reflect-worktrees", filepath.Base(repo), ticket.ID+"-"+suffix)
+	worktree = filepath.Join(filepath.Dir(repo), ".reflect-worktrees", filepath.Base(repo), ticket.ID+"-"+suffix)
 	if err := os.MkdirAll(filepath.Dir(worktree), 0o700); err != nil {
 		return err
 	}
@@ -204,6 +224,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create ticket worktree: %w", err)
 	}
 	cmd.Printf("Ticket: %s — %s\nBranch: %s\nWorktree: %s\n", ticket.ID, ticket.Title, branch, worktree)
+	phase = "claim"
 	if err := workCall(cmd.Context(), resolveBin, "claim", "--repo", repo, ticket.ID); err != nil {
 		return fmt.Errorf("claim ticket (worktree retained at %s): %w", worktree, err)
 	}
@@ -211,6 +232,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if err := workJSON(cmd.Context(), rallyBin, rallyArgs("Started work on "+ticket.Title, ticket.ID), &note); err != nil {
 		return fmt.Errorf("post Rally start note (worktree retained at %s): %w", worktree, err)
 	}
+	phase = "agent run"
 	self, err := os.Executable()
 	if err != nil {
 		return err
@@ -228,6 +250,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if result.ExitCode != 0 {
 		return fmt.Errorf("agent run exited %d (Reflect, worktree retained at %s)", result.ExitCode, worktree)
 	}
+	phase = "commit"
 	// Stage and commit the agent's changes before verification so the test
 	// result refers to a stable, exact commit.
 	if _, err := workGit(worktree, "add", "-A"); err != nil {
@@ -255,6 +278,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	cmd.Printf("Verifying commit %s: %s\n", commit, verificationLabel)
+	phase = "verification"
 	verification := verificationLabel + ": passed"
 	if rivetBin != "" {
 		logDir := filepath.Join(filepath.Dir(worktree), ".rivet-logs", filepath.Base(worktree))
@@ -278,6 +302,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if clean != "" {
 		return fmt.Errorf("verification changed the worktree; commit %s cannot be marked verified (worktree retained at %s)", commit, worktree)
 	}
+	phase = "checkpoint"
 	var checkpoint workCheckpoint
 	if err := workJSON(cmd.Context(), recordBin, []string{"create", "--repo", worktree, "--session", result.SessionID, "--task", ticket.ID, "--summary", ticket.Title, "--verification", verification}, &checkpoint); err != nil {
 		return fmt.Errorf("create Record checkpoint for %s: %w", commit, err)
@@ -285,9 +310,12 @@ func runWork(cmd *cobra.Command, args []string) error {
 	if checkpoint.Commit != commit || checkpoint.ID == "" {
 		return fmt.Errorf("invalid checkpoint from Record for %s", commit)
 	}
+	phase = "memory"
 	memoryText := fmt.Sprintf("Verified %s at commit %s with `%s`; checkpoint %s", ticket.Title, commit, verificationLabel, checkpoint.ID)
 	var memory workMemory
-	if err := workJSON(cmd.Context(), recallBin, recallArgs("remember", "--scope", scope, "--kind", "outcome", "--source", "checkpoint:"+checkpoint.ID, "--text", memoryText), &memory); err != nil {
+	// Record checkpoints are local to the Git common directory. Cite the commit
+	// as the portable source so another clone can resolve the memory after push.
+	if err := workJSON(cmd.Context(), recallBin, recallArgs("remember", "--scope", scope, "--kind", "outcome", "--source", "commit:"+commit, "--text", memoryText), &memory); err != nil {
 		return fmt.Errorf("checkpoint %s created, but Recall memory failed: %w", checkpoint.ID, err)
 	}
 	if memory.ID == "" {
@@ -295,6 +323,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 	}
 	comment := fmt.Sprintf("Reflect run %s verified commit %s with `%s`; Record checkpoint %s. Branch: %s", result.SessionID, commit, verificationLabel, checkpoint.ID, branch)
 	if workOpenPR {
+		phase = "pull request"
 		url, err := workPublishPR(cmd.Context(), worktree, branch, baseBranch, ticket, checkpoint)
 		if err != nil {
 			return fmt.Errorf("verified checkpoint %s created, but PR publishing failed: %w", checkpoint.ID, err)
@@ -302,6 +331,7 @@ func runWork(cmd *cobra.Command, args []string) error {
 		comment += ". Draft PR: " + url
 		cmd.Printf("Draft PR: %s\n", url)
 	}
+	phase = "review handoff"
 	if err := workCall(cmd.Context(), resolveBin, "comment", "--repo", repo, "--text", comment, ticket.ID); err != nil {
 		return fmt.Errorf("checkpoint %s created, but Resolve comment failed: %w", checkpoint.ID, err)
 	}
@@ -444,7 +474,7 @@ func workPublishPR(ctx context.Context, worktree, branch, baseBranch string, tic
 	}
 	args := []string{
 		"pr", "create", "--draft", "--base", baseBranch, "--head", branch,
-		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nRecord checkpoint: %s\nVerified commit: %s", ticket.ID, checkpoint.ID, checkpoint.Commit),
+		"--title", ticket.Title, "--body", fmt.Sprintf("Resolve ticket: %s\nVerified commit: %s\nVerification: %s\nLocal Record checkpoint: %s", ticket.ID, checkpoint.Commit, strings.Join(checkpoint.Verification, "; "), checkpoint.ID),
 	}
 	//nolint:gosec // G204: gh arguments are constructed internally
 	c := exec.CommandContext(ctx, "gh", args...)

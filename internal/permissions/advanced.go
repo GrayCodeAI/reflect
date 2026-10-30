@@ -15,9 +15,11 @@ var (
 	safeEchoRe   = regexp.MustCompile(`^echo(\s+|$)`)
 	safePwdRe    = regexp.MustCompile(`^pwd(\s+|$)`)
 	safeCdRe     = regexp.MustCompile(`^cd(\s+|$)`)
-	safeGoRe     = regexp.MustCompile(`^go\s+(version|env|mod)\b`)
+	safeGoRe     = regexp.MustCompile(`^go\s+(version|env|mod|test|vet|build|fmt|run)\b`)
 	safeNodeRe   = regexp.MustCompile(`^node\s+--version`)
 	safePythonRe = regexp.MustCompile(`^python3?\s+--version`)
+	safeMakeRe   = regexp.MustCompile(`^make(\s+|$)`)
+	safeNpmRe    = regexp.MustCompile(`^npm\s+(test|run|ci|install)\b`)
 
 	unsafeRmRe   = regexp.MustCompile(`rm\s+-rf\s+/`)
 	unsafeCurlRe = regexp.MustCompile(`curl\s+.*\|\s*(sh|bash)`)
@@ -193,6 +195,8 @@ func NewClassifier() *Classifier {
 			safeGoRe,
 			safeNodeRe,
 			safePythonRe,
+			safeMakeRe,
+			safeNpmRe,
 		},
 		unsafePatterns: []*regexp.Regexp{
 			unsafeRmRe,
