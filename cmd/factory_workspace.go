@@ -206,7 +206,7 @@ func verifyReflectWithLocalRelay(cmd *cobra.Command, reflectPath, relayPath stri
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(overlay)
+	defer func() { _ = os.RemoveAll(overlay) }()
 	for _, file := range []struct{ source, dest string }{{"go.mod", "reflect.mod"}, {"go.sum", "reflect.sum"}} {
 		data, err := os.ReadFile(filepath.Join(reflectPath, file.source))
 		if err != nil {
@@ -221,12 +221,12 @@ func verifyReflectWithLocalRelay(cmd *cobra.Command, reflectPath, relayPath stri
 		goBin = "go"
 	}
 	modfile := filepath.Join(overlay, "reflect.mod")
-	edit := exec.CommandContext(cmd.Context(), goBin, "mod", "edit", "-modfile="+modfile, "-replace=github.com/GrayCodeAI/relay="+relayPath)
+	edit := exec.CommandContext(cmd.Context(), goBin, "mod", "edit", "-modfile="+modfile, "-replace=github.com/GrayCodeAI/relay="+relayPath) // #nosec G204 -- goBin from GO_BIN env or "go"; modfile/relayPath from trusted local paths
 	edit.Dir, edit.Env, edit.Stdout, edit.Stderr = reflectPath, append(os.Environ(), "GOWORK=off"), cmd.OutOrStdout(), cmd.ErrOrStderr()
 	if err := edit.Run(); err != nil {
 		return fmt.Errorf("prepare local Relay overlay: %w", err)
 	}
-	test := exec.CommandContext(cmd.Context(), goBin, "test", "-modfile="+modfile, "./...")
+	test := exec.CommandContext(cmd.Context(), goBin, "test", "-modfile="+modfile, "./...") // #nosec G204 -- goBin from GO_BIN env or "go"; modfile from trusted local path
 	test.Dir, test.Env, test.Stdout, test.Stderr = reflectPath, append(os.Environ(), "GOWORK=off"), cmd.OutOrStdout(), cmd.ErrOrStderr()
 	return test.Run()
 }

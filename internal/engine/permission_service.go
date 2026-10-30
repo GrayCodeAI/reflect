@@ -369,7 +369,7 @@ func (s *PermissionService) ApplyPolicySnapshot(snapshot safety.PolicySnapshot) 
 		for _, g := range s.perm.Memory.Grants() {
 			s.perm.Rules.Add(permissions.RememberedRule{
 				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
-				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+				Source: g.Source, Scope: permissions.ScopeSession, Label: g.Label,
 			})
 		}
 	}
@@ -1022,7 +1022,7 @@ func (s *PermissionService) SetMemory(m *safety.PermissionMemory) {
 		for _, g := range m.Grants() {
 			s.perm.Rules.Add(permissions.RememberedRule{
 				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
-				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+				Source: g.Source, Scope: permissions.ScopeSession, Label: g.Label,
 			})
 		}
 	}
@@ -1136,7 +1136,7 @@ func (s *PermissionService) ReplaceSessionRules(allowSpecs, denySpecs []string) 
 		for _, g := range mem.Grants() {
 			s.perm.Rules.Add(permissions.RememberedRule{
 				Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
-				Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+				Source: g.Source, Scope: permissions.ScopeSession, Label: g.Label,
 			})
 		}
 	}

@@ -323,11 +323,9 @@ func apiKeyStatusLines() []string {
 	return lines
 }
 
-var ansiPrimary = ansiTeal
-
 // currentGitBranch returns the current git branch name, or "" if not in a repo.
 func currentGitBranch() string {
-	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	out, err := exec.CommandContext(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err != nil {
 		return ""
 	}

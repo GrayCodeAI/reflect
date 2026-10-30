@@ -260,7 +260,7 @@ func NewPermissionEngine() *PermissionEngine {
 	for _, g := range pe.Memory.Grants() {
 		pe.Rules.Add(permissions.RememberedRule{
 			Tool: g.Tool, Pattern: g.Pattern, Exact: g.Exact, Allow: g.Allow,
-			Source: permissions.RuleSource(g.Source), Scope: permissions.ScopeSession, Label: g.Label,
+			Source: g.Source, Scope: permissions.ScopeSession, Label: g.Label,
 		})
 	}
 	pe.Metrics = metrics.NewPermissionMetrics()

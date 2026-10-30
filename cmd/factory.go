@@ -201,11 +201,11 @@ func collectFactoryStatusAt(ctx context.Context, root string) (factoryStatus, er
 		Assignee string `json:"assignee"`
 	}
 	if err := workJSON(ctx, bins["resolve"], []string{"list", "--repo", root}, &tickets); err != nil {
-		return factoryStatus{}, fmt.Errorf("Resolve tickets: %w", err)
+		return factoryStatus{}, fmt.Errorf("resolve tickets: %w", err)
 	}
 	var checkpoints []factoryCheckpoint
 	if err := workJSON(ctx, bins["record"], []string{"list", "--repo", root}, &checkpoints); err != nil {
-		return factoryStatus{}, fmt.Errorf("Record checkpoints: %w", err)
+		return factoryStatus{}, fmt.Errorf("record checkpoints: %w", err)
 	}
 	scope := filepath.Base(root)
 	recallArgs := []string{"list", "--scope", scope}
@@ -214,7 +214,7 @@ func collectFactoryStatusAt(ctx context.Context, root string) (factoryStatus, er
 	}
 	var memories []workMemory
 	if err := workJSON(ctx, bins["recall"], recallArgs, &memories); err != nil {
-		return factoryStatus{}, fmt.Errorf("Recall outcomes: %w", err)
+		return factoryStatus{}, fmt.Errorf("recall outcomes: %w", err)
 	}
 	rallyArgs := []string{"list", "--channel", scope}
 	if factoryRallyData != "" {
@@ -222,7 +222,7 @@ func collectFactoryStatusAt(ctx context.Context, root string) (factoryStatus, er
 	}
 	var messages []factoryMessage
 	if err := workJSON(ctx, bins["rally"], rallyArgs, &messages); err != nil {
-		return factoryStatus{}, fmt.Errorf("Rally messages: %w", err)
+		return factoryStatus{}, fmt.Errorf("rally messages: %w", err)
 	}
 	status := factoryStatus{Repository: root, Tickets: make([]factoryTicket, 0, len(tickets)), Checkpoints: len(checkpoints), Memories: len(memories), Messages: len(messages)}
 	checkpointByTask := make(map[string][]factoryCheckpoint)

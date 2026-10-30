@@ -19,11 +19,7 @@ var autonomyTiers = []safety.AutonomyLevel{
 	safety.AutonomySupervised,
 }
 
-var autonomyTierNames = []string{
-	"Auto-safe",
-	"Auto",
-	"Ask",
-}
+// autonomyTierNames removed — names resolved by autonomyTierName switch.
 
 // DefaultAutonomy is the default host-execution permission tier.
 const DefaultAutonomy = safety.AutonomySemi
