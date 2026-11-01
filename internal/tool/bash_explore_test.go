@@ -57,6 +57,8 @@ func TestExploreBashAllowed_MutationsDenied(t *testing.T) {
 		"npm test",
 		"find . -fprintf output.txt '%p'",
 		"sort -o output.txt input.txt",
+		"sort --compress-program=program input.txt",
+		"printf -v PATH /tmp",
 		"rg --pre=program pattern",
 		"echo hello\ntouch output.txt",
 		"echo $(touch output.txt)",

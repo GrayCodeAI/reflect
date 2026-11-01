@@ -34,6 +34,10 @@ const readOnlyGitPrelude = `git() {
     show) shift; command git --no-pager -c core.fsmonitor=false show --no-ext-diff --no-textconv "$@" ;;
     log) shift; command git --no-pager -c core.fsmonitor=false log --no-ext-diff --no-textconv "$@" ;;
     blame) shift; command git --no-pager -c core.fsmonitor=false blame --no-textconv "$@" ;;
+    stash) shift; case "$1" in
+      show) shift; command git --no-pager -c core.fsmonitor=false stash show --no-ext-diff --no-textconv "$@" ;;
+      list) shift; command git --no-pager -c core.fsmonitor=false stash list --no-ext-diff --no-textconv "$@" ;;
+    esac ;;
     *) command git --no-pager -c core.fsmonitor=false "$@" ;;
   esac
 }
@@ -175,6 +179,15 @@ func exploreSegmentAllowed(seg string) error {
 			if strings.HasPrefix(arg, "--o") || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "o")) {
 				return fmt.Errorf("explore bash: file output is not allowed")
 			}
+			if base == "sort" && strings.HasPrefix(arg, "--c") {
+				return fmt.Errorf("explore bash: sort compression programs are not allowed")
+			}
+		}
+	case "printf":
+		for _, arg := range tokens[1:] {
+			if strings.HasPrefix(arg, "-v") {
+				return fmt.Errorf("explore bash: assigning shell variables is not allowed")
+			}
 		}
 	case "rg":
 		for _, arg := range tokens[1:] {
@@ -184,7 +197,7 @@ func exploreSegmentAllowed(seg string) error {
 		}
 	case "file":
 		for _, arg := range tokens[1:] {
-			if arg == "--compile" || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "C")) {
+			if strings.HasPrefix(arg, "--c") || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "C")) {
 				return fmt.Errorf("explore bash: compiling magic files is not allowed")
 			}
 		}
