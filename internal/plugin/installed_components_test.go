@@ -14,7 +14,21 @@ func TestInstallWorkspacePackagePreservesAndLoadsComponents(t *testing.T) {
 	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	t.Setenv("REFLECT_CONFIG_DIR", t.TempDir())
 	t.Setenv("REFLECT_MANAGED_PLUGINS", "")
-	if err := Install(filepath.Join("..", "..", "examples", "plugins", "graycode-workspace")); err != nil {
+	source := t.TempDir()
+	files := map[string]string{
+		"plugin.json":                      `{"name":"workspace-kit","version":"1.0.0","components":{"skills_dir":"skills","mcp":[{"name":"search","command":"search-mcp","args":["--repo","${project_root}"]},{"name":"notes","command":"notes-mcp","args":["--scope","${project_name}"]},{"name":"git","command":"git-mcp"},{"name":"docs","command":"docs-mcp"},{"name":"checks","command":"checks-mcp"}]}}`,
+		"skills/workspace-helper/SKILL.md": "---\nname: workspace-helper\ndescription: Coordinate workspace tools.\n---\nInspect the project using its installed tools.\n",
+	}
+	for name, content := range files {
+		path := filepath.Join(source, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Install(source); err != nil {
 		t.Fatal(err)
 	}
 	project := filepath.Join(t.TempDir(), "project with spaces")
@@ -25,24 +39,24 @@ func TestInstallWorkspacePackagePreservesAndLoadsComponents(t *testing.T) {
 	if len(servers) != 5 {
 		t.Fatalf("servers=%+v", servers)
 	}
-	if servers[0].Command != "resolve" || servers[0].Args[len(servers[0].Args)-1] != project {
+	if servers[0].Command != "search-mcp" || servers[0].Args[len(servers[0].Args)-1] != project {
 		t.Fatalf("repository argument was not preserved literally: %+v", servers[0])
 	}
-	if servers[1].Command != "recall" || servers[1].Args[len(servers[1].Args)-1] != "project with spaces" {
+	if servers[1].Command != "notes-mcp" || servers[1].Args[len(servers[1].Args)-1] != "project with spaces" {
 		t.Fatalf("scope expansion failed: %+v", servers[1])
 	}
-	skill, err := NewSkillRegistry().Get(context.Background(), project, "graycode-workspace")
+	skill, err := NewSkillRegistry().Get(context.Background(), project, "workspace-helper")
 	if err != nil || skill.Content == "" {
 		t.Fatalf("installed skill is unavailable: %+v %v", skill, err)
 	}
 	// Removal must affect both MCP and skill discovery on the next session.
-	if err := Uninstall("graycode-workspace"); err != nil {
+	if err := Uninstall("workspace-kit"); err != nil {
 		t.Fatal(err)
 	}
 	if len(InstalledMCPServers(project)) != 0 {
 		t.Fatal("uninstalled MCP servers survived")
 	}
-	if _, err := NewSkillRegistry().Get(context.Background(), project, "graycode-workspace"); err == nil {
+	if _, err := NewSkillRegistry().Get(context.Background(), project, "workspace-helper"); err == nil {
 		t.Fatal("uninstalled skill survived")
 	}
 }
