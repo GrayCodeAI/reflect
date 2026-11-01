@@ -281,6 +281,15 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		if m.modePicker != nil && m.modePicker.open {
+			mode, chosen := m.modePicker.Update(msg)
+			if chosen {
+				m.changeWorkMode(mode)
+			}
+			m.viewDirty = true
+			m.updateViewportContent()
+			return m, nil
+		}
 		// Autonomy tier picker (/autonomy) — intercept all input when open
 		if m.autonomyPicker != nil && m.autonomyPicker.IsOpen() {
 			chosen, handled := m.autonomyPicker.Update(msg)
@@ -372,6 +381,10 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Allow typing in the input while compaction runs (Esc cancels).
 		}
 
+		if m.handleDashboardShortcut(msg) {
+			m.updateViewportContent()
+			return m, nil
+		}
 		if m.inScrollbackFocus() {
 			switch msg.Key().Code {
 			case tea.KeyTab:
@@ -613,7 +626,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				case "?":
 					// Quick help — show contextual help summary in chat.
-					m.messages = append(m.messages, displayMsg{role: "system", content: "Quick help:\n  /start           — guided setup (trust, mode, branch)\n  /mode plan|act   — research vs build\n  /isolation       — workspace and permission scope\n  /help            — list all commands\n  /help <topic>    — detailed help (e.g., /help /commit)\n  ctrl+K           — command palette\n  ctrl+L           — cycle autonomy tiers\n  ctrl+N           — switch model\n  ctrl+R           — search input history\n  ?                — show this help\n  Type / to see slash commands, or ask a question to get started."})
+					m.messages = append(m.messages, displayMsg{role: "system", content: "Quick help:\n  /start           — guided setup (trust, mode, branch)\n  /mode plan|build   — research vs build\n  /isolation       — workspace and permission scope\n  /help            — list all commands\n  /help <topic>    — detailed help (e.g., /help /commit)\n  ctrl+K           — command palette\n  ctrl+L           — cycle autonomy tiers\n  ctrl+N           — switch model\n  ctrl+R           — search input history\n  ?                — show this help\n  Type / to see slash commands, or ask a question to get started."})
 					m.viewDirty = true
 					m.updateViewportContent()
 					return m, nil
@@ -675,14 +688,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.viewDirty = true
 					m.updateViewportContent()
 					return m, nil
-				case "shift+tab":
-					if m.specPicker == nil {
-						m.specPicker = NewSpecPicker(m.width)
-					}
-					m.specPicker.Open(currentSpecStage(m.session))
-					m.viewDirty = true
-					m.updateViewportContent()
-					return m, nil
+
 				}
 			}
 		}
@@ -690,10 +696,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Main key dispatch (special keys via code, runes via text)
 		switch msg.Key().Code {
 		case tea.KeyTab:
-			// Accept ghost text suggestion if active and input is empty
 			if m.ghostText.Active() && strings.TrimSpace(m.input.Value()) == "" {
-				accepted := m.ghostText.Accept()
-				m.input.SetValue(accepted)
+				m.input.SetValue(m.ghostText.Accept())
 				m.input.CursorEnd()
 				return m, nil
 			}
@@ -980,7 +984,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.input.SetWidth(msg.Width - 4)
+		m.input.SetWidth(max(1, m.chatColumnWidth()-4))
 		m.configInput.SetWidth(msg.Width - 4)
 		m.invalidateInputLayoutCache()
 		m.rebuildWelcomeCache(false)

@@ -59,7 +59,7 @@ func buildStatusSnapshot() status.Snapshot {
 			snapshot.Permission.Mode = "auto"
 		}
 	}
-	snapshot.MCP.Configured = len(settings.MCPServers)
+	snapshot.MCP.Configured = len(configuredStartupMCPServers(settings))
 	snapshot.MCP.State = "not_loaded"
 	snapshot.Skills.State = "discovery_deferred"
 	if entries, err := plugin.DefaultRegistry.List(context.Background(), snapshot.Workspace); err == nil {

@@ -733,7 +733,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 			excess := toolCalls[maxToolCallsPerStep:]
 			toolCalls = toolCalls[:maxToolCallsPerStep]
 			for _, tc := range excess {
-				emit(StreamEvent{Type: "tool_result", ToolName: tc.Name, Content: "Error: too many tool calls in one step (max 32). Retry with fewer calls."})
+				emit(StreamEvent{Type: "tool_result", ToolName: tc.Name, ToolID: tc.ID, ToolState: ToolStateFailed, Content: "Error: too many tool calls in one step (max 32). Retry with fewer calls."})
 			}
 		}
 

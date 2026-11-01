@@ -719,7 +719,7 @@ func (pe *PermissionEngine) specStageDecision(ctx context.Context, tc ToolCallIn
 				return Decision{Outcome: DecisionAllow, Reason: ReasonSpecGate}, true
 			}
 		}
-		return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: only spec workflow tools (and reads) are allowed until ApproveImplementation."}, true
+		return Decision{Outcome: DecisionDeny, Reason: ReasonSpecGate, Message: "Spec stage active: only spec workflow tools (and reads) are allowed until ApproveImplementation. Tip: finish the current spec stage, then run ApproveImplementation to unlock edits."}, true
 	}
 }
 

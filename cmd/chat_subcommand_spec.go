@@ -21,7 +21,7 @@ type specSubcommand struct{}
 func (s *specSubcommand) Name() string      { return "spec" }
 func (s *specSubcommand) Aliases() []string { return nil }
 func (s *specSubcommand) Description() string {
-	return "start or check the spec-driven workflow (gates Write/Edit/Bash)"
+	return "advanced: opt into the full specification and implementation-approval workflow"
 }
 
 func (s *specSubcommand) Usage() string {
@@ -38,7 +38,7 @@ func (s *specSubcommand) Handle(m *chatModel, args []string, text string) (tea.M
 	switch {
 	case arg == "":
 		if m.specPicker == nil {
-			m.specPicker = NewSpecPicker(m.width)
+			m.specPicker = NewSpecPicker(m.chatColumnWidth())
 		}
 		m.specPicker.Open(currentSpecStage(m.session))
 		return m, nil
@@ -157,5 +157,4 @@ func handleSpecConfig(m *chatModel, arg string) (tea.Model, tea.Cmd) {
 	}
 }
 
-// /spec removed — unified into /permission spec (development cleanup).
-// specSubcommand type retained for direct Handle calls in tests.
+func init() { subcommandRegistry.Register(&specSubcommand{}) }

@@ -37,6 +37,7 @@ type ToolService struct {
 	bgMu              sync.Mutex
 	executionConfigMu sync.RWMutex
 	workingDir        string
+	workMode          WorkMode
 	readOnlyBash      bool
 	autoCommit        bool
 	bgManager         *tool.BackgroundAgentManager
@@ -114,6 +115,7 @@ type toolExecutionDeps struct {
 	recordPolicy       func(types.ToolCall, string, bool, string)
 	recordVerification func(types.ToolCall, string, bool)
 	redactOutput       func(string) string
+	contextWindow      func() int
 	lifecycle          *LifecycleService
 	appendSystem       func(string)
 	taskExec           tool.TaskExecutorFunc
@@ -315,8 +317,8 @@ func (s *ToolService) ExecuteAll(ctx context.Context, calls []types.ToolCall, ch
 		results := make([]toolExecResult, len(calls))
 		for i, call := range calls {
 			msg := "tool execution service is unavailable"
-			results[i] = toolExecResult{tc: call, output: msg, isErr: true}
-			emitEvent(ctx, ch, StreamEvent{Type: "tool_result", ToolName: call.Name, Content: msg})
+			results[i] = toolExecResult{tc: call, output: msg, isErr: true, err: fmt.Errorf("%s", msg), state: ToolStateFailed, reason: ToolReasonPermission}
+			emitEvent(ctx, ch, StreamEvent{Type: "tool_result", ToolName: call.Name, ToolID: call.ID, Content: msg, ToolState: ToolStateFailed, ToolReason: ToolReasonPermission})
 		}
 		return results
 	}
@@ -355,10 +357,26 @@ func (s *ToolService) ExecuteAll(ctx context.Context, calls []types.ToolCall, ch
 		}(item)
 	}
 	wg.Wait()
+	// Reads run concurrently, then finish through the same product hooks and
+	// terminal event boundary as writes. Completing in input order also keeps
+	// result ordering deterministic without serializing filesystem inspection.
+	for _, item := range concurrentCalls {
+		results[item.index] = s.finishInvocation(ctx, results[item.index], ch, turn, intent)
+	}
 	for _, item := range sequentialCalls {
-		results[item.index] = s.ExecuteOne(ctx, item.tc, nil, ch, turn, intent)
+		raw := s.ExecuteOne(ctx, item.tc, nil, ch, turn, intent)
+		results[item.index] = s.finishInvocation(ctx, raw, ch, turn, intent)
 	}
 	return results
+}
+
+func (s *ToolService) finishInvocation(ctx context.Context, result toolExecResult, ch chan<- StreamEvent, turn int, intent string) toolExecResult {
+	window := 0
+	if s.deps.contextWindow != nil {
+		window = s.deps.contextWindow()
+	}
+	processed := s.PostProcess(ctx, result, turn, intent, window)
+	return s.CompleteResult(ctx, processed, ch)
 }
 
 // runPreStage executes the StagePreExecute interceptors. It returns nil when the
@@ -383,13 +401,16 @@ func bool2tag(isErr bool) string {
 // own the remaining result lifecycle.
 func (s *ToolService) ExecuteOne(ctx context.Context, tc types.ToolCall, override tool.Tool, ch chan<- StreamEvent, turn int, intent string) toolExecResult {
 	result := toolExecResult{tc: tc, state: ToolStateValidating}
-	emitEvent(ctx, ch, StreamEvent{Type: "tool_use", ToolName: tc.Name, ToolID: tc.ID, ToolState: ToolStateValidating})
+	summary := toolActivitySummary(tc.Name, tc.Arguments)
+	if s.deps.redactOutput != nil {
+		summary = s.deps.redactOutput(summary)
+	}
+	emitEvent(ctx, ch, StreamEvent{Type: "tool_use", ToolName: tc.Name, ToolID: tc.ID, Content: summary, ToolState: ToolStateValidating})
 	var span *oteltrace.Span
 	if s.tracer != nil {
 		_, span = oteltrace.StartToolSpan(ctx, s.tracer, tc.Name, tc.ID)
 	}
 	finishDenied := func(tag string, msg string) toolExecResult {
-		emitEvent(ctx, ch, StreamEvent{Type: "tool_result", ToolName: tc.Name, Content: msg, ToolState: ToolStateFailed, ToolReason: result.reason})
 		if span != nil {
 			span.SetTag(tag, "true")
 			span.Finish()
@@ -422,6 +443,9 @@ func (s *ToolService) ExecuteOne(ctx context.Context, tc types.ToolCall, overrid
 	}
 	if external, ok := candidate.(tool.UntrustedTool); ok && external.Untrusted() {
 		s.deps.permissions.MarkToolUntrusted(tc.Name)
+	}
+	if reason := s.workModeRestriction(tc.Name); reason != "" {
+		return finishDenied("denied", reason)
 	}
 	result.state = ToolStatePermissionWait
 	// Spec-stage gate (proposal C): enforced here, in the tool execution layer,
@@ -826,7 +850,7 @@ func (s *ToolService) CompleteResult(ctx context.Context, result toolExecResult,
 	output, isErr := result.output, result.isErr
 	if !isErr && s.deps.permissions != nil {
 		switch canonicalToolName(result.tc.Name) {
-		case "Specify", "Plan", "Tasks", "SpecReset":
+		case "Proposal", "Specify", "Design", "Plan", "Tasks", "SpecReset":
 			s.deps.permissions.AdvanceSpecStage(result.tc.Name)
 		case "ApproveImplementation":
 			s.deps.permissions.AdvanceSpecStage(result.tc.Name)
@@ -857,6 +881,7 @@ func (s *ToolService) CompleteResult(ctx context.Context, result toolExecResult,
 	emitEvent(ctx, ch, StreamEvent{
 		Type:       "tool_result",
 		ToolName:   result.tc.Name,
+		ToolID:     result.tc.ID,
 		Content:    output,
 		ToolState:  result.state,
 		ToolReason: result.reason,

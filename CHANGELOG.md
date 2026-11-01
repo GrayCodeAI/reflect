@@ -19,10 +19,14 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 ## [Unreleased]
 
 ### Added
+- Plan → Build → Review chat controls, `/plan` with a saved per-conversation plan, and an optional advanced `/spec` workflow.
+- A compact Reflect wordmark with a fading water reflection in the original terminal layout.
 - **Release process and guards**: `docs/RELEASING.md` (release PR checklist, tag protection, what the release workflow publishes, how to verify a release, status of every distribution channel); `scripts/check-release-tag.sh`, used by the release workflow and `make release-check`, refuses a tag that is not `v` + `VERSION` or has no `CHANGELOG.md` section; `make release-snapshot` builds every archive locally without publishing or signing.
 - **windows/arm64 release archives**: GoReleaser and the CI build matrix now cover all six linux/darwin/windows × amd64/arm64 targets.
 
 ### Changed
+- Reflect and Relay are documented as independent projects with separately pinned builds and releases.
+- Reflect pins a Relay revision with Reflection AI provider and reasoning support.
 - The module, CLI, environment variables, state paths, integrations and packaging now use Reflect, backed by the renamed Relay module; Go 1.27.2 is required.
 - The project version resets to the value in `VERSION`. Runtime defaults embed it, and package/API metadata is generated from it with CI drift checks. Historical hawk tags remain intact; explicit tags are required for the reset series.
 - **Release workflow can publish**: it installs syft for the SBOMs, signs `checksums.txt` inside GoReleaser with cosign keyless signing (`checksums.txt.sigstore.json`), re-verifies the published signature, takes the release notes from this file, builds with `GOWORK=off` and `-trimpath`, and drops the unused `packages: write` permission and sibling checkout.
@@ -48,6 +52,10 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Dead shell-injection surface removed**: `AssumptionTracker.VerifyCommandSucceeds` ran caller-supplied strings through `sh -c`, bypassing the permission stack; it had zero callers and is deleted. `SelfHealer.RunScript` no longer shell-evaluates the script path (double evaluation) and invokes it directly via `/bin/sh`.
 
 ### Fixed
+- Batch tool execution now runs post-processing, redaction, and completion hooks and emits one final result per call.
+- Plan and Review modes enforce read-only execution even after tool discovery. Loading a local skill uses its read-only permission policy.
+- Installed plugin MCP servers and skills are discovered through the normal trust boundary; MCP child processes outlive the handshake timeout.
+- Startup credential checks use the active provider and invocation settings, including custom gateways.
 - **Engine subprocesses are bounded and observable**: experiment-loop rollback, auto-commit git calls, and post-edit syntax validators (`go vet`, `python3`, `node`, `npx tsc`) ran on `context.Background()` with ignored errors; they are now time-bounded and log failures instead of discarding them.
 - **Memory and config failures no longer silently dropped**: stream-loop memory persists (assistant learnings, skills, conversation summaries, insights) and the self-improve lesson store log failures via slog, corrupt lesson stores are reported, and the config panel surfaces failed `provider` setting saves instead of ignoring them.
 

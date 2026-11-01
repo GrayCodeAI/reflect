@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -98,7 +97,7 @@ func renderPermissionStatus(m *chatModel) string {
 		return ""
 	}
 	level := effectivePermissionTier(m.session)
-	mode := "Act"
+	mode := "Build"
 	switch m.session.WorkMode() {
 	case engine.WorkModePlan:
 		mode = "Plan"
@@ -176,7 +175,7 @@ func renderStatusBarPrimaryLeft(m *chatModel) string {
 	if !ok {
 		return ""
 	}
-	parts := []string{statusCwdStyle.Render(filepath.Base(cwd))}
+	parts := []string{statusCwdStyle.Render(cwd)}
 	if branch := cachedStatusBranch(m); branch != "" {
 		parts = append(parts, statusBranchStyle.Render(icons.Branch()+" "+branch))
 		if m != nil && len(m.statusLeftPRs) > 0 {

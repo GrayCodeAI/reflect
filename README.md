@@ -29,6 +29,11 @@
 
 reflect is an AI-powered coding agent that lives in your terminal. It reads your codebase, writes and edits files, runs tests, and manages git — all through natural language. Unlike IDE-bound tools, reflect works over SSH and on any machine with a shell.
 
+Reflect is an independent open-source GrayCodeAI project that works in any
+repository. It integrates with other applications through its CLI, JSON and JSONL
+automation output, ACP, and MCP server. [Relay](https://github.com/GrayCodeAI/relay)
+is a separate, independently released model runtime used through its public API.
+
 **Developer path:** one machine, keychain credentials, local memory. Run `reflect path` to check readiness.
 
 - **Model-agnostic** — supports many first-class providers through [relay](https://github.com/GrayCodeAI/relay) (the exact count is dynamic — see `reflect --help`), including Anthropic, OpenAI, Gemini, Fireworks AI, Concentrate AI (pay-as-you-go), DeepSeek, and Ollama
@@ -91,7 +96,6 @@ migrate any existing settings to these names before using the new binary.
 
 ```bash
 git clone https://github.com/GrayCodeAI/reflect && cd reflect
-make setup   # generates go.work referencing sibling support repos in the graycode-eco workspace
 go build -o reflect ./cmd/reflect
 ./reflect
 
@@ -247,47 +251,32 @@ reflect skills install go-review # Install from GitHub
 reflect skills audit             # Security scan installed skills
 ```
 
-### Permission Center
+### Plan, Build, Review
 
-reflect exposes two independent chat command centers — trust tier and the
-spec-driven workflow gate — rather than one merged permission mode:
+The CLI uses its original full-width chat layout, with the input fixed at the
+bottom and model, permissions, workspace, and usage in the footer.
 
-```text
-/autonomy
-/autonomy tier <scout|builder|operator|autonomous>
-/autonomy dry-run <on|off>
-/autonomy allow <rule>
-/autonomy deny <rule>
-/autonomy rules
-/autonomy reset
-/autonomy save [project|global]
+- **Plan** researches the task with read-only tools and produces one Markdown plan.
+  Reflect saves the completed answer in project- and conversation-scoped user
+  state, outside the source tree. `/plan show` reopens it.
+- **Build** implements changes under the selected permission policy.
+- **Review** inspects code and reports findings without modifying project files.
 
-/spec
-/spec [what to build]
-/spec status
-/spec reset
-```
+Press **Shift+Tab** to cycle Plan → Build → Review, or **F2** to choose a mode.
+Use `/plan <task>` to begin planning and `/mode build` to switch to implementation.
+F3 opens permissions.
+Use `/status`, `/cost`, and `/keybindings` for details when you need them.
 
-The model is:
+Work modes, permission tiers, and folder trust remain independent. A mode switch
+never grants additional permissions. `/permission` manages tiers, rules, trust,
+and dry-run; `/autonomy` remains available for tier settings. Loading a local
+skill reads its instructions; subsequent tool calls follow their own permissions.
 
-- `Tier` controls autonomy (bare `/autonomy` opens a picker for this):
-  - `Always Ask` — prompts for permission on every tool call
-  - `Scout`
-  - `Builder`
-  - `Operator`
-  - `Autonomous`
-- `Dry-run` is a kill switch: denies every tool call unconditionally,
-  regardless of tier or spec stage.
-- `Rules` control explicit allow/deny exceptions.
-- `Spec` is a separate, independent workflow gate (bare `/spec` opens a
-  picker): starting it walks the model through `Specify → Plan → Tasks`,
-  writing real files to `.reflect/specs/<slug>/`, and blocks Write/Edit/Bash
-  until you approve moving to implementation — at **any** trust tier,
-  including Autonomous.
-
-`/autonomy` and `/spec` are the main control surfaces for normal chat usage.
-Older merged permission-mode chat commands have been removed in favor of
-these two independent flows.
+For complex work, `/spec` opens an optional advanced workflow with proposal,
+specification, design, plan, tasks, and explicit implementation approval. It gates
+implementation at every permission tier, including Autonomous. `/spec status`
+reports progress; `/spec reset` leaves the workflow. Ordinary Plan mode does not
+start it or create its document set.
 
 ### MCP & LSP Support
 

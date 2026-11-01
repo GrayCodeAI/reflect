@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image/color"
-	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -101,35 +100,16 @@ func buildWelcomeMessageWithSnapshotAndMascot(sess *engine.Session, sessionID st
 	}
 	var b strings.Builder
 	b.WriteString("\n")
-	heading := ansiBold + "Reflect" + ansiReset + ansiDim + "  " + version + ansiReset
-	if gitBranch := currentGitBranch(); gitBranch != "" {
-		heading += ansiDim + "  ·  " + gitBranch + ansiReset
-	}
-	selection := "Choose a model with /config"
-	if sess != nil && strings.TrimSpace(sess.Model()) != "" {
-		selection = shortModelID(sess.Model())
-		if provider := strings.TrimSpace(sess.Provider()); provider != "" {
-			selection = provider + " · " + selection
+	if artwork := renderWaterWelcomeArt(width-indent, height); artwork != "" {
+		for _, row := range strings.Split(artwork, "\n") {
+			b.WriteString(line(row))
 		}
+		b.WriteByte('\n')
 	}
-	workspace, err := os.Getwd()
-	if err != nil {
-		workspace = "."
-	}
-	b.WriteString(line(heading))
-	b.WriteString(line(ansiDim + shortenHomePath(workspace) + ansiReset))
-	b.WriteString(line(ansiDim + selection + ansiReset))
-	b.WriteString("\n")
-	if indicators := welcomeIndicatorRow(skillsCount, snapshot.agentsOK, mcpCount, ansiDim, ansiGrayDim, ansiReset, "", ""); indicators != "" {
-		b.WriteString(line(indicators))
-		b.WriteString("\n")
-	}
+	b.WriteString(line(ansiDim + "Reflect " + version + " · /help" + ansiReset))
 	if snapshot.setup.NeedsSetup {
-		b.WriteString(line("Choose a provider and model with /config."))
-	} else {
-		b.WriteString(line(`Try "explain this repo" or describe a task.`))
+		b.WriteString(line(ansiDim + "/config to choose a provider and model" + ansiReset))
 	}
-	b.WriteString(line(ansiDim + "/help · Shift+Tab spec · Ctrl+L tier · Ctrl+Shift+C copy" + ansiReset))
 	if resume := actLine(saved, sessionID); resume != "" {
 		b.WriteString("\n")
 		b.WriteString(line(ansiDim + resume + ansiReset))

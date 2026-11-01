@@ -219,7 +219,7 @@ func (s *Session) executeSingleTool(ctx context.Context, tc types.ToolCall, ch c
 func (s *Session) executeSingleToolWithTool(ctx context.Context, tc types.ToolCall, override tool.Tool, ch chan<- StreamEvent, turnCount int, intentText string) toolExecResult {
 	if s.Tools() == nil {
 		msg := "session tool service is not initialized"
-		ch <- StreamEvent{Type: "tool_result", ToolName: tc.Name, Content: msg}
+		ch <- StreamEvent{Type: "tool_result", ToolName: tc.Name, ToolID: tc.ID, Content: msg, ToolState: ToolStateFailed}
 		return toolExecResult{tc: tc, output: msg, isErr: true, err: fmt.Errorf("%s", msg)}
 	}
 	canonicalPre := canonicalToolName(tc.Name)
@@ -291,7 +291,13 @@ func (s *Session) executeSingleToolWithTool(ctx context.Context, tc types.ToolCa
 			}
 		}
 	}
-	processed := s.Tools().PostProcess(ctx, toolExecResult{tc: tc, tool: override, output: output, isErr: isErr, err: execErr, span: core.span}, turnCount, intentText, s.ContextWindowSize())
+	// Preserve execution state and reason through post-processing so the TUI
+	// can distinguish completion, failure, timeout, and cancellation.
+	core.output, core.isErr, core.err = output, isErr, execErr
+	if isErr && core.state == ToolStateCompleted {
+		core.state, core.reason = ToolStateFailed, ToolReasonExecutionError
+	}
+	processed := s.Tools().PostProcess(ctx, core, turnCount, intentText, s.ContextWindowSize())
 	return s.Tools().CompleteResult(ctx, processed, ch)
 }
 

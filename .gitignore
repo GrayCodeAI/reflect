@@ -66,3 +66,6 @@ reflect-sec105b.log
 # it would break CI, which builds against the pinned published module.
 /go.local.mod
 /go.local.sum
+
+# Optional personal workspace; released builds use the pinned Relay module.
+/go.work

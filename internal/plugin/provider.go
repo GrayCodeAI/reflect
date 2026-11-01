@@ -243,6 +243,13 @@ func SkillRoots(cwd string) []string {
 			filepath.Join(home, ".codex", "skills"),
 		)
 	}
+	// Plugin skill roots follow the ordinary project/user skill locations.
+	// InstalledComponents applies the same trust and scope rules as MCP tools.
+	for _, components := range InstalledComponents(cwd) {
+		for _, dir := range components.Skills {
+			roots = append(roots, dir)
+		}
+	}
 	return roots
 }
 

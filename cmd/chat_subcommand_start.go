@@ -89,7 +89,7 @@ func (c *startSubcommand) Handle(m *chatModel, args []string, text string) (tea.
 	b.WriteString("- *Run the test suite and fix failures*\n")
 	b.WriteString("- *`/mode plan` then: plan a small safe refactor*\n")
 	b.WriteString("\n### Power shortcuts\n")
-	b.WriteString("`/mode plan|act|review` · `/trust` · `/cost` · `/help`\n")
+	b.WriteString("`/mode plan|build|review` · `/trust` · `/cost` · `/help`\n")
 
 	m.messages = append(m.messages, displayMsg{role: "system", content: strings.TrimSpace(b.String())})
 	return m, nil

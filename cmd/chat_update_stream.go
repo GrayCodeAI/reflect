@@ -7,6 +7,8 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	chatfeature "github.com/GrayCodeAI/reflect/internal/features/chat"
 	"github.com/GrayCodeAI/reflect/internal/session"
 )
 
@@ -80,7 +82,10 @@ func (m chatModel) handleToolUse(msg toolUseMsg) (tea.Model, tea.Cmd) {
 		m.messages = append(m.messages, displayMsg{role: "assistant", content: m.partial.String()})
 		m.partial.Reset()
 	}
-	m.messages = append(m.messages, displayMsg{role: "tool_use", content: msg.name})
+	m.messages = append(m.messages, displayMsg{
+		role: "tool_use", content: msg.name,
+		toolID: msg.id, toolName: msg.name, summary: msg.summary, toolState: engine.ToolStateValidating,
+	})
 	m.toolStartTime = time.Now()
 	m.viewDirty = true
 	return m, nil
@@ -88,6 +93,24 @@ func (m chatModel) handleToolUse(msg toolUseMsg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
 	m.turn.ObserveTool()
+	for i := len(m.messages) - 1; i >= 0; i-- {
+		entry := &m.messages[i]
+		if entry.role != "tool_use" || entry.toolState != engine.ToolStateValidating {
+			continue
+		}
+		if msg.id != "" && entry.toolID != msg.id || msg.id == "" && entry.toolName != msg.name {
+			continue
+		}
+		entry.toolState = msg.state
+		if entry.toolState == "" {
+			entry.toolState = engine.ToolStateCompleted
+		}
+		m.invalidateViewportCache()
+		break
+	}
+	if m.activeToolName() == "" {
+		m.toolStartTime = time.Time{}
+	}
 	// The preceding tool_use message renders the tool name as this block's
 	// header, so the result contains only the returned content.
 	m.messages = append(m.messages, displayMsg{role: "tool_result", content: msg.content})
@@ -100,6 +123,19 @@ func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
 		m.recordWALError(m.wal.Append(session.Message{Role: "tool_result", Content: msg.content}))
 	}
 	return m, nil
+}
+
+func (m chatModel) activeToolName() string {
+	for i := len(m.messages) - 1; i >= 0; i-- {
+		entry := m.messages[i]
+		if entry.role == "user" {
+			break
+		}
+		if entry.role == "tool_use" && entry.toolState == engine.ToolStateValidating {
+			return singleLineActivity(entry.toolName)
+		}
+	}
+	return ""
 }
 
 func (m chatModel) handleBlastRadius(msg blastRadiusMsg) (tea.Model, tea.Cmd) {
@@ -118,6 +154,7 @@ func (m chatModel) handleSelectionResumed() (tea.Model, tea.Cmd) {
 
 func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
+	wasCancelled := m.streamCancelled
 	if m.streamCancelled {
 		m.streamCancelled = false
 		m.waiting = false
@@ -134,6 +171,14 @@ func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	if m.partial.Len() > 0 {
 		content := sanitizeIdentity(m.partial.String())
 		m.messages = append(m.messages, displayMsg{role: "assistant", content: content})
+		if !wasCancelled && m.session != nil && m.streamWorkMode == engine.WorkModePlan && !m.streamUsesSpec && m.sessionID != "" {
+			path, err := chatfeature.SavePlanDocument(m.session.WorkingDir(), m.sessionID, content)
+			if err != nil {
+				m.messages = append(m.messages, displayMsg{role: "warning", content: "Plan could not be saved: " + err.Error()})
+			} else {
+				m.messages = append(m.messages, displayMsg{role: "system", content: "Plan saved: " + shortenHomePath(path) + "\n/plan show to read it · Shift+Tab to Build"})
+			}
+		}
 		m.ensureWAL()
 		if m.wal != nil {
 			m.walSeq++
@@ -149,7 +194,6 @@ func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	}
 	m.invalidateSlashSugCache()
 	hadOutput := m.turn.HadAssistantOutput()
-	wasCancelled := m.streamCancelled
 	m.turn.Reset()
 	m.clearInteractivePrompts("stream ended")
 	m.waiting = false

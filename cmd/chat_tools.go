@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"context"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 	"github.com/GrayCodeAI/reflect/internal/lsp"
+	"github.com/GrayCodeAI/reflect/internal/plugin"
 	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
@@ -228,6 +230,28 @@ func configuredStartupMCPServers(settings reflectconfig.Settings) []startupMCPSe
 			command: parts[0],
 			args:    parts[1:],
 		})
+	}
+	// Explicit settings/CLI entries win over plugin server names. The plugin
+	// discovery path already enforces managed/user/project scope and trust.
+	seen := make(map[string]bool, len(servers))
+	for _, server := range servers {
+		seen[server.name] = true
+	}
+	cwd, err := os.Getwd()
+	if err == nil {
+		for _, spec := range plugin.InstalledMCPServers(cwd) {
+			if spec.Name == "" || seen[spec.Name] {
+				continue
+			}
+			server := startupMCPServerSpec{name: spec.Name, command: spec.Command, args: spec.Args}
+			if spec.URL != "" {
+				server.serverType, server.url = "http", spec.URL
+			} else if spec.Command == "" {
+				continue
+			}
+			servers = append(servers, server)
+			seen[spec.Name] = true
+		}
 	}
 	return servers
 }

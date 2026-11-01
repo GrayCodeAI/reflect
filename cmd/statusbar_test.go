@@ -107,12 +107,12 @@ func TestRenderStatusBarRight_OmitsDuplicatedContext(t *testing.T) {
 }
 
 func TestRenderStatusBarPrimaryLeft_UsesCachedState(t *testing.T) {
-	m := &chatModel{statusLeftVal: "~/repo", statusLeftBranch: "main"}
+	m := &chatModel{statusLeftVal: "~/Desktop/GrayCodeAI/reflect", statusLeftBranch: "feat/welcome-screen"}
 	got := renderStatusBarPrimaryLeft(m)
-	if !strings.Contains(got, "repo") || strings.Contains(got, "~/") {
-		t.Fatalf("status left = %q, want cached cwd", got)
+	if !strings.Contains(got, "~/Desktop/GrayCodeAI/reflect") {
+		t.Fatalf("status left = %q, want complete cached project path", got)
 	}
-	if !strings.Contains(got, "main") {
+	if !strings.Contains(got, "feat/welcome-screen") {
 		t.Fatalf("status left = %q, want cached branch", got)
 	}
 }

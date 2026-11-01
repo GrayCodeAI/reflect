@@ -653,7 +653,7 @@ func init() {
 		description: "show keybindings",
 		usage:       "",
 		handler: func(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
-			m.messages = append(m.messages, displayMsg{role: "system", content: "Keybindings:\n  Enter           — Submit\n  Ctrl+C          — Cancel/Exit\n  Ctrl+Shift+C    — Copy (input draft or chat)\n  Ctrl+K          — Command palette\n  Ctrl+L          — Cycle autonomy tier\n  Up/Down         — History\n  Tab             — Complete\n  /select         — Native text selection\n  /mouse off      — Enable click-drag copy"})
+			m.messages = append(m.messages, displayMsg{role: "system", content: "Keybindings:\n  Shift+Tab       — Cycle Plan → Build → Review\n  F2              — Choose work mode\n  F3              — Choose permissions\n  Enter           — Submit\n  Ctrl+C          — Cancel/Exit\n  Ctrl+Shift+C    — Copy (input draft or chat)\n  Ctrl+K          — Command palette\n  Ctrl+L          — Cycle autonomy tier\n  Up/Down         — History\n  Tab             — Complete\n  /select         — Native text selection\n  /mouse off      — Enable click-drag copy"})
 			return m, nil
 		},
 	})

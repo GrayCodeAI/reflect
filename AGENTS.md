@@ -6,10 +6,10 @@ alwaysApply: false
 
 # Extending reflect
 
-reflect is an open-source code intelligence platform. It lives in the `graycode-eco`
-workspace alongside the ecosystem repos that power it (`relay`,
-`shrike`, `harrier`, `swift`, `kestrel`, `merlin`). This document describes how to extend
-reflect with custom tools, skills, hooks, and integrations.
+Reflect is an independent open-source coding agent from GrayCodeAI. Relay is a
+separate open-source model runtime that any application can use. Reflect consumes
+Relay through its published public API and does not require sibling repositories
+to build or run. This document describes tools, skills, hooks, MCP, and plugins.
 
 ## Development workflow
 
@@ -192,21 +192,23 @@ Cross-repo severity and finding contracts now live in reflect's `internal/contra
 ### Architecture note: provider ownership
 
 Implement provider protocols, adapters, catalog metadata, credential mappings, and
-provider contract tests in `../relay` (the relay engine's repo) first. Reflect consumes providers only
+provider contract tests in Relay's repository first. Reflect consumes providers only
 through Relay's stable engine facade; Reflect changes should be limited to host UX
 and facade integration. Concentrate AI is a pay-as-you-go gateway implemented
 with its native Responses API (`/v1/responses`) under the
 `concentrate-payg` deployment.
 
-### Workspace workflow (sibling repos)
+### Independent repositories and optional local development
 
-reflect depends on ecosystem repos (`relay`, etc.) as independent sibling repos in the `graycode-eco` workspace. Reflect's `go.work` lists them as `../<repo>`, so local changes in any sibling are automatically picked up by reflect. Each sibling is its own git repo, versioned and released independently.
+Reflect and Relay have separate repositories, builds, versions, and releases.
+Reflect's `go.mod` pins the published Relay dependency. Relay must remain usable
+without Reflect; do not move agent, UI, or project-permission semantics into it.
 
-1. Edit + test in `../<repo>` — run its tests, run `make test` in reflect
-2. Push from the sibling: `git push origin <branch>`
-3. Open a PR in the sibling repo → merge to `main`
-4. Ensure reflect's `go.mod` pins a version that resolves to (or is an ancestor of) the sibling's `main` — run `make sync` to verify parity
-5. No pointer commits: reflect resolves the sibling via `go.work` for local dev and via the pinned `go.mod` version for standalone/module-mode builds (Docker, released consumers)
+For coordinated local changes, use a gitignored `go.local.mod` in Reflect with
+an explicit Relay replacement. Run `go test -modfile=go.local.mod` to exercise
+that checkout. Do not create a parent `go.work` or require deleted sibling repos.
+Verify the normal `go.mod` build separately before release. Publish Relay changes
+through its own release process, then update Reflect's dependency in its own PR.
 
 ## Cloudflare
 

@@ -100,7 +100,7 @@ func doctorOutput(settings reflectconfig.Settings) string {
 	}
 
 	// MCP servers configured
-	mcpCount := len(settings.MCPServers) + len(mcpServers)
+	mcpCount := len(configuredStartupMCPServers(settings))
 	b.WriteString(fmt.Sprintf("\nMCP servers:     %d\n", mcpCount))
 
 	// Plugins installed
@@ -213,7 +213,7 @@ func doctorJSON(settings reflectconfig.Settings) string {
 		sessDir = info
 	}
 
-	mcpCount := len(settings.MCPServers) + len(mcpServers)
+	mcpCount := len(configuredStartupMCPServers(settings))
 	plugins := 0
 	if manifests, err := plugin.List(); err == nil {
 		plugins = len(manifests)

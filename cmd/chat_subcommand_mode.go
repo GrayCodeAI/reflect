@@ -13,40 +13,23 @@ import (
 // modeSubcommand implements the /mode slash command.
 //
 // Two layers:
-//   - Work modes (plan|act|review): tool visibility + read-only bash (control plane)
+//   - Work modes (plan|build|review): tool visibility + read-only bash (control plane)
 //   - Shell modes (auto|shell|agent|toggle): input routing for the TUI
 type modeSubcommand struct{}
 
 func (mo *modeSubcommand) Name() string      { return "mode" }
 func (mo *modeSubcommand) Aliases() []string { return nil }
 func (mo *modeSubcommand) Description() string {
-	return "work mode (plan|act|review) or shell mode (auto|shell|agent|toggle)"
+	return "choose Plan, Build, or Review; advanced shell input modes are also available"
 }
 
 func (mo *modeSubcommand) Usage() string {
-	return "/mode [plan|act|review|auto|shell|agent|toggle]"
+	return "/mode [plan|build|review|auto|shell|agent|toggle]"
 }
 
 func (mo *modeSubcommand) Handle(m *chatModel, args []string, text string) (tea.Model, tea.Cmd) {
 	if len(args) == 0 {
-		shell := m.modeManager.Current().String()
-		work := engine.WorkModeAct
-		if m.session != nil {
-			work = m.session.WorkMode()
-		}
-		tr := engine.ProjectTrust("")
-		ac := "off"
-		if m.session != nil && m.session.AutoCommit() {
-			ac = "on"
-		}
-		visible := 0
-		if m.session != nil && m.session.Tools() != nil && m.session.Tools().Registry() != nil {
-			visible = len(m.session.Tools().Registry().RelayTools())
-		}
-		m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf(
-			"Work mode:  %s  (plan | act | review)\nShell mode: %s  (auto | shell | agent)\nTrust:      %s\nAuto-commit: %s\nTools visible: %d\n\n/start · /trust · /branch-agent · /auto-commit",
-			work, shell, tr.String(), ac, visible,
-		)})
+		m.openWorkModePicker()
 		return m, nil
 	}
 	arg := strings.ToLower(args[0])
@@ -60,11 +43,7 @@ func (mo *modeSubcommand) Handle(m *chatModel, args []string, text string) (tea.
 			m.messages = append(m.messages, displayMsg{role: "error", content: "No session for work mode"})
 			return m, nil
 		}
-		if err := m.session.SetWorkMode(wm); err != nil {
-			m.messages = append(m.messages, displayMsg{role: "error", content: err.Error()})
-			return m, nil
-		}
-		m.messages = append(m.messages, displayMsg{role: "system", content: workModeSwitchSummary(m.session, wm)})
+		m.changeWorkMode(wm)
 		return m, nil
 	}
 
@@ -75,7 +54,7 @@ func (mo *modeSubcommand) Handle(m *chatModel, args []string, text string) (tea.
 	}
 	mode, ok := shellmode.ParseMode(arg)
 	if !ok {
-		m.messages = append(m.messages, displayMsg{role: "error", content: "Usage: /mode [plan|act|review|auto|shell|agent|toggle]"})
+		m.messages = append(m.messages, displayMsg{role: "error", content: "Usage: /mode [plan|build|review|auto|shell|agent|toggle]"})
 		return m, nil
 	}
 	m.modeManager.Set(mode)

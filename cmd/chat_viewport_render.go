@@ -38,6 +38,15 @@ func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidt
 	// the single choke point for the whole scrollback: tool results, model
 	// output, thinking, and system messages all flow through here.
 	msg.content = sanitizeDisplay(msg.content)
+	if msg.resolved {
+		label := strings.ToUpper(msg.role[:1]) + msg.role[1:]
+		parts := strings.SplitN(msg.content, "\n", 3)
+		detail := parts[0]
+		if len(parts) > 1 && !strings.HasPrefix(parts[1], "Effects:") && !strings.HasSuffix(parts[0], "] "+parts[1]) {
+			detail += " · " + parts[1]
+		}
+		return dimStyle.Render(clipFooterLine(label+": "+singleLineActivity(detail), max(1, viewWidth))) + "\n"
+	}
 
 	var b strings.Builder
 
@@ -72,7 +81,7 @@ func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidt
 		}
 		b.WriteString(reflectC + icons.Robot() + " " + rst + renderMarkdown(content, viewWidth-3))
 	case "tool_use":
-		b.WriteString(toolStyle.Render(icons.CircleFilled() + " " + msg.content))
+		b.WriteString(renderToolActivity(msg, viewWidth))
 	case "tool_result":
 		var inner strings.Builder
 		if looksLikeGitDiff(msg.content) {
@@ -153,7 +162,7 @@ func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidt
 			b.WriteString("\n\n")
 		}
 	case "tool_use":
-		if i+1 < len(messages) && messages[i+1].role == "tool_result" {
+		if i+1 < len(messages) && (messages[i+1].role == "tool_result" || messages[i+1].role == "tool_use") {
 			b.WriteByte('\n')
 		} else {
 			b.WriteString("\n\n")
@@ -213,6 +222,9 @@ func renderMessagesRange(messages []displayMsg, start, end int, viewWidth int, e
 func (m *chatModel) renderStreamTail(viewWidth int) string {
 	raw := strings.TrimLeft(m.partial.String(), "\n\r")
 	if raw == "" {
+		if m.hasActiveInteractivePrompt() {
+			return ""
+		}
 		return m.renderWaitingSpinnerLine() + "\n\n"
 	}
 
@@ -655,7 +667,7 @@ func (m *chatModel) assembleViewportContent(viewWidth int) string {
 	// Welcome-only state: no real messages yet — return just the welcome
 	// screen so the viewport starts at top and the content fills it
 	// naturally. Once the user sends a message, real content takes over.
-	if m.vpRenderedMsgs == 0 && !m.waiting && welcome != "" {
+	if m.hasRealMessages() == 0 && !m.waiting && welcome != "" {
 		return welcome
 	}
 

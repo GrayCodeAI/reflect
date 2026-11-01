@@ -3,10 +3,12 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/GrayCodeAI/reflect/internal/installtxn"
 	"github.com/GrayCodeAI/reflect/internal/storage"
 )
 
@@ -114,25 +116,78 @@ func List() ([]*Manifest, error) {
 
 // Install installs a plugin from a directory.
 func Install(srcDir string) error {
-	m, err := LoadManifest(srcDir)
+	stage, cleanup, err := installtxn.StageDir(pluginsDir())
 	if err != nil {
 		return err
 	}
-	issues := criticalPluginIssues(ScanPlugin(srcDir))
+	defer cleanup()
+	if err := copyPluginPackage(srcDir, stage); err != nil {
+		return err
+	}
+	m, err := LoadManifest(stage)
+	if err != nil {
+		return err
+	}
+	if issues := ValidateManifestIdentity(m.Name, m.Version); len(issues) > 0 {
+		return fmt.Errorf("invalid plugin identity: %s", strings.Join(issues, "; "))
+	}
+	if _, err := ParseManifestV2(stage); err != nil {
+		return err
+	}
+	if _, err := DiscoverComponents(stage); err != nil {
+		return err
+	}
+	issues := criticalPluginIssues(ScanPlugin(stage))
 	issues = append(issues, criticalManifestIssues(m)...)
 	if len(issues) > 0 {
 		return fmt.Errorf("plugin security scan failed: %s", strings.Join(issues, "; "))
 	}
-	dstDir := filepath.Join(pluginsDir(), m.Name)
-	if err := os.MkdirAll(dstDir, 0o750); err != nil {
+	unlock, err := installtxn.Lock(pluginsDir())
+	if err != nil {
 		return err
 	}
-	// Copy manifest
-	data, _ := json.MarshalIndent(m, "", "  ")
-	if err := os.WriteFile(filepath.Join(dstDir, "plugin.json"), data, 0o600); err != nil {
-		return err
-	}
-	return nil
+	defer unlock()
+	return installtxn.CommitDir(filepath.Join(pluginsDir(), m.Name), stage, func() error { return nil })
+}
+
+// Copy the complete package, preserving MCP/skill metadata and executable
+// helpers. Stage before validation so a failed update leaves the old install.
+func copyPluginPackage(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if entry.Name() == ".git" && entry.IsDir() {
+			return filepath.SkipDir
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("plugin package contains symlink: %s", rel)
+		}
+		target := filepath.Join(dst, rel)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o700)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("plugin package contains non-regular file: %s", rel)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		mode := os.FileMode(0o600)
+		if info.Mode()&0o111 != 0 {
+			mode = 0o700
+		}
+		return os.WriteFile(target, data, mode)
+	})
 }
 
 func criticalPluginIssues(issues []SecurityIssue) []string {

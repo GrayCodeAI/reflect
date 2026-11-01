@@ -114,7 +114,7 @@ func doctorReport(settings reflectconfig.Settings) string {
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("Configured MCP servers: %d\n", len(settings.MCPServers)+len(mcpServers)))
+	b.WriteString(fmt.Sprintf("Configured MCP servers: %d\n", len(configuredStartupMCPServers(settings))))
 	b.WriteString(fmt.Sprintf("Built-in tools: %d\n", len(allTools())))
 
 	// Session recovery status
@@ -242,20 +242,18 @@ func settingsSummary(settings reflectconfig.Settings) string {
 }
 
 func mcpConfigSummary(settings reflectconfig.Settings) string {
-	if len(settings.MCPServers) == 0 && len(mcpServers) == 0 {
+	servers := configuredStartupMCPServers(settings)
+	if len(servers) == 0 {
 		return auditTint("No MCP servers configured.", textMuted)
 	}
 	var b strings.Builder
 	b.WriteString(auditTint("MCP servers:", textPrimary) + "\n")
-	for _, cfg := range settings.MCPServers {
-		name := cfg.Name
-		if name == "" {
-			name = cfg.Command
+	for _, server := range servers {
+		command := server.command
+		if server.isRemote() {
+			command = server.url
 		}
-		b.WriteString(fmt.Sprintf("  %s: %s %s\n", auditTint(name, textPrimary), cfg.Command, strings.Join(cfg.Args, " ")))
-	}
-	for _, cmd := range mcpServers {
-		b.WriteString("  cli: " + cmd + "\n")
+		b.WriteString(fmt.Sprintf("  %s: %s %s\n", auditTint(server.name, textPrimary), command, strings.Join(server.args, " ")))
 	}
 	return strings.TrimRight(b.String(), "\n")
 }

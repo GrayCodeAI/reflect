@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 	chatfeature "github.com/GrayCodeAI/reflect/internal/features/chat"
 )
 
@@ -34,9 +35,9 @@ func dispatchStreamEvent(ref *progRef, ev engine.StreamEvent) bool {
 	case "thinking":
 		ref.Send(thinkingMsg(ev.Content))
 	case "tool_use":
-		ref.Send(toolUseMsg{name: ev.ToolName, id: ev.ToolID})
+		ref.Send(toolUseMsg{name: ev.ToolName, id: ev.ToolID, summary: ev.Content})
 	case "tool_result":
-		ref.Send(toolResultMsg{name: ev.ToolName, content: ev.Content})
+		ref.Send(toolResultMsg{name: ev.ToolName, id: ev.ToolID, content: ev.Content, state: ev.ToolState})
 	case "blast_radius":
 		ref.Send(blastRadiusMsg{message: ev.Content})
 	case "compact_start":
@@ -68,6 +69,10 @@ func shouldFlushStreamChunkBuffer(s string) bool {
 }
 
 func (m *chatModel) startStream() {
+	if m.session != nil {
+		m.streamWorkMode = m.session.WorkMode()
+		m.streamUsesSpec = currentSpecStage(m.session) != safety.SpecStageNone
+	}
 	m.turnEstimatedOutputRunes = 0
 	if m.testStreamStarter != nil {
 		m.testStreamStarter()
