@@ -513,11 +513,13 @@ three runtime layers plus optional tooling/platform services:
 - **Tooling/platform:** **graycode-platform** contains the optional web/BFF/Reflect
   Cloud plane and is outside the Reflect Go runtime graph.
 
-Local development uses:
+Reflect builds and tests independently against the published Relay version in
+`go.mod`. Setup and CI require only this repository.
 
-- **`go.mod` modules:** pinned requirements for `relay`
-- **Workspace + `go.work`:** sibling support repos are cloned in the `graycode-eco` workspace (as `../<repo>`); `go.work` resolves the module paths to those local checkouts
-- **Module-mode builds:** standalone builds resolve the pinned `go.mod` versions from the module proxy (no workspace)
+For coordinated Relay development, run `make workspace RELAY_DIR=/path/to/relay`
+to create a gitignored `go.local.mod` with an explicit local replacement, then run
+`GOWORK=off go test -modfile=go.local.mod ./...`. Existing overlays are preserved.
+Verify the normal published dependency graph separately with `make ci`.
 
 Cross-repo contracts now live in `internal/contracts` (vendored from the
 removed `github.com/GrayCodeAI/eagle` module) so support repos do not depend
@@ -535,7 +537,7 @@ Current contract packages (`internal/contracts/`):
 - `events` — tool, trace, and usage events
 - `harness` — harness evaluation reports and dimension scores
 
-You may keep a **personal** parent **`go.work`** that lists alternate clones on disk for multi-repo development.
+Reflect does not create or modify parent workspaces.
 
 | Component | Repository | Purpose |
 |---|---|---|

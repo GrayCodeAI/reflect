@@ -8,6 +8,51 @@ import (
 	"strings"
 )
 
+// resolveToolPath interprets relative paths in the session's workspace without
+// changing the process-wide cwd, which other concurrent sessions may be using.
+func resolveToolPath(ctx context.Context, path string) string {
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	if tc := GetToolContext(ctx); tc != nil && tc.WorkingDir != "" {
+		resolved := filepath.Join(tc.WorkingDir, path)
+		if abs, err := filepath.Abs(resolved); err == nil {
+			return abs
+		}
+		return resolved
+	}
+	return path
+}
+
+// WorkspaceArguments returns a copy with built-in file-tool paths rooted in
+// workingDir. The host calls this before permission checks so the approved
+// paths and the paths used by execution are identical. Remote tool arguments
+// are left alone because they may refer to another machine's filesystem.
+func WorkspaceArguments(name string, args map[string]interface{}, workingDir string) map[string]interface{} {
+	if workingDir == "" {
+		return args
+	}
+	if abs, err := filepath.Abs(workingDir); err == nil {
+		workingDir = abs
+	}
+	switch name {
+	case "Read", "Write", "Edit", "StructuredEdit", "MultiEdit", "LS", "Glob", "Grep", "Download", "Outline", "Refactor", "SmartCreate":
+	default:
+		return args
+	}
+	copyArgs := make(map[string]interface{}, len(args))
+	for key, value := range args {
+		copyArgs[key] = value
+		switch key {
+		case "path", "file_path", "file", "destination":
+			if path, ok := value.(string); ok && path != "" && !filepath.IsAbs(path) {
+				copyArgs[key] = filepath.Join(workingDir, path)
+			}
+		}
+	}
+	return copyArgs
+}
+
 func validatePathAllowed(ctx context.Context, path string) error {
 	tc := GetToolContext(ctx)
 	if tc == nil {
@@ -21,17 +66,17 @@ func validatePathAllowed(ctx context.Context, path string) error {
 	if path == "" {
 		return fmt.Errorf("path is required")
 	}
-	absPath, err := guardedAbs(path)
+	absPath, err := guardedAbs(resolveToolPath(ctx, path))
 	if err != nil {
 		return err
 	}
-	roots := append([]string{"."}, tc.AllowedDirectories...)
+	roots := append([]string{resolveToolPath(ctx, ".")}, tc.AllowedDirectories...)
 	for _, root := range roots {
 		root = strings.TrimSpace(root)
 		if root == "" {
 			continue
 		}
-		absRoot, err := guardedAbs(root)
+		absRoot, err := guardedAbs(resolveToolPath(ctx, root))
 		if err != nil {
 			continue
 		}
@@ -65,7 +110,7 @@ func guardedRootPath(ctx context.Context, path string) (*os.Root, string, error)
 	if err := validatePathAllowed(ctx, path); err != nil {
 		return nil, "", err
 	}
-	return openGuardedRoot(path)
+	return openGuardedRoot(resolveToolPath(ctx, path))
 }
 
 // openGuardedRoot pins the canonical parent directory of a path with os.Root

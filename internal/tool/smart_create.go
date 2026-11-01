@@ -687,6 +687,7 @@ func (t *SmartCreateTool) Execute(ctx context.Context, input json.RawMessage) (s
 	if params.Path == "" {
 		return "", fmt.Errorf("path is required")
 	}
+	params.Path = resolveToolPath(ctx, params.Path)
 	if err := validatePathAllowed(ctx, params.Path); err != nil {
 		return "", err
 	}

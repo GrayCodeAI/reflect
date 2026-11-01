@@ -90,7 +90,7 @@ func Connect(ctx context.Context, name, command string, args ...string) (*Server
 	}
 	// ctx bounds the handshake, not the session. Startup cancels its discovery
 	// context as soon as tools are loaded; Close owns the child after that.
-	cmd := exec.Command(command, args...) // #nosec G204 -- command comes from the configured MCP server definition
+	cmd := exec.CommandContext(context.WithoutCancel(ctx), command, args...) // #nosec G204 -- configured MCP executable; Close owns its lifetime after the handshake
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("mcp: stdin pipe: %w", err)

@@ -84,13 +84,9 @@ curl -v http://localhost:4590/v1/ready
 Check the response body for the specific failed check. Common causes:
 
 - No model configured — set `REFLECT_MODEL` or provider credentials.
-- Relay catalog not initialized — the Go modules are independent sibling
-  repositories; from a full parent workspace, run `make setup` in reflect to
-  regenerate the parent `go.work`:
-  ```bash
-  make setup
-  go work sync
-  ```
+- Relay catalog not initialized — run Reflect and use `/config` to configure
+  provider credentials and refresh the catalog. Catalog setup does not require
+  a Relay checkout or parent Go workspace.
 
 ### `GET /v1/health` returns 503
 

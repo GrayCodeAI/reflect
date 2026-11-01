@@ -400,6 +400,7 @@ func bool2tag(isErr bool) string {
 // retry, and raw execution. PostProcess and CompleteResult
 // own the remaining result lifecycle.
 func (s *ToolService) ExecuteOne(ctx context.Context, tc types.ToolCall, override tool.Tool, ch chan<- StreamEvent, turn int, intent string) toolExecResult {
+	tc.Arguments = tool.WorkspaceArguments(canonicalToolName(tc.Name), tc.Arguments, s.WorkingDir())
 	result := toolExecResult{tc: tc, state: ToolStateValidating}
 	summary := toolActivitySummary(tc.Name, tc.Arguments)
 	if s.deps.redactOutput != nil {

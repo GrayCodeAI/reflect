@@ -3,56 +3,49 @@ package tool
 import (
 	"fmt"
 	"strings"
-	"unicode"
 )
 
 // exploreBashAllow is the first-token allowlist for explore/plan (read-only) modes.
 // Anything not listed is denied — fail-closed.
 var exploreBashAllow = map[string]bool{
-	// listing / inspection
 	"ls": true, "pwd": true, "dirname": true, "basename": true,
-	"cat": true, "head": true, "tail": true, "less": true, "more": true,
-	"wc": true, "file": true, "stat": true, "du": true, "df": true,
-	"which": true, "type": true, "command": true, "env": true, "printenv": true,
-	"echo": true, "printf": true, "true": true, "false": true, "test": true, "[": true,
-	// search
-	"grep": true, "egrep": true, "fgrep": true, "rg": true, "ag": true, "ack": true,
-	"find": true, "locate": true,
-	// text utilities (read-side)
-	"sort": true, "uniq": true, "cut": true, "tr": true, "awk": true, "sed": true,
-	"jq": true, "yq": true, "column": true, "comm": true,
-	"diff": true, "cmp": true,
-	// VCS (subcommand gated below)
-	"git": true, "gh": true,
-	// language tooling (read-ish)
-	"go": true, "node": true, "python": true, "python3": true, "ruby": true,
-	"cargo": true, "rustc": true, "javac": true, "java": true,
-	"npm": true, "pnpm": true, "yarn": true, "pip": true, "pip3": true,
-	// system info
-	"uname": true, "whoami": true, "id": true, "date": true, "hostname": true,
-	"sysctl": true, "sw_vers": true,
-	// network read
-	"curl": true, "wget": true, "dig": true, "nslookup": true, "ping": true,
-	// tree / pretty
-	"tree": true, "bat": true, "hexdump": true, "od": true, "xxd": true,
+	"cat": true, "head": true, "tail": true, "wc": true,
+	"file": true, "stat": true, "du": true, "df": true,
+	"which": true, "type": true, "echo": true, "printf": true,
+	"true": true, "false": true, "test": true, "[": true,
+	"grep": true, "egrep": true, "fgrep": true, "rg": true,
+	"find": true, "sort": true, "cut": true,
+	"tr": true, "column": true, "comm": true, "diff": true, "cmp": true,
+	"git": true, "go": true, "uname": true, "whoami": true,
+	"id": true, "sw_vers": true, "tree": true,
+	"hexdump": true, "od": true,
 }
 
-// git subcommands allowed under explore/plan (no mutation).
-var exploreGitAllow = map[string]bool{
-	"status": true, "log": true, "show": true, "diff": true, "branch": true,
-	"rev-parse": true, "rev-list": true, "describe": true, "ls-files": true,
-	"ls-tree": true, "cat-file": true, "blame": true, "shortlog": true,
-	"remote": true, "tag": true, "stash": true, // stash list only enforced loosely
-	"config": true, "help": true, "version": true, "grep": true,
-	"name-rev": true, "symbolic-ref": true, "for-each-ref": true,
+// Repository-configured diff/textconv/fsmonitor helpers are executable code.
+// Keep ordinary git inspection available without allowing those callbacks to
+// mutate files in a read-only session. The wrapper works in both bash and the
+// POSIX shell used by sandbox backends. Validation allows only bare git calls.
+const readOnlyGitPrelude = `git() {
+  case "$1" in
+    -C) (cd -- "$2" && shift 2 && git "$@") ;;
+    --no-pager) shift; git "$@" ;;
+    --literal-pathspecs) shift; GIT_LITERAL_PATHSPECS=1 git "$@" ;;
+    diff) shift; command git --no-pager -c core.fsmonitor=false diff --no-ext-diff --no-textconv "$@" ;;
+    show) shift; command git --no-pager -c core.fsmonitor=false show --no-ext-diff --no-textconv "$@" ;;
+    log) shift; command git --no-pager -c core.fsmonitor=false log --no-ext-diff --no-textconv "$@" ;;
+    blame) shift; command git --no-pager -c core.fsmonitor=false blame --no-textconv "$@" ;;
+    stash) shift; case "$1" in
+      show) shift; command git --no-pager -c core.fsmonitor=false stash show --no-ext-diff --no-textconv "$@" ;;
+      list) shift; command git --no-pager -c core.fsmonitor=false stash list --no-ext-diff --no-textconv "$@" ;;
+    esac ;;
+    *) command git --no-pager -c core.fsmonitor=false "$@" ;;
+  esac
 }
+`
 
-// go subcommands that are non-mutating (or only write caches).
-var exploreGoAllow = map[string]bool{
-	"version": true, "env": true, "list": true, "doc": true, "help": true,
-	"test": true, "vet": true, "fmt": true, // fmt rewrites — deny separately
-	"mod": true, "tool": true,
-}
+// General interpreters, package scripts, pagers, and sed/awk programs can
+// execute code or write files without shell redirects. Use native tools for
+// those operations in read-only modes rather than guessing their effects.
 
 // ExploreBashAllowed returns nil if command is safe for explore/plan modes.
 // It is segment-aware: splits on ; && || | and checks each pipeline stage's
@@ -63,12 +56,14 @@ func ExploreBashAllowed(command string) error {
 	if cmd == "" {
 		return fmt.Errorf("empty command")
 	}
+	// Expansions can execute commands or turn data into shell syntax. These
+	// modes accept literal inspection commands only.
+	if strings.ContainsAny(cmd, "$`\\()") || strings.Contains(cmd, "<<") {
+		return fmt.Errorf("explore bash: expansions, subshells and heredocs are not allowed")
+	}
 	// Hard deny obvious mutators / redirections even before segment parse.
-	if strings.Contains(cmd, ">") || strings.Contains(cmd, "<<") {
-		// Allow `2>&1` style redirects only if no file redirect.
-		if hasFileRedirect(cmd) {
-			return fmt.Errorf("explore bash: file redirects are not allowed")
-		}
+	if strings.ContainsAny(cmd, "<>") {
+		return fmt.Errorf("explore bash: redirects are not allowed")
 	}
 	segments := splitShellSegments(cmd)
 	if len(segments) == 0 {
@@ -80,32 +75,6 @@ func ExploreBashAllowed(command string) error {
 		}
 	}
 	return nil
-}
-
-func hasFileRedirect(s string) bool {
-	// Detect >file or >>file or > file but not 2>&1
-	runes := []rune(s)
-	for i := 0; i < len(runes); i++ {
-		if runes[i] != '>' {
-			continue
-		}
-		// skip >>
-		j := i + 1
-		if j < len(runes) && runes[j] == '>' {
-			j++
-		}
-		// skip optional & for 2>&1 — if next is & digit, ok
-		for j < len(runes) && unicode.IsSpace(runes[j]) {
-			j++
-		}
-		if j < len(runes) && runes[j] == '&' {
-			continue // fd redirect
-		}
-		if j < len(runes) {
-			return true
-		}
-	}
-	return false
 }
 
 // splitShellSegments splits on top-level ; && || | (not inside quotes).
@@ -138,7 +107,7 @@ func splitShellSegments(s string) []string {
 		}
 		if !inSingle && !inDouble {
 			// operators
-			if ch == ';' {
+			if ch == ';' || ch == '\n' {
 				if t := strings.TrimSpace(b.String()); t != "" {
 					segs = append(segs, t)
 				}
@@ -176,27 +145,22 @@ func exploreSegmentAllowed(seg string) error {
 	// strip env assignments: FOO=bar cmd
 	tokens := tokenizeShellWords(seg)
 	for len(tokens) > 0 && strings.Contains(tokens[0], "=") && !strings.HasPrefix(tokens[0], "=") {
+		name, _, _ := strings.Cut(tokens[0], "=")
+		for _, prefix := range []string{"PATH", "LD_", "DYLD_", "GIT_", "GO", "BASH", "ENV", "SHELL", "CDPATH"} {
+			if strings.HasPrefix(name, prefix) {
+				return fmt.Errorf("explore bash: execution environment override %q is not allowed", name)
+			}
+		}
 		tokens = tokens[1:]
 	}
 	if len(tokens) == 0 {
 		return fmt.Errorf("explore bash: empty segment after env strip")
 	}
-	// skip common prefixes
-	for len(tokens) > 0 {
-		switch tokens[0] {
-		case "command", "builtin", "time", "env", "nice", "nohup":
-			tokens = tokens[1:]
-			continue
-		case "sudo", "doas":
-			return fmt.Errorf("explore bash: privilege escalation (%s) is not allowed", tokens[0])
-		}
-		break
-	}
 	if len(tokens) == 0 {
 		return fmt.Errorf("explore bash: no command token")
 	}
 	base := commandBase(tokens[0])
-	if !exploreBashAllow[base] {
+	if tokens[0] != base || !exploreBashAllow[base] {
 		return fmt.Errorf("explore bash: command %q is not on the read-only allowlist", base)
 	}
 	switch base {
@@ -204,19 +168,37 @@ func exploreSegmentAllowed(seg string) error {
 		return exploreGitAllowed(tokens[1:])
 	case "go":
 		return exploreGoAllowed(tokens[1:])
-	case "npm", "pnpm", "yarn":
-		return explorePackageManagerAllowed(base, tokens[1:])
-	case "sed":
-		// sed -i is mutating
-		for _, t := range tokens[1:] {
-			if t == "-i" || strings.HasPrefix(t, "-i") {
-				return fmt.Errorf("explore bash: sed -i is not allowed")
-			}
-		}
 	case "find":
 		for _, t := range tokens[1:] {
-			if t == "-delete" || t == "-exec" || t == "-execdir" || t == "-ok" {
+			if t == "-delete" || strings.HasPrefix(t, "-exec") || strings.HasPrefix(t, "-ok") || strings.HasPrefix(t, "-fprint") || t == "-fls" {
 				return fmt.Errorf("explore bash: find %s is not allowed", t)
+			}
+		}
+	case "sort", "tree":
+		for _, arg := range tokens[1:] {
+			if strings.HasPrefix(arg, "--o") || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "o")) {
+				return fmt.Errorf("explore bash: file output is not allowed")
+			}
+			if base == "sort" && strings.HasPrefix(arg, "--c") {
+				return fmt.Errorf("explore bash: sort compression programs are not allowed")
+			}
+		}
+	case "printf":
+		for _, arg := range tokens[1:] {
+			if strings.HasPrefix(arg, "-v") {
+				return fmt.Errorf("explore bash: assigning shell variables is not allowed")
+			}
+		}
+	case "rg":
+		for _, arg := range tokens[1:] {
+			if strings.HasPrefix(arg, "--pre") || strings.HasPrefix(arg, "--hostname-bin") || arg == "-z" || arg == "--search-zip" {
+				return fmt.Errorf("explore bash: external search programs are not allowed")
+			}
+		}
+	case "file":
+		for _, arg := range tokens[1:] {
+			if strings.HasPrefix(arg, "--c") || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "C")) {
+				return fmt.Errorf("explore bash: compiling magic files is not allowed")
 			}
 		}
 	}
@@ -224,99 +206,107 @@ func exploreSegmentAllowed(seg string) error {
 }
 
 func exploreGitAllowed(args []string) error {
-	if len(args) == 0 {
-		return nil // git with no args is help-ish
-	}
-	sub := args[0]
-	if strings.HasPrefix(sub, "-") {
-		// git --version etc.
-		return nil
-	}
-	// deny mutators even if they appear as "git -C path commit"
-	deny := map[string]bool{
-		"add": true, "commit": true, "push": true, "pull": true, "fetch": true,
-		"merge": true, "rebase": true, "cherry-pick": true, "reset": true,
-		"checkout": true, "switch": true, "restore": true, "clean": true,
-		"rm": true, "mv": true, "init": true, "clone": true, "worktree": true,
-		"am": true, "apply": true, "revert": true, "tag": false, // tag create vs list
-	}
-	if deny[sub] {
-		return fmt.Errorf("explore bash: git %s is not allowed", sub)
-	}
-	// stash push/pop/drop
-	if sub == "stash" && len(args) > 1 {
-		switch args[1] {
-		case "list", "show":
-			return nil
+	// Parse the small set of read-only global options before the subcommand.
+	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+		switch args[0] {
+		case "-C":
+			if len(args) < 2 {
+				return fmt.Errorf("explore bash: git -C needs a directory")
+			}
+			args = args[2:]
+		case "--no-pager", "--literal-pathspecs":
+			args = args[1:]
+		case "--version":
+			if len(args) == 1 {
+				return nil
+			}
+			return fmt.Errorf("explore bash: unexpected git version arguments")
 		default:
-			return fmt.Errorf("explore bash: git stash %s is not allowed", args[1])
+			return fmt.Errorf("explore bash: git option %q is not allowed", args[0])
 		}
 	}
-	// tag without args lists; with -a/-d mutates
-	if sub == "tag" {
-		for _, a := range args[1:] {
-			if a == "-a" || a == "-d" || a == "-m" || a == "-f" {
-				return fmt.Errorf("explore bash: mutating git tag flags not allowed")
+	if len(args) == 0 {
+		return nil
+	}
+	sub, rest := args[0], args[1:]
+	for _, arg := range rest {
+		if strings.HasPrefix(arg, "--out") || strings.HasPrefix(arg, "--ext") || strings.HasPrefix(arg, "--textconv") || arg == "--exec" || strings.HasPrefix(arg, "--filt") {
+			return fmt.Errorf("explore bash: git option %q can mutate or execute code", arg)
+		}
+	}
+	switch sub {
+	case "status", "log", "show", "diff", "rev-parse", "rev-list", "describe", "ls-files", "ls-tree", "cat-file", "blame", "shortlog", "name-rev", "for-each-ref", "version":
+		return nil
+	case "branch", "tag":
+		if len(rest) == 0 {
+			return nil
+		}
+		if rest[0] == "--list" || rest[0] == "-l" {
+			for _, arg := range rest[1:] {
+				if strings.HasPrefix(arg, "-") {
+					return fmt.Errorf("explore bash: only listing patterns are allowed")
+				}
+			}
+			return nil
+		}
+		for _, arg := range rest {
+			switch arg {
+			case "--show-current", "--all", "--remotes", "-a", "-r", "-v", "-vv":
+			default:
+				return fmt.Errorf("explore bash: mutating git %s arguments are not allowed", sub)
+			}
+		}
+		return nil
+	case "stash":
+		if len(rest) > 0 && (rest[0] == "list" || rest[0] == "show") {
+			return nil
+		}
+	case "remote":
+		if len(rest) == 0 || (len(rest) == 1 && rest[0] == "-v") {
+			return nil
+		}
+	case "config":
+		// Read forms only; never allow bare key/value or edit/unset operations.
+		if len(rest) > 0 {
+			switch rest[0] {
+			case "--get", "--get-all", "--get-regexp", "--get-urlmatch", "--list", "-l":
+				for _, arg := range rest[1:] {
+					if strings.HasPrefix(arg, "-") {
+						return fmt.Errorf("explore bash: extra git config options are not allowed")
+					}
+				}
+				return nil
 			}
 		}
 	}
-	if !exploreGitAllow[sub] {
-		return fmt.Errorf("explore bash: git %s is not on the read-only allowlist", sub)
-	}
-	return nil
+	return fmt.Errorf("explore bash: git %s is not a read-only operation", sub)
 }
 
 func exploreGoAllowed(args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	sub := args[0]
-	deny := map[string]bool{
-		"get": true, "install": true, "generate": true, "work": true,
-		"clean": true, "mod": false,
-	}
-	if sub == "fmt" {
-		return fmt.Errorf("explore bash: go fmt rewrites files and is not allowed")
-	}
-	if sub == "mod" {
-		if len(args) > 1 {
-			switch args[1] {
-			case "download", "tidy", "vendor", "init", "edit":
-				return fmt.Errorf("explore bash: go mod %s is not allowed", args[1])
+	switch args[0] {
+	case "version":
+		if len(args) == 1 {
+			return nil
+		}
+	case "env":
+		for _, arg := range args[1:] {
+			if strings.HasPrefix(arg, "-") && arg != "-json" && arg != "-changed" {
+				return fmt.Errorf("explore bash: go env option %q is not read-only", arg)
+			}
+		}
+		return nil
+	case "list":
+		for _, arg := range args[1:] {
+			if strings.HasPrefix(arg, "-") && arg != "-json" && arg != "-deps" && arg != "-e" && arg != "-m" && arg != "-mod=readonly" {
+				return fmt.Errorf("explore bash: go list option %q is not allowed", arg)
 			}
 		}
 		return nil
 	}
-	if deny[sub] {
-		return fmt.Errorf("explore bash: go %s is not allowed", sub)
-	}
-	if !exploreGoAllow[sub] {
-		return fmt.Errorf("explore bash: go %s is not on the read-only allowlist", sub)
-	}
-	return nil
-}
-
-func explorePackageManagerAllowed(pm string, args []string) error {
-	if len(args) == 0 {
-		return nil
-	}
-	sub := args[0]
-	allow := map[string]bool{
-		"list": true, "ls": true, "view": true, "info": true, "outdated": true,
-		"why": true, "explain": true, "pack": false, "test": true, "run": false,
-		"help": true, "version": true, "bin": true, "root": true, "prefix": true,
-	}
-	deny := map[string]bool{
-		"install": true, "i": true, "add": true, "uninstall": true, "remove": true,
-		"update": true, "upgrade": true, "publish": true, "link": true, "ci": true,
-	}
-	if deny[sub] {
-		return fmt.Errorf("explore bash: %s %s is not allowed", pm, sub)
-	}
-	if !allow[sub] {
-		return fmt.Errorf("explore bash: %s %s is not on the read-only allowlist", pm, sub)
-	}
-	return nil
+	return fmt.Errorf("explore bash: go %s is not a read-only operation", args[0])
 }
 
 func commandBase(token string) string {

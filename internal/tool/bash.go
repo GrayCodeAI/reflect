@@ -363,6 +363,9 @@ func (BashTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 	if tc := GetToolContext(ctx); tc != nil && tc.ReadOnlyBash && p.RunInBackground {
 		return "", fmt.Errorf("blocked (explore/plan read-only bash): run_in_background is not allowed")
 	}
+	if tc := GetToolContext(ctx); tc != nil && tc.ReadOnlyBash {
+		p.Command = readOnlyGitPrelude + p.Command
+	}
 
 	// Apply per-tool timeout from safety config, allow explicit override.
 	timeout := time.Duration(p.Timeout) * time.Second
@@ -381,7 +384,10 @@ func (BashTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 	if sbCfg.Image == "" {
 		sbCfg.Image = sandbox.DefaultImage
 	}
-	if sandbox.Enabled(sbCfg) && !p.RunInBackground {
+	if sandbox.Enabled(sbCfg) && p.RunInBackground {
+		return "", fmt.Errorf("background commands are unavailable while sandboxing is enabled; run the command in the foreground")
+	}
+	if sandbox.Enabled(sbCfg) {
 		workdir := ""
 		if tc := GetToolContext(ctx); tc != nil {
 			workdir = tc.WorkingDir

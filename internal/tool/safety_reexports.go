@@ -51,8 +51,8 @@ func SegmentCommand(cmd string) []string { return toolsafety.SegmentCommand(cmd)
 // WithSSRFSkip returns a context that skips SSRF URL validation.
 func WithSSRFSkip(ctx context.Context) context.Context { return toolsafety.WithSSRFSkip(ctx) }
 
-// ValidateURLPublic rejects private/link-local URLs and pins the resolved IP.
-func ValidateURLPublic(ctx context.Context, rawURL string) (pinnedURL, originalHost string, err error) {
+// ValidateURLPublic rejects private/link-local URLs; use SSRFSafeClient to pin the dial address.
+func ValidateURLPublic(ctx context.Context, rawURL string) (validatedURL, originalHost string, err error) {
 	return toolsafety.ValidateURLPublic(ctx, rawURL)
 }
 

@@ -111,10 +111,10 @@ settings entry.
 2. Add Relay tests for cache and live discovery, credential status, selection,
    and generation/streaming.
 3. Commit and verify standalone Relay.
-4. Advance Reflect's `../relay` sibling checkout to that exact commit, then update
-   Reflect's module version when the Relay revision is published.
-5. Verify both the workspace (`go.work`) and published-module
-   (`GOWORK=off`) build modes.
+4. For coordinated work, point Reflect's gitignored `go.local.mod` at the Relay
+   checkout and verify with `GOWORK=off go test -modfile=go.local.mod ./...`.
+5. Publish Relay, update Reflect's module pin, and separately verify the normal
+   published-module build (`GOWORK=off`).
 
 Reflect changes are needed only for a new product behavior or an additive
 Reflect-owned presentation field—not for provider-specific mechanics.

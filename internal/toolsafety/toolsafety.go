@@ -402,9 +402,9 @@ func WithSSRFSkip(ctx context.Context) context.Context {
 
 // ValidateURLPublic is the exported form of validateURLPublic for other
 // packages that perform outbound fetches (e.g. the URL scraper). It rejects
-// URLs that resolve to private/link-local ranges and returns the URL with the
-// resolved IP pinned to prevent DNS rebinding.
-func ValidateURLPublic(ctx context.Context, rawURL string) (pinnedURL, originalHost string, err error) {
+// URLs that resolve to private/link-local ranges. The hostname is retained for
+// TLS verification; callers must use SSRFSafeClient to pin the dial address.
+func ValidateURLPublic(ctx context.Context, rawURL string) (validatedURL, originalHost string, err error) {
 	return validateURLPublic(ctx, rawURL)
 }
 
@@ -415,10 +415,9 @@ func SSRFSafeClient(ctx context.Context, timeout time.Duration) *http.Client {
 
 // validateURLPublic rejects URLs that resolve to private/link-local IP ranges
 // to prevent SSRF attacks (e.g., fetching AWS metadata at 169.254.169.254).
-// Returns the validated URL with the resolved IP pinned as the host (preventing
-// DNS rebinding) and the original hostname (so callers can preserve the Host
-// header for virtual-host routing).
-func validateURLPublic(ctx context.Context, rawURL string) (pinnedURL, originalHost string, err error) {
+// Returns the validated URL and its authority, including port. SSRFSafeClient
+// validates DNS again at dial time and connects to the checked IP directly.
+func validateURLPublic(ctx context.Context, rawURL string) (validatedURL, originalHost string, err error) {
 	if ctx.Value(ssrfSkipKey{}) != nil {
 		return rawURL, "", nil
 	}
@@ -435,49 +434,83 @@ func validateURLPublic(ctx context.Context, rawURL string) (pinnedURL, originalH
 		return "", "", fmt.Errorf("blocked: URL has no host")
 	}
 
-	// Resolve the hostname to check against private ranges.
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if _, err := publicAddresses(ctx, host, net.DefaultResolver.LookupIPAddr); err != nil {
+		return "", "", err
+	}
+	return u.String(), u.Host, nil
+}
+
+type ipLookup func(context.Context, string) ([]net.IPAddr, error)
+
+func publicAddresses(ctx context.Context, host string, lookup ipLookup) ([]net.IPAddr, error) {
+	addrs, err := lookup(ctx, host)
 	if err != nil {
 		// DNS failure — block the request rather than allowing potential SSRF bypass.
-		return "", "", fmt.Errorf("blocked: DNS resolution failed for %q: %w", host, err)
+		return nil, fmt.Errorf("blocked: DNS resolution failed for %q: %w", host, err)
 	}
-	var safeIP string
 	for _, addr := range addrs {
 		ip := addr.IP
+		if !ip.IsGlobalUnicast() {
+			return nil, fmt.Errorf("blocked: URL host %q resolves to non-public IP %s", host, ip)
+		}
 		// net.IPNet.Contains calls ip.To4() internally, so IPv4-mapped IPv6
 		// addresses (::ffff:a.b.c.d) are correctly checked against IPv4 CIDR
 		// blocks — no separate handling needed.
 		for _, block := range privateIPBlocks {
 			if block.Contains(ip) {
-				return "", "", fmt.Errorf("blocked: URL %q resolves to private IP %s", rawURL, ip)
+				return nil, fmt.Errorf("blocked: URL host %q resolves to private IP %s", host, ip)
 			}
 		}
-		if safeIP == "" {
-			safeIP = ip.String()
-		}
 	}
-	if safeIP == "" {
-		return "", "", fmt.Errorf("blocked: URL %q resolved to no addresses", rawURL)
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("blocked: URL host %q resolved to no addresses", host)
 	}
-
-	// Pin the IP to prevent DNS rebinding: replace host with the validated IP.
-	// The caller should set req.Host to originalHost to preserve virtual-host
-	// routing (most web servers route by Host header, not by IP).
-	if u.Port() != "" {
-		u.Host = net.JoinHostPort(safeIP, u.Port())
-	} else {
-		u.Host = safeIP
-	}
-	return u.String(), host, nil
+	return addrs, nil
 }
 
-// ssrfSafeClient returns an http.Client that validates redirect targets
-// against private IP ranges, preventing SSRF via redirect chains.
-// The redirect validator pins the resolved IP so that subsequent connections
-// in the chain cannot be rebinding to a different (private) address.
+type publicDialer struct {
+	lookup ipLookup
+	dial   func(context.Context, string, string) (net.Conn, error)
+}
+
+func (d publicDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, err
+	}
+	addrs, err := publicAddresses(ctx, host, d.lookup)
+	if err != nil {
+		return nil, err
+	}
+	var dialErr error
+	for _, addr := range addrs {
+		conn, err := d.dial(ctx, network, net.JoinHostPort(addr.String(), port))
+		if err == nil {
+			return conn, nil
+		}
+		dialErr = err
+	}
+	return nil, dialErr
+}
+
+// ssrfSafeClient keeps URL hostnames intact for TLS/SNI and HTTP routing.
+// Resolve, validate and pin at the socket boundary instead. Disable proxies so
+// that proxy-side DNS cannot bypass this validation.
 func ssrfSafeClient(ctx context.Context, timeout time.Duration) *http.Client {
+	transport := &http.Transport{TLSHandshakeTimeout: 10 * time.Second, IdleConnTimeout: 90 * time.Second}
+	if base, ok := http.DefaultTransport.(*http.Transport); ok {
+		transport = base.Clone()
+	}
+	transport.Proxy = nil
+	transport.DialTLSContext = nil
+	transport.DialTLS = nil
+	if ctx.Value(ssrfSkipKey{}) == nil {
+		dialer := publicDialer{lookup: net.DefaultResolver.LookupIPAddr, dial: (&net.Dialer{Timeout: timeout}).DialContext}
+		transport.DialContext = dialer.DialContext
+	}
 	return &http.Client{
-		Timeout: timeout,
+		Timeout:   timeout,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
 				return fmt.Errorf("too many redirects")
@@ -485,21 +518,9 @@ func ssrfSafeClient(ctx context.Context, timeout time.Duration) *http.Client {
 			if ctx.Value(ssrfSkipKey{}) != nil {
 				return nil
 			}
-			pinned, origHost, err := validateURLPublic(ctx, req.URL.String())
+			_, _, err := validateURLPublic(ctx, req.URL.String())
 			if err != nil {
 				return err
-			}
-			// Replace the redirect URL with the IP-pinned version so the
-			// transport dials the validated address instead of resolving DNS again.
-			parsed, parseErr := url.Parse(pinned)
-			if parseErr != nil {
-				return parseErr
-			}
-			req.URL = parsed
-			// Preserve the original Host header so virtual-host routing
-			// works correctly on the redirect target.
-			if origHost != "" {
-				req.Host = origHost
 			}
 			return nil
 		},

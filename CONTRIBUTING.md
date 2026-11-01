@@ -39,10 +39,21 @@ Repo-specific dev targets:
 
 | Target             | What it does                                                        |
 | ------------------ | ------------------------------------------------------------------- |
-| `make setup`       | Set up local development environment (go.work + external repos).     |
+| `make setup`       | Install local development tools; use published dependencies.     |
 | `make boundaries`  | Alias for all boundary guards (matches `make boundaries` in engine repos). |
 | `make test-10x`    | Run tests 10 times to surface flakes.                               |
 | `make smoke`       | Quick build + doctor + ecosystem verification.                      |
+
+Reflect builds independently with the published Relay dependency in `go.mod`.
+For coordinated Relay changes, create an optional local overlay:
+
+```bash
+make workspace RELAY_DIR=/path/to/relay
+GOWORK=off go test -modfile=go.local.mod ./...
+```
+
+The overlay stays gitignored. Run `make ci` against the published dependency
+before release. Setup and CI never generate a parent `go.work`.
 
 ## Commit message convention
 

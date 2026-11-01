@@ -220,8 +220,42 @@ func criticalManifestIssues(m *Manifest) []string {
 
 // Uninstall removes a plugin.
 func Uninstall(name string) error {
+	if !manifestNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid plugin name %q", name)
+	}
 	dir := filepath.Join(pluginsDir(), name)
-	return os.RemoveAll(dir)
+	return removePluginDir(dir, []string{pluginsDir()})
+}
+
+// removePluginDir accepts only a direct child of an installation root. Pinning
+// that root also prevents removal from following a swapped parent symlink.
+func removePluginDir(path string, roots []string) error {
+	target, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	for _, dir := range roots {
+		base, err := filepath.Abs(dir)
+		if err != nil {
+			continue
+		}
+		rel, err := filepath.Rel(base, target)
+		if err != nil || rel == "." || rel == ".." || filepath.Base(rel) != rel {
+			continue
+		}
+		unlock, err := installtxn.Lock(base)
+		if err != nil {
+			return err
+		}
+		defer unlock()
+		root, err := os.OpenRoot(base)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = root.Close() }()
+		return root.RemoveAll(rel)
+	}
+	return fmt.Errorf("plugin path %q is outside installation roots", path)
 }
 
 // Summary returns a formatted summary of installed plugins.

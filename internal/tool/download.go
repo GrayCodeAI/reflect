@@ -56,26 +56,24 @@ func (DownloadTool) Execute(ctx context.Context, input json.RawMessage) (string,
 	if p.URL == "" || p.Destination == "" {
 		return "", fmt.Errorf("url and destination are required")
 	}
+	p.Destination = resolveToolPath(ctx, p.Destination)
 	if err := validatePathAllowed(ctx, p.Destination); err != nil {
 		return "", err
 	}
 	if reason := IsSensitivePath(p.Destination); reason != "" {
 		return "", fmt.Errorf("write blocked: %s", reason)
 	}
-	pinnedURL, origHost, err := ValidateURLPublic(ctx, p.URL)
+	validatedURL, _, err := ValidateURLPublic(ctx, p.URL)
 	if err != nil {
 		return "", err
 	}
 
 	client := SSRFSafeClient(ctx, 2*time.Minute)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pinnedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, validatedURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
-	// Preserve the original Host header for virtual-host routing.
-	if origHost != "" {
-		req.Host = origHost
-	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("download failed: %w", err)

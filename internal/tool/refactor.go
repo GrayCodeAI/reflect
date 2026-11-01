@@ -834,6 +834,7 @@ func (rt RefactorTool) Execute(ctx context.Context, input json.RawMessage) (stri
 	if p.File == "" {
 		return "", fmt.Errorf("file is required")
 	}
+	p.File = resolveToolPath(ctx, p.File)
 	if err := validatePathAllowed(ctx, p.File); err != nil {
 		return "", err
 	}

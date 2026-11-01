@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"image/color"
-	"os/exec"
 	"sort"
 	"strings"
 
@@ -301,15 +300,6 @@ func apiKeyStatusLines() []string {
 		lines = append(lines, fmt.Sprintf("%s: %s", provider, reflectconfig.EnvKeyStatus(provider)))
 	}
 	return lines
-}
-
-// currentGitBranch returns the current git branch name, or "" if not in a repo.
-func currentGitBranch() string {
-	out, err := exec.CommandContext(context.Background(), "git", "rev-parse", "--abbrev-ref", "HEAD").Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }
 
 func displayConfigValue(value string) string {

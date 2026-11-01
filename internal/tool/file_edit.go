@@ -66,6 +66,7 @@ func (FileEditTool) Execute(ctx context.Context, input json.RawMessage) (string,
 	if path == "" {
 		return "", fmt.Errorf("path is required")
 	}
+	path = resolveToolPath(ctx, path)
 	if err := validatePathAllowed(ctx, path); err != nil {
 		return "", err
 	}

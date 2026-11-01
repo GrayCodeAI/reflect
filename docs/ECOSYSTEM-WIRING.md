@@ -43,7 +43,7 @@ durable Queue-delivery intent.
 ```mermaid
 flowchart TB
   Manifest[GrayCodeAI/graycode-eco/ecosystem.yaml\ncanonical repo and contract inventory]
-  Manifest --> Workspace[generated root go.work]
+  Manifest --> Modules[go.mod pins and optional go.local.mod]
   Manifest --> Guards[boundary and release parity guards]
   Manifest --> OwlSnapshot[owl/ecosystem.json]
 
@@ -124,17 +124,18 @@ must use `directory`/`github_repo`; UI copy may use `product_name`.
 
 ## Release and development workflow
 
-- Run `make workspace` in Reflect to regenerate the parent `go.work`.
+- Normal setup and CI use the published module graph. For coordinated Relay
+  work, run `make workspace RELAY_DIR=/path/to/relay` to create `go.local.mod`.
 - Run `make boundaries` to validate the inventory, module isolation, Eagle
   parity, facade locations, and support-repository coupling.
-- Root `go.mod` files never contain local `replace` directives. Local sibling
-  substitutions exist only in the generated, uncommitted parent workspace.
+- Root `go.mod` files never contain local `replace` directives. Local Relay
+  substitutions exist only in the gitignored `go.local.mod` overlay.
 - SDK CI checks its snapshot byte-for-byte against Reflect and separately checks
   that every OpenAPI path has a support decision.
 - Run `owl/scripts/sync-ecosystem.sh` after changing the canonical inventory;
   Owl CI rejects drift.
-- Standalone/module-mode tests remain the release truth; workspace tests are an
-  additional integration pass, not a substitute.
+- Published-module tests remain the release truth; tests with
+  `-modfile=go.local.mod` are an additional integration pass.
 
 ### Coordinated Go publication gate
 

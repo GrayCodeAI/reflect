@@ -323,9 +323,8 @@ type chatModel struct {
 	backgrounded                 bool   // terminal lost focus during current turn (for completion notification)
 	notifiedComplete             bool   // completion notification was sent this turn (prevent duplicates)
 	uiFocus                      uiFocusArea
-	contentLines                 int // total lines in scrollback content (for footer position)
-	lastMouseY                   int // last pointer row (0-based); -1 = unknown; used when Cursor reports stale wheel Y
-	lastMouseX                   int
+	contentLines                 int   // total lines in scrollback content (for footer position)
+	lastMouseY                   int   // last pointer row (0-based); -1 = unknown; used when Cursor reports stale wheel Y
 	mouseOverride                *bool // runtime /mouse toggle; persisted via settings
 	vim                          *VimState
 	wal                          sessionWAL

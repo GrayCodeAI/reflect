@@ -5,6 +5,8 @@
 # ---------------------------------------------------------------------------
 # Project metadata
 # ---------------------------------------------------------------------------
+export GOWORK := off
+
 NAME      := reflect
 MAIN_PKG  := ./cmd/reflect
 
@@ -170,14 +172,14 @@ security: ## Run govulncheck.
 	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || (echo "install: go install golang.org/x/vuln/cmd/govulncheck@latest" && exit 1)
 	$(GOVULNCHECK) ./...
 
-tidy: ## Sync workspace modules and verify checksums.
-	go work sync
+tidy: ## Tidy the published module graph and verify checksums.
+	go mod tidy
 	go mod verify
 
 # ---------------------------------------------------------------------------
 # Composite gate used by CI and pre-push.
 # ---------------------------------------------------------------------------
-ci: version-check tidy fmt-check vet boundaries lint test-race security api-validate ## Run everything CI runs.
+ci: version-check module-check fmt-check vet boundaries lint test-race security api-validate ## Run everything CI runs.
 	@echo "All CI checks passed."
 
 smoke: ## Quick build + doctor + ecosystem verification.
@@ -201,12 +203,12 @@ clean: ## Remove build artefacts.
 # ---------------------------------------------------------------------------
 # Setup — bootstrap local development environment.
 # ---------------------------------------------------------------------------
-workspace: ## Regenerate the ecosystem root go.work from ecosystem.yaml.
-	@bash ./scripts/generate-workspace.sh
+workspace: ## Create an optional local Relay overlay (RELAY_DIR=/path/to/relay).
+	@bash ./scripts/generate-workspace.sh "$(RELAY_DIR)"
 
-setup: workspace ## Set up local development environment and development tools.
+setup: ## Set up local development environment and development tools.
 	@echo "=== Setting up reflect development environment ==="
-	@echo "✓ go.work generated and synced from ecosystem.yaml"
+	@echo "Using published dependencies from go.mod (no sibling checkout required)"
 	@echo ""
 	@echo "=== Environment check ==="
 	@echo "Go version: $$(go version)"
@@ -251,8 +253,7 @@ hooks: ## Install git hooks via lefthook (formatting, linting, conventional comm
 	@command -v lefthook >/dev/null 2>&1 || (echo "install: go install github.com/evilmartians/lefthook@latest" && exit 1)
 	lefthook install
 
-sync: ## Sync the workspace go.work and verify sibling release parity.
-	@go work sync
+sync: tidy ## Sync published modules and verify release parity.
 	@bash ./scripts/check-module-release-parity.sh
 # === Cross-platform binary targets (add after existing 'build' target) ===
 
@@ -291,3 +292,8 @@ version-sync: ## Regenerate package/API metadata from VERSION.
 
 version-check: ## Reject stale generated version metadata.
 	python3 scripts/sync-version.py --check
+
+.PHONY: module-check
+module-check: ## Check the published module graph without rewriting it.
+	go mod tidy -diff
+	go mod verify

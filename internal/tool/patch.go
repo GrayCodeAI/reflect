@@ -246,6 +246,7 @@ func Apply(patch *FilePatch) error {
 func (p *PatchParser) ApplyAll(ctx context.Context) ([]string, error) {
 	var modified []string
 	for i := range p.patches {
+		p.patches[i].Path = resolveToolPath(ctx, p.patches[i].Path)
 		if err := validatePathAllowed(ctx, p.patches[i].Path); err != nil {
 			return modified, err
 		}

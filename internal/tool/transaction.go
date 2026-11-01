@@ -463,7 +463,10 @@ func (TransactionTool) Execute(ctx context.Context, input json.RawMessage) (stri
 	}
 
 	// Validate paths
-	for _, op := range p.Operations {
+	for i := range p.Operations {
+		op := &p.Operations[i]
+		op.Path = resolveToolPath(ctx, op.Path)
+		op.OldPath = resolveToolPath(ctx, op.OldPath)
 		if err := validatePathAllowed(ctx, op.Path); err != nil {
 			return "", err
 		}

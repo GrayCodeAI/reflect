@@ -426,6 +426,9 @@ func (dm *DynamicPluginManager) InstallFromGitHub(repo string) error {
 
 // Uninstall deactivates a plugin and removes it from disk.
 func (dm *DynamicPluginManager) Uninstall(name string) error {
+	if !manifestNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid plugin name %q", name)
+	}
 	// Deactivate first if active
 	dm.mu.RLock()
 	dp, exists := dm.plugins[name]
@@ -456,7 +459,7 @@ func (dm *DynamicPluginManager) Uninstall(name string) error {
 		return fmt.Errorf("plugin %q not found on disk", name)
 	}
 
-	if err := os.RemoveAll(pluginPath); err != nil {
+	if err := removePluginDir(pluginPath, dm.pluginDirs); err != nil {
 		return fmt.Errorf("remove plugin directory: %w", err)
 	}
 
