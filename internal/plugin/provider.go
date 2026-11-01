@@ -246,9 +246,7 @@ func SkillRoots(cwd string) []string {
 	// Plugin skill roots follow the ordinary project/user skill locations.
 	// InstalledComponents applies the same trust and scope rules as MCP tools.
 	for _, components := range InstalledComponents(cwd) {
-		for _, dir := range components.Skills {
-			roots = append(roots, dir)
-		}
+		roots = append(roots, components.Skills...)
 	}
 	return roots
 }

@@ -688,7 +688,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.viewDirty = true
 					m.updateViewportContent()
 					return m, nil
-
 				}
 			}
 		}

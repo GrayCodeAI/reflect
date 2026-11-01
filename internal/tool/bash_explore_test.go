@@ -39,6 +39,30 @@ func TestExploreBashAllowed_MutationsDenied(t *testing.T) {
 		"sudo ls",
 		"chmod 777 x",
 		"mv a b",
+		"sed 'w output.txt' input.txt",
+		"awk 'BEGIN {system(\"touch output\")}'",
+		"python3 -c 'open(\"output\", \"w\").close()'",
+		"node -e 'process.exit(0)'",
+		"git -C /tmp commit -am msg",
+		"git branch new-branch",
+		"git tag new-tag",
+		"git stash",
+		"git config core.pager something",
+		"git -c core.pager=something status",
+		"git diff --output=output.txt",
+		"git diff --ext-diff",
+		"go env -w GOFLAGS=-x",
+		"go test ./...",
+		"go tool compile file.go",
+		"npm test",
+		"find . -fprintf output.txt '%p'",
+		"sort -o output.txt input.txt",
+		"rg --pre=program pattern",
+		"echo hello\ntouch output.txt",
+		"echo $(touch output.txt)",
+		"PATH=/tmp ls",
+		"./ls",
+		"curl -o output.txt https://example.com",
 	}
 	for _, c := range deny {
 		if err := ExploreBashAllowed(c); err == nil {
@@ -50,8 +74,7 @@ func TestExploreBashAllowed_MutationsDenied(t *testing.T) {
 func TestExploreBashAllowed_PipelineGate(t *testing.T) {
 	// second stage mutating
 	if err := ExploreBashAllowed("cat f | tee out"); err == nil {
-		// tee is not on allowlist
-		t.Log("tee denied as expected if not allowlisted")
+		t.Fatal("tee must be denied")
 	}
 	if err := ExploreBashAllowed("ls; rm -rf x"); err == nil {
 		t.Fatal("expected deny for multi-segment with rm")

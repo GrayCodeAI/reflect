@@ -16,7 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GrayCodeAI/reflect/internal/installtxn"
 	"github.com/GrayCodeAI/reflect/internal/storage"
+	"github.com/gofrs/flock"
 )
 
 // EventSeverity classifies the impact of a security event.
@@ -46,6 +48,7 @@ const (
 	keyFileName  = "sel.key"
 	logFileName  = "security_events.jsonl"
 	headFileName = "sel.head"
+	lockFileName = "sel.lock"
 	keySize      = 32
 	genesisHash  = "" // the first entry links against the empty string
 )
@@ -68,6 +71,7 @@ type Log struct {
 	seq     uint64
 	last    string
 	closed  bool
+	lock    *flock.Flock
 }
 
 // DefaultDir returns the default on-disk location for the security event log,
@@ -91,7 +95,12 @@ func New(dir string) (*Log, error) {
 		dir:     dir,
 		path:    filepath.Join(dir, logFileName),
 		keyPath: filepath.Join(dir, keyFileName),
+		lock:    flock.New(filepath.Join(dir, lockFileName)),
 	}
+	if err := l.lock.Lock(); err != nil {
+		return nil, fmt.Errorf("securitylog: lock: %w", err)
+	}
+	defer func() { _ = l.lock.Unlock() }()
 
 	if err := l.loadKey(); err != nil {
 		return nil, err
@@ -111,9 +120,20 @@ func New(dir string) (*Log, error) {
 // loadKey reads an existing HMAC key or generates a fresh one.
 func (l *Log) loadKey() error {
 	data, err := os.ReadFile(l.keyPath)
-	if err == nil && len(data) == keySize {
+	if err == nil {
+		if len(data) != keySize {
+			return fmt.Errorf("securitylog: invalid key size %d", len(data))
+		}
 		l.key = data
 		return nil
+	}
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("securitylog: read key: %w", err)
+	}
+	if info, statErr := os.Stat(l.path); statErr == nil && info.Size() > 0 {
+		return fmt.Errorf("securitylog: existing log is missing its key")
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return fmt.Errorf("securitylog: inspect log: %w", statErr)
 	}
 	key := make([]byte, keySize)
 	if _, err := rand.Read(key); err != nil {
@@ -130,9 +150,13 @@ func (l *Log) loadKey() error {
 // tail hash so appends continue the chain without gaps. It also reads the head
 // pointer so a truncated tail is caught at append time, not silently extended.
 func (l *Log) loadChain() error {
+	l.seq, l.last = 0, genesisHash
 	data, err := os.ReadFile(l.path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			if head, headErr := l.readHead(); headErr == nil && head.Seq != 0 {
+				return fmt.Errorf("securitylog: log is missing but head pointer exists")
+			}
 			return nil
 		}
 		return fmt.Errorf("securitylog: read log: %w", err)
@@ -145,6 +169,9 @@ func (l *Log) loadChain() error {
 		if err := json.Unmarshal(line, &ev); err != nil {
 			return fmt.Errorf("securitylog: corrupt entry: %w", err)
 		}
+		if ev.Seq != l.seq+1 || ev.PrevHash != l.last || l.computeHash(ev) != ev.Hash {
+			return fmt.Errorf("securitylog: corrupt chain at entry %d", l.seq)
+		}
 		l.seq = ev.Seq
 		l.last = ev.Hash
 	}
@@ -153,6 +180,8 @@ func (l *Log) loadChain() error {
 		if head.Seq != l.seq || head.Hash != l.last {
 			return fmt.Errorf("securitylog: log tail does not match head pointer (truncated or tampered)")
 		}
+	} else if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("securitylog: read head: %w", err)
 	}
 	return nil
 }
@@ -174,7 +203,7 @@ func (l *Log) writeHead() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(l.dir, headFileName), data, 0o600)
+	return installtxn.WriteFileAtomically(filepath.Join(l.dir, headFileName), data, 0o600)
 }
 
 // Append records a new event and returns the linked entry. It is safe for
@@ -185,10 +214,18 @@ func (l *Log) Append(severity EventSeverity, eventType, detail, tool, sessionID 
 	if l.closed {
 		return Event{}, fmt.Errorf("securitylog: log closed")
 	}
+	if err := l.lock.Lock(); err != nil {
+		return Event{}, fmt.Errorf("securitylog: lock: %w", err)
+	}
+	defer func() { _ = l.lock.Unlock() }()
+	// Another handle or process may have appended since this handle opened.
+	// Refresh and validate under the same lock that protects the append/head.
+	if err := l.loadChain(); err != nil {
+		return Event{}, err
+	}
 
-	l.seq++
 	ev := Event{
-		Seq:       l.seq,
+		Seq:       l.seq + 1,
 		Timestamp: time.Now().UTC(),
 		Severity:  severity,
 		Type:      eventType,
@@ -206,6 +243,10 @@ func (l *Log) Append(severity EventSeverity, eventType, detail, tool, sessionID 
 	if _, err := l.f.Write(append(line, '\n')); err != nil {
 		return Event{}, fmt.Errorf("securitylog: append: %w", err)
 	}
+	if err := l.f.Sync(); err != nil {
+		return Event{}, fmt.Errorf("securitylog: sync: %w", err)
+	}
+	l.seq = ev.Seq
 	l.last = ev.Hash
 	if err := l.writeHead(); err != nil {
 		return Event{}, fmt.Errorf("securitylog: write head: %w", err)
@@ -227,6 +268,18 @@ func (l *Log) computeHash(ev Event) string {
 // and each entry chains to the previous one. It returns the number of entries
 // verified and an error naming the first break in the chain.
 func Verify(dir string) (int, error) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return 0, nil
+	}
+	lock := flock.New(filepath.Join(dir, lockFileName))
+	if err := lock.Lock(); err != nil {
+		return 0, fmt.Errorf("securitylog: lock verification: %w", err)
+	}
+	defer func() { _ = lock.Unlock() }()
+	return verifyUnlocked(dir)
+}
+
+func verifyUnlocked(dir string) (int, error) {
 	data, err := os.ReadFile(filepath.Join(dir, logFileName))
 	if err != nil {
 		if os.IsNotExist(err) {

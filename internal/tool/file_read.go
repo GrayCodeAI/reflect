@@ -73,6 +73,7 @@ func (FileReadTool) Execute(ctx context.Context, input json.RawMessage) (string,
 	// file is missing), then resolve symlinks so the checks apply to the
 	// real target (M13): a symlink to ~/.ssh/id_rsa must be caught here,
 	// not silently followed during the read.
+	path = resolveToolPath(ctx, path)
 	if err := validatePathAllowed(ctx, path); err != nil {
 		return "", err
 	}

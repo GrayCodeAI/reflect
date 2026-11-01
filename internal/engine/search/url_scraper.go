@@ -113,18 +113,16 @@ func (s *URLScraper) Fetch(ctx context.Context, rawURL string) (*ScrapeResult, e
 	// SSRF guard: reject private/link-local targets and pin the resolved IP
 	// to prevent DNS rebinding. Without this, a scraped URL could reach cloud
 	// metadata endpoints or internal services.
-	pinnedURL, origHost, err := toolsafety.ValidateURLPublic(ctx, rawURL)
+	validatedURL, _, err := toolsafety.ValidateURLPublic(ctx, rawURL)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pinnedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, validatedURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	if origHost != "" {
-		req.Host = origHost
-	}
+
 	req.Header.Set("User-Agent", s.UserAgent)
 	req.Header.Set("Accept", "text/html, application/json, text/plain, */*")
 

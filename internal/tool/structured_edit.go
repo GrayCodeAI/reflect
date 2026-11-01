@@ -76,6 +76,7 @@ func (s StructuredEditTool) Execute(ctx context.Context, input json.RawMessage) 
 	if p.Path == "" {
 		return "", fmt.Errorf("path is required")
 	}
+	p.Path = resolveToolPath(ctx, p.Path)
 	if err := validatePathAllowed(ctx, p.Path); err != nil {
 		return "", err
 	}

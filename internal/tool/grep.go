@@ -59,6 +59,7 @@ func (GrepTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 	if root == "" {
 		root = "."
 	}
+	root = resolveToolPath(ctx, root)
 	if err := validatePathAllowed(ctx, root); err != nil {
 		return "", err
 	}

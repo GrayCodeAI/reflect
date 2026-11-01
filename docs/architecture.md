@@ -121,5 +121,5 @@ Tool Call → <img src="https://cdn.jsdelivr.net/gh/lucide-icons/lucide@latest/i
 | `cmd/` is CLI library | Not a binary sub-directory — holds 200+ cobra command files |
 | Zero CGO | Pure Go, cross-compilable. Tree-sitter is optional |
 | `internal/` is private | Other repos should not import `internal/*` |
-| `go.work` | Resolves the ecosystem siblings (`../<repo>`) for local and CI workspace integration |
+| `go.mod` / `go.local.mod` | Published Relay pin for normal builds; optional gitignored local replacement for coordinated development |
 | `eagle` | Shared cross-repo severity, findings, review, verify, tools, events, and policy contracts — engines import this instead of `reflect/internal` |

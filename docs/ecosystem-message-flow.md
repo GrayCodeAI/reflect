@@ -99,8 +99,9 @@ reflect doctor              # ecosystem panel + relay preflight
 | **relay** | LLM APIs, catalog, credentials, routing | Yes |
 | **internal/token** | Token estimate + context compression + secrets + usage | Yes (embedded, no config) |
 
-`relay` is an independent sibling checkout; the parent `go.work` wires the
-local Go workspace.
+`relay` is independently published and pinned in Reflect's `go.mod`. Optional
+coordinated development uses a gitignored `go.local.mod` with a local Relay
+replacement. Reflect never generates a parent workspace.
 
 Production Reflect code imports Relay only through `relay/engine`. Conversation
 history, WAL/resume, permissions, tool execution, and memory remain in Reflect;

@@ -208,7 +208,11 @@ var credentialPathSegments = []string{"/bot"}
 func redactURLPath(path string) string {
 	for _, seg := range credentialPathSegments {
 		if strings.HasPrefix(path, seg) {
-			return seg + "<REDACTED>" + strings.TrimPrefix(path, seg)
+			_, suffix, found := strings.Cut(strings.TrimPrefix(path, seg), "/")
+			if found {
+				return seg + "<REDACTED>/" + suffix
+			}
+			return seg + "<REDACTED>"
 		}
 	}
 	return path

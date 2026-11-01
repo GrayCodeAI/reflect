@@ -1,57 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Retain the old entrypoint, using an explicit, repo-local module overlay.
+# Never create, remove, or rewrite a workspace in the parent directory.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ECO_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
-# The product repo may still be checked out under its pre-rename directory
-# name (e.g. `hawk`) while ecosystem.yaml already lists `reflect`. Derive the
-# self directory from the checkout itself so the workspace generates during
-# and after the rename instead of hardcoding one name.
-SELF_DIR="$(basename "${ROOT_DIR}")"
-# macOS checkouts are case-insensitive, so `Reflect` and the manifest's `reflect`
-# name the same directory. Compare case-insensitively to avoid adding the
-# self module twice.
-SELF_DIR_LC="$(printf '%s' "${SELF_DIR}" | tr '[:upper:]' '[:lower:]')"
+if [[ $# -ne 1 || -z "$1" || ! -f "$1/go.mod" ]]; then
+  echo "usage: $0 /path/to/relay (creates optional go.local.mod; ordinary builds need no sibling checkout)" >&2
+  exit 2
+fi
+RELAY_DIR="$(cd "$1" && pwd)"
+if [[ "$(awk '$1 == "module" {print $2; exit}' "${RELAY_DIR}/go.mod")" != github.com/GrayCodeAI/relay ]]; then
+  echo "the supplied checkout must declare module github.com/GrayCodeAI/relay" >&2
+  exit 2
+fi
+if [[ -e "${ROOT_DIR}/go.local.mod" || -e "${ROOT_DIR}/go.local.sum" ]]; then
+  echo "go.local.mod or go.local.sum already exists; edit the existing overlay explicitly" >&2
+  exit 1
+fi
 
-"${ROOT_DIR}/scripts/ecosystem-manifest.sh" validate
-
-rm -f "${ECO_DIR}/go.work" "${ECO_DIR}/go.work.sum"
-(
-  cd "${ECO_DIR}"
-  go work init "./${SELF_DIR}"
-  go_version="$(awk '$1 == "go" { print $2; exit }' "${ROOT_DIR}/go.mod")"
-  go work edit -go="${go_version}"
-  while IFS= read -r repo; do
-    repo_lc="$(printf '%s' "${repo}" | tr '[:upper:]' '[:lower:]')"
-    [[ "${repo_lc}" == "${SELF_DIR_LC}" ]] && continue
-    if [[ ! -f "${repo}/go.mod" ]]; then
-      echo "WARNING: ${repo} is not checked out; skipping workspace entry"
-      continue
-    fi
-    go work use "./${repo}"
-    module="$(awk '$1 == "module" { print $2; exit }' "${repo}/go.mod")"
-    while IFS= read -r version; do
-      [[ -n "${version}" ]] && go work edit -replace="${module}@${version}=./${repo}"
-    done < <(
-      {
-        while IFS= read -r consumer; do
-          [[ -f "${consumer}/go.mod" ]] || continue
-          awk -v wanted="${module}" '
-            /^(replace|exclude)[[:space:]]*\($/ { skip = 1; next }
-            skip && /^\)/                       { skip = 0; next }
-            skip                                { next }
-            $1 == "replace" || $1 == "exclude"  { next }
-            {
-              for (i = 1; i < NF; i++) {
-                if ($i == wanted && $(i + 1) ~ /^v[0-9]/) print $(i + 1)
-              }
-            }
-          ' "${consumer}/go.mod"
-        done < <("${ROOT_DIR}/scripts/ecosystem-manifest.sh" list workspace)
-      } | sort -u
-    )
-  done < <("${ROOT_DIR}/scripts/ecosystem-manifest.sh" list workspace)
-  go work sync
-)
-
-echo "workspace generated at ${ECO_DIR}/go.work"
+stage="$(mktemp -d "${ROOT_DIR}/.relay-overlay.XXXXXX")"
+trap 'rm -rf "$stage"' EXIT
+cp "${ROOT_DIR}/go.mod" "${stage}/go.local.mod"
+cp "${ROOT_DIR}/go.sum" "${stage}/go.local.sum"
+GOWORK=off go mod edit -modfile="${stage}/go.local.mod" -replace="github.com/GrayCodeAI/relay=${RELAY_DIR}"
+mv "${stage}/go.local.sum" "${ROOT_DIR}/go.local.sum"
+mv "${stage}/go.local.mod" "${ROOT_DIR}/go.local.mod"
+echo "Created go.local.mod; run GOWORK=off go test -modfile=go.local.mod ./..."

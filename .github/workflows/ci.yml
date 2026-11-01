@@ -24,16 +24,8 @@ env:
   # published on the public proxy. Direct-VCS fallback is retained for anything
   # else.
   GOPROXY: "https://proxy.golang.org,direct"
-  # CI must resolve the dependency versions pinned in go.mod/go.sum, not whatever
-  # happens to sit in the sibling checkouts that the committed go.work points at.
-  # Go's reference is explicit that a committed go.work "may cause a continuous
-  # integration (CI) system to select and thus test the wrong versions of a
-  # module's dependencies" and that "CI systems should generally not be allowed to
-  # use the go.work file". Because ./.github/actions/checkout-relay clones the
-  # siblings at branch HEAD into the workspace parent, workspace mode would silently
-  # hide version skew (e.g. a shared pin that no longer matches).
-  # The `module` job opts back in (GOWORK: "auto") since `go work sync` and the
-  # go.work content checks genuinely require the workspace.
+  # Build and test the independently published dependency graph. Optional
+  # local Relay development uses go.local.mod, never a parent workspace.
   GOWORK: "off"
 
 jobs:
@@ -100,55 +92,25 @@ jobs:
         run: bash ./scripts/check-relay-engine-boundary.sh
 
   # -------------------------------------------------------------------------
-  # 2. Module hygiene — tidy, verify Reflect plus the sibling Go modules via go.work.
+  # 2. Module hygiene — validate the published Reflect dependency graph.
   # -------------------------------------------------------------------------
   module:
     name: module hygiene
     runs-on: ubuntu-latest
-    # Workspace hygiene is this job's entire purpose (`go work sync`, the go.work
-    # content checks), so it deliberately re-enables the workspace that the
-    # workflow-level GOWORK: "off" disables. The steps here that must see the
-    # pinned versions already set GOWORK=off inline.
-    env:
-      GOWORK: "auto"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-      - name: Generate ecosystem workspace
-        run: bash ./scripts/generate-workspace.sh
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: go work sync + module consistency
+      - name: Published module consistency
         run: |
-          # Sibling repos are independent checkouts in the workspace parent.
-          # go mod tidy can mis-resolve workspace modules here; go work sync is
-          # the supported workspace hygiene step.
-          go work sync
+          go mod tidy -diff
+          go mod verify
           go build -mod=readonly -o /dev/null ./cmd/reflect
-          if ! git diff --quiet -- go.mod go.sum go.work go.work.sum; then
-            echo "::error::go.mod / go.sum / go.work files out of date — run 'go work sync' locally and commit"
-            git diff -- go.mod go.sum go.work go.work.sum
-            exit 1
-          fi
-      - name: go mod verify
-        run: go mod verify
-      - name: workspace references sibling checkouts
-        run: |
-          workspace_file="${GITHUB_WORKSPACE}/../go.work"
-          while IFS= read -r module; do
-            [ "$module" = reflect ] && continue
-            if ! grep -q "./${module}" "$workspace_file"; then
-              echo "::error::go.work must include ./${module}."
-              cat "$workspace_file"
-              exit 1
-            fi
-          done < <(./scripts/ecosystem-manifest.sh list workspace)
+          git diff --exit-code -- go.mod go.sum
       - name: Validate every Go module independently
         run: |
           while IFS= read -r modfile; do
@@ -166,9 +128,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -183,15 +142,12 @@ jobs:
           go test ./... -count=1 -timeout=300s
 
   release-parity:
-    name: workspace and module parity
+    name: published module parity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -208,9 +164,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -233,9 +186,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -262,9 +212,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -349,9 +296,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -438,9 +382,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: "${{ env.GO_VERSION }}"
@@ -493,9 +434,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -523,9 +461,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -556,9 +491,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/checkout-relay
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ env.GO_VERSION }}

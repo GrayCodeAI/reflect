@@ -18,9 +18,10 @@ GOWORK=off go build -o reflect ./cmd/reflect
 ./reflect
 ```
 
-For full cross-repository development, place the nine Go repositories beside
-Reflect in a parent workspace and run `make setup` from `reflect`; `graycode-eco` is
-only a local folder name, not a repository containing those modules.
+For coordinated Relay development, use
+`make workspace RELAY_DIR=/path/to/relay`, then
+`GOWORK=off go test -modfile=go.local.mod ./...`. This optional gitignored overlay
+keeps normal builds on the published dependency; no parent workspace is created.
 
 ### Verification
 

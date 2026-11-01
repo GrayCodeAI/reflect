@@ -68,6 +68,7 @@ func (MultiEditTool) Execute(ctx context.Context, input json.RawMessage) (string
 	if len(p.Edits) == 0 {
 		return "", fmt.Errorf("at least one edit is required")
 	}
+	p.FilePath = resolveToolPath(ctx, p.FilePath)
 	if err := validatePathAllowed(ctx, p.FilePath); err != nil {
 		return "", err
 	}

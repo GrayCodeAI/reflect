@@ -81,6 +81,9 @@ func startBackgroundBash(ctx context.Context, command string, execName string, e
 	// Background tasks are long-lived and observable by the agent; scrub
 	// provider API keys so the child environment cannot leak credentials.
 	cmd.Env = env.SubprocessEnv()
+	if tc := GetToolContext(ctx); tc != nil {
+		cmd.Dir = tc.WorkingDir
+	}
 	// Put the child in its own process group so we can kill the whole tree
 	// (including grandchildren spawned by the shell) via kill(-pgid). Without
 	// this, e.g. `bash -c 'sleep 60 &'` leaves an orphan when the parent is

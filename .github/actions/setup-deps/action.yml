@@ -1,52 +1,23 @@
 name: Setup Dependencies
-description: Clone ecosystem sibling repos with retry, setup Go, sync workspace
+description: Set up Go and download the independently published module graph
 
 inputs:
   go-version:
     description: Go version to install
-    default: '1.27.2'
+    default: '1.27.3'
   token:
-    description: GitHub token for authenticated clones
-    required: true
+    description: Retained for compatibility; public modules need no clone token
+    required: false
 
 runs:
   using: composite
   steps:
-    - name: Checkout sibling dependencies
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.token }}
-      run: |
-        clone_with_retry() {
-          local repo=$1 dest=$2 branch=${3:-main}
-          for i in 1 2 3; do
-            git clone --depth=1 --branch "$branch" "https://x-access-token:${GH_TOKEN}@github.com/GrayCodeAI/${repo}.git" "$dest" && return 0
-            echo "Retry $i for $repo..." && sleep $((i * 5))
-          done
-          echo "Failed to clone $repo after 3 attempts" && return 1
-        }
-        ws_parent="$(cd "${GITHUB_WORKSPACE}/.." && pwd)"
-        mkdir -p "$ws_parent"
-        while IFS= read -r repo; do
-          [ "$repo" = reflect ] && continue
-          dest="$ws_parent/$repo"
-          if [ -d "$dest/.git" ]; then
-            echo "$repo already present at $dest"
-            continue
-          fi
-          if ! git ls-remote "https://x-access-token:${GH_TOKEN}@github.com/GrayCodeAI/${repo}.git" HEAD >/dev/null 2>&1; then
-            echo "WARNING: GrayCodeAI/${repo} is not reachable; skipping checkout"
-            continue
-          fi
-          clone_with_retry "$repo" "$dest" main
-        done < <(./scripts/ecosystem-manifest.sh list workspace)
-
     - name: Set up Go
       uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
       with:
         go-version: ${{ inputs.go-version }}
-
-    - name: Sync workspace
+    - name: Download published dependencies
       shell: bash
-      run: |
-        make workspace
+      env:
+        GOWORK: 'off'
+      run: go mod download

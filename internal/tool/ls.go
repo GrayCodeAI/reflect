@@ -58,6 +58,7 @@ func (LSTool) Execute(ctx context.Context, input json.RawMessage) (string, error
 	if path == "" {
 		path = "."
 	}
+	path = resolveToolPath(ctx, path)
 	if err := validatePathAllowed(ctx, path); err != nil {
 		return "", err
 	}

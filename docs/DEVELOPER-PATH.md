@@ -24,26 +24,21 @@ reflect preflight
 
 ## Setup checklist
 
-### 1. Build and workspace setup
+### 1. Build setup
 
-If you are contributing from source, clone Reflect as the main CLI. The support
-repositories are independent sibling checkouts when you need the full local
-workspace; they are not nested under Reflect:
+Reflect is an independent repository. Clone it and use its published dependencies:
 
 ```bash
-mkdir graycode-eco && cd graycode-eco
 git clone https://github.com/GrayCodeAI/reflect
-git clone https://github.com/GrayCodeAI/relay
 cd reflect
 make setup
-go build -o reflect ./cmd/reflect
+make build
 ```
 
-`make setup` validates the canonical repository manifest and regenerates the
-parent `../go.work` from the local Go repositories marked `workspace: true`.
-Reflect can also be built as a standalone checkout with `GOWORK=off go build ./cmd/reflect`;
-the sibling workspace is only required for cross-repository development and
-boundary checks.
+For coordinated Relay changes, use `make workspace RELAY_DIR=/path/to/relay`
+and `GOWORK=off go test -modfile=go.local.mod ./...`. This creates a gitignored
+local module overlay and preserves any parent workspace. Ordinary builds and
+CI use the pinned `go.mod` dependency; no sibling repository is required.
 
 ### 2. Configure credentials
 

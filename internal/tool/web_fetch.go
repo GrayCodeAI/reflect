@@ -61,7 +61,7 @@ func (WebFetchTool) Execute(ctx context.Context, input json.RawMessage) (string,
 	if p.URL == "" {
 		return "", fmt.Errorf("url is required")
 	}
-	pinnedURL, origHost, err := ValidateURLPublic(ctx, p.URL)
+	validatedURL, _, err := ValidateURLPublic(ctx, p.URL)
 	if err != nil {
 		return "", err
 	}
@@ -69,18 +69,11 @@ func (WebFetchTool) Execute(ctx context.Context, input json.RawMessage) (string,
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", pinnedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", validatedURL, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "reflect/0.1.0")
-	// Preserve the original Host header so virtual-host routing works
-	// correctly. validateURLPublic pins the connection to the validated
-	// IP (preventing DNS rebinding), but replaces the URL host with the IP.
-	// Setting req.Host restores the original hostname for the Host header.
-	if origHost != "" {
-		req.Host = origHost
-	}
 
 	client := SSRFSafeClient(ctx, 30*time.Second)
 	resp, err := client.Do(req)
