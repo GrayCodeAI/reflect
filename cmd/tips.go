@@ -49,7 +49,7 @@ func allTips() []Tip {
 		{ID: "slash-fork", Text: "Use /fork to branch off the current conversation.", Category: "session"},
 		{ID: "slash-context", Text: "Use /context to see what the agent knows about your project.", Category: "context"},
 		{ID: "slash-start", Text: "Use /start for guided setup: trust, mode, branch, first tasks.", Category: "basics"},
-		{ID: "slash-mode-plan", Text: "Use /mode plan to research read-only, then /mode act to implement.", Category: "workflow"},
+		{ID: "slash-mode-plan", Text: "Use /mode plan to research read-only, then /mode build to implement.", Category: "workflow"},
 		{ID: "slash-trust", Text: "Use /trust add so project hooks and MCP can load (folder trust).", Category: "safety"},
 		{ID: "slash-branch-agent", Text: "Use /branch-agent before big edits on main — creates reflect/agent-* branch.", Category: "git"},
 		{ID: "tool-search-select", Text: "Use ToolSearch select:Impact (etc.) to unlock optional tools on the lazy surface.", Category: "tools"},

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 	"github.com/GrayCodeAI/reflect/internal/tool"
 )
 
-// WorkMode is the product-level Plan / Act / Review control plane.
+// WorkMode is the product-level Plan / Build / Review control plane.
 // It is orthogonal to shellmode (auto|shell|agent) and SpecStage:
 // WorkMode steers tool visibility and bash mutability for everyday use.
 type WorkMode string
@@ -36,24 +37,27 @@ var EssentialModelTools = []string{
 var PlanModelTools = []string{
 	"Read", "LS", "Glob", "Grep", "Bash",
 	"WebFetch", "WebSearch", "ToolSearch", "Skill",
-	"Agent", "AskUserQuestion", "TodoWrite",
-	"LSP", "CodeSearch", "CodeGraph", "Impact", "GitHistory",
-	"Specify", "Plan", "Tasks", "Clarify", "Analyze", "Checklist",
+	"AskUserQuestion",
+	"CodeSearch", "CodeGraph", "Impact",
 }
 
 // ReviewModelTools are model-visible in Review mode (read-only).
 var ReviewModelTools = []string{
 	"Read", "LS", "Glob", "Grep", "Bash",
-	"ToolSearch", "AskUserQuestion", "TodoWrite",
-	"LSP", "Diagnostics", "CodeSearch", "CodeGraph", "Impact", "GitHistory",
+	"ToolSearch", "AskUserQuestion",
+	"CodeSearch", "CodeGraph", "Impact",
 	"WebFetch",
 }
 
 const workModePlanPrompt = `## Work mode: PLAN
-You are in plan mode. Research and produce an ordered plan.
+Research the request and produce one concise Markdown implementation plan.
 - Prefer Read, Grep, Glob, LS, and read-only Bash inspection.
 - Do not modify files or run mutating commands.
-- End with a concrete step list the user can approve before Act mode.`
+- Include the goal, approach, files affected, ordered steps, and verification.
+- Keep everything in this one plan; do not create proposal, specification, design, or tasks files.
+- Do not invoke the advanced spec workflow unless the user explicitly starts /spec.
+- The interactive host saves your final answer as the session's single plan document.
+- End with a concrete step list the user can review before switching to Build mode.`
 
 const workModeReviewPrompt = `## Work mode: REVIEW
 You are in review mode. Inspect code and report findings with file:line evidence.
@@ -70,7 +74,7 @@ func ParseWorkMode(s string) (WorkMode, error) {
 	case "review", "inspect", "readonly", "read-only", "ro":
 		return WorkModeReview, nil
 	default:
-		return "", fmt.Errorf("unknown work mode %q (want plan|act|review)", s)
+		return "", fmt.Errorf("unknown work mode %q (want plan|build|review)", s)
 	}
 }
 
@@ -98,6 +102,7 @@ func (s *Session) SetWorkMode(mode WorkMode) error {
 
 	reg := (*tool.Registry)(nil)
 	if s.Tools() != nil {
+		s.Tools().setWorkMode(mode)
 		reg = s.Tools().Registry()
 	}
 	switch mode {
@@ -126,6 +131,31 @@ func (s *Session) SetWorkMode(mode WorkMode) error {
 	return nil
 }
 
+// DisplayName keeps product labels independent of persisted mode identifiers.
+// Build retains the wire value "act" for existing sessions and integrations.
+func (mode WorkMode) DisplayName() string {
+	switch mode {
+	case WorkModePlan:
+		return "Plan"
+	case WorkModeReview:
+		return "Review"
+	default:
+		return "Build"
+	}
+}
+
+// NextWorkMode is the everyday keyboard cycle.
+func NextWorkMode(mode WorkMode) WorkMode {
+	switch mode {
+	case WorkModePlan:
+		return WorkModeAct
+	case WorkModeAct, "":
+		return WorkModeReview
+	default:
+		return WorkModePlan
+	}
+}
+
 // WorkMode returns the active work mode (default act).
 func (s *Session) WorkMode() WorkMode {
 	if s == nil {
@@ -141,6 +171,9 @@ func (s *Session) WorkMode() WorkMode {
 
 // workModeSystemAddon returns ephemeral system prompt text for the active mode.
 func (s *Session) workModeSystemAddon() string {
+	if s.PermSvc() != nil && s.PermSvc().SpecStage() != safety.SpecStageNone {
+		return ""
+	}
 	switch s.WorkMode() {
 	case WorkModePlan:
 		return workModePlanPrompt

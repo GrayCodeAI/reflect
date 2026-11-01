@@ -190,17 +190,23 @@ func validateStartup(settings reflectconfig.Settings) []StartupWarning {
 		providerName = strings.TrimSpace(reflectconfig.ActiveProvider(context.Background()))
 	}
 	if providerName != "" && providerName != "ollama" {
-		hasEnv := false
-		if envKey := reflectconfig.ProviderAPIKeyEnv(providerName); envKey != "" {
-			hasEnv = os.Getenv(envKey) != ""
-		}
-		hasStored := reflectconfig.HasStoredCredentialForProvider(context.Background(), providerName)
-		if !hasEnv && !hasStored {
-			envKey := reflectconfig.ProviderAPIKeyEnv(providerName)
+		// Resolve credentials through the same invocation-scoped runtime as
+		// chat, including custom gateways and credential environment aliases.
+		runtime, err := reflectconfig.NewRelayEngineForSettings(settings)
+		if err != nil {
 			warnings = append(warnings, StartupWarning{
-				Check:   "api_key",
-				Message: fmt.Sprintf("No API key found for %s. Set %s in your environment or run /config.", providerName, envKey),
+				Check: "provider", Message: "Could not initialize the model runtime. Open /config to check your provider settings.",
 			})
+		} else if status, statusErr := runtime.CredentialStatus(context.Background(), providerName); statusErr != nil {
+			warnings = append(warnings, StartupWarning{
+				Check: "api_key", Message: fmt.Sprintf("Could not check credentials for %s. Open /config to check provider support and credentials.", providerName),
+			})
+		} else if !status.Configured {
+			message := fmt.Sprintf("No API key found for %s. Run /config to add it.", providerName)
+			if envKey := strings.TrimSpace(status.EnvVar); envKey != "" {
+				message = fmt.Sprintf("No API key found for %s. Set %s in your environment or run /config.", providerName, envKey)
+			}
+			warnings = append(warnings, StartupWarning{Check: "api_key", Message: message})
 		}
 	}
 

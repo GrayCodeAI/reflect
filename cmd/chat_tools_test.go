@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +14,39 @@ import (
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 	"github.com/GrayCodeAI/reflect/internal/tool"
 )
+
+func TestConfiguredStartupMCPServersLoadsPluginWithExplicitOverride(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
+	t.Setenv("REFLECT_CONFIG_DIR", t.TempDir())
+	t.Setenv("REFLECT_MANAGED_PLUGINS", "")
+	dir := filepath.Join(os.Getenv("REFLECT_STATE_DIR"), "plugins", "workspace")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	data := `{"name":"workspace","version":"0.1.0","components":{"mcp":[{"name":"graycode_resolve","command":"resolve","args":["mcp","serve","--repo","${project_root}"]},{"name":"graycode_recall","command":"recall","args":["mcp","serve","--scope","${project_name}"]}]}}`
+	if err := os.WriteFile(filepath.Join(dir, "plugin.json"), []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	original := mcpServers
+	mcpServers = nil
+	t.Cleanup(func() { mcpServers = original })
+	settings := reflectconfig.Settings{MCPServers: []reflectconfig.MCPServerConfig{{Name: "graycode_resolve", Command: "custom-resolve"}}}
+	servers := configuredStartupMCPServers(settings)
+	if len(servers) != 2 || servers[0].command != "custom-resolve" || servers[1].command != "recall" {
+		t.Fatalf("plugin contributions/override failed: %+v", servers)
+	}
+	for _, server := range servers {
+		for _, arg := range server.args {
+			if strings.Contains(arg, "${") {
+				t.Fatal("unexpanded argument", arg)
+			}
+		}
+	}
+	summary := mcpConfigSummary(settings)
+	if !strings.Contains(summary, "graycode_recall") || !strings.Contains(summary, "custom-resolve") {
+		t.Fatalf("diagnostics omit effective plugin configuration: %s", summary)
+	}
+}
 
 type registryTestTool struct {
 	name string

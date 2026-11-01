@@ -1,118 +1,78 @@
-# Request → Resolve → Recall → Reflect/Relay → Record → Rally
+# Reflect and Relay workflow
 
-## Local factory setup and status
+Reflect owns the coding-agent workflow and terminal UI. Relay owns model
+providers, credentials, model routing, and streaming transport. Both remain
+independent repositories.
 
-From the Reflect checkout, build the sibling CLIs into one directory:
+Each project has its own build, configuration, version, and release lifecycle.
+Relay is reusable by any application; Reflect is usable in any codebase and by
+other applications through its integration interfaces.
 
-```bash
-scripts/factory-setup.sh /path/to/factory/bin
-export PATH="/path/to/factory/bin:$PATH"
-reflect factory doctor --repo /path/to/project
-reflect factory status --repo /path/to/project
-reflect factory summary --repo /path/to/project
-reflect factory run --repo /path/to/project --request 'Fix the failing test'
-reflect factory workspace summary --root /path/to/GrayCodeAI
-reflect factory workspace verify relay --root /path/to/GrayCodeAI
+| Integration | Interface |
+| --- | --- |
+| Interactive coding in any repository | `reflect --cwd /path/to/project` |
+| Scripted tasks | `reflect exec --cwd /path/to/project --json "Review this code"` |
+| Streaming automation | `reflect exec --output-format stream-json "Run the tests"` |
+| Editor integration | `reflect acp` |
+| MCP clients | `reflect mcp serve` |
+| Model access in another Go application | Relay's public `engine` facade |
+
+## Work in Reflect
+
+Run the built executable from the project you want to work on:
+
+```sh
+./reflect
 ```
 
-The status command joins Resolve tickets to local Record checkpoints, Recall
-outcomes, and Rally messages. It reports whether an `in_review` ticket has a
-verified checkpoint. The summary is the same one-line view Ridge displays
-after `:factory status`; Ridge can launch `reflect factory run` in a pane with
-`:factory run <request>` or `:factory ticket <id>`. The setup script builds
-Reflect, Resolve, Record, Recall, Rally, Rivet, and Rein. Relay is linked into
-Reflect from the local sibling checkout using a temporary module overlay; no
-repository dependency file is changed. Set `FACTORY_BUILD_RIDGE=1` to build the
-sibling Ridge checkout too.
-Rein is installed for policy evaluation but is not yet in Reflect's tool
-execution path.
+Reflect uses its original full-width chat layout, with the input fixed at the
+bottom. Model, permissions, workspace, and usage are shown in the footer.
+`/status`, `/cost`, and `/keybindings` provide additional details.
 
-`reflect factory run` chooses a test command from `go.mod`, `Cargo.toml`,
-`pnpm-lock.yaml`, or `package-lock.json`, then runs it through Rivet and keeps
-the raw verification log. Use `--verify COMMAND` for another project layout.
-It leaves the verified branch for review; `--pr` opens a draft PR when the
-GitHub CLI is configured.
+| Control | Action |
+| --- | --- |
+| Shift+Tab | Cycle Plan → Build → Review |
+| F2 or `/mode` | Choose Plan, Build, or Review |
+| F3 | Choose the permission tier |
+| `/plan [task]` | Enter Plan mode and optionally research a task |
+| `/plan show` | Reopen this conversation’s saved plan |
+| `/spec` | Open the optional advanced spec workflow |
+| Ctrl+K | Open the command palette |
+| Tab | Move between prompt and transcript |
+| Shift+Enter | Add a newline |
+| Esc | Cancel the active operation or dismiss a menu |
 
-The workspace commands cover all 11 sibling repositories, including the Relay
-library, Ridge, the separate company platform, and private logo assets.
-`workspace status` emits JSON with Git state, verification command, tickets,
-and evidence per checkout. `workspace verify NAME` runs one local check;
-`workspace verify all` runs every check in sequence. The platform uses
-`pnpm check` and never deploys through this command. The logo repo validates
-its SVG and PNG assets with `scripts/check-assets.py`. Run a ticket in any
-checkout with `reflect factory run --repo /path/to/checkout --request '...'`.
-The Reflect workspace check also tests against the local Relay checkout through
-a temporary module overlay.
+For everyday work, use Plan to research, Build to implement, and Review to inspect
+the result. Plan saves the final response as one Markdown document in Reflect’s
+project- and conversation-scoped user state, outside your source tree. Later Plan
+turns replace that document; `/plan show` reopens it. A cancelled or failed turn
+does not replace the saved plan. Switching modes does not start a model turn.
 
-`reflect work` accepts a plain request. It creates a Resolve work item for
-tracking, reads project context from Recall, runs the coding agent through
-Relay, verifies the result, records a checkpoint, saves a sourced outcome in
-Recall, and posts progress to Rally. You can also pass an existing Resolve ID.
+Use `/spec` for work that needs proposal, specification, design, plan, tasks, and
+explicit implementation approval. The full spec workflow starts only when you
+opt in. `/spec reset` leaves it. It does not start with ordinary planning.
 
-## Build from a request
+Work mode, permission tier, and workspace trust are independent. Choosing Plan
+or Review restricts mutating tools. A trusted workspace still follows its
+permission policy. Starting a spec workflow adds its own implementation gates.
 
-From a Reflect source checkout with sibling product checkouts:
+Loading an installed local skill reads instructions. Any commands, file edits,
+or network tools used afterward follow their own permission checks. Plugins and
+MCP servers continue to use the normal installation and trust boundaries.
 
-```bash
-go build -modfile=go.local.mod -o reflect ./cmd/reflect
-(cd ../resolve && go build -o resolve ./cmd/resolve)
-(cd ../record && go build -o record ./cmd/record)
-(cd ../recall && go build -o recall ./cmd/recall)
-(cd ../rally && go build -o rally ./cmd/rally)
-(cd ../rivet && go build -o rivet ./cmd/rivet)
-./reflect work --request 'Build the requested feature' --repo /path/to/project \
-  --resolve-bin ../resolve/resolve --record-bin ../record/record \
-  --recall-bin ../recall/recall --rally-bin ../rally/rally \
-  --rivet-bin ../rivet/rivet --verify 'go test ./...'
-```
+## Work in Relay
 
-The target repository must have a clean working tree and a valid Git commit.
-The verification command is supplied explicitly. Passing `--rivet-bin` runs it
-through Rivet, which prints a compact result and retains the raw output in a
-private log outside the worktree. The Record checkpoint cites that log. You can
-instead pass `--verify-block NAME` to verify and run a Rivet block committed in
-the target repository; Reflect finds `rivet` on `PATH` unless `--rivet-bin` is
-given. A Resolve item is created
-automatically to correlate the run; no ticket setup is needed. To use an
-existing item, replace `--request '...'` with its ID. The default Recall and
-Rally stores are under the user's config directory; use `--recall-store` and
-`--rally-data` to select other local stores.
+Implement provider protocols, adapters, credentials, and model metadata in the
+Relay repository. Reflect consumes Relay through its engine facade. Validate
+provider changes in Relay before checking their behavior through Reflect.
 
-The work command creates a branch named `reflect/<ticket-id>-<suffix>` and a
-separate worktree under the repository parent's `.reflect-worktrees` directory.
-It claims the work item, posts a Rally start note, invokes `reflect exec --json` in that
-worktree, stages and commits the agent's changes, then runs the verification
-command against that exact commit. It requires a clean worktree after the check
-and creates a Record checkpoint with the Reflect session ID and verification
-result. A Recall outcome cites the Git commit, which remains resolvable from
-another clone once the branch is pushed; the local checkpoint ID remains in
-the outcome text. With `--pr`, the draft PR also includes the verification
-result. Reflect then comments on the
-Resolve item, moves it to `in_review`, and posts a final Rally note.
+For local development, an explicit local module replacement may point Reflect
+at the sibling Relay checkout. Released builds use the version pinned in
+Reflect's `go.mod`.
 
-The branch and worktree remain available for inspection. The output includes
-their paths, the exact commit, the checkpoint ID, and the memory ID. The default leaves all
-work local. Pass `--pr` to push the branch to `origin` and open a draft GitHub
-PR through `gh`; `--base` selects the target branch when it differs from the
-branch where the ticket run started. Review and merge remain manual.
+## Verify a change
 
-## Failure and permissions
-
-If Reflect, verification, commit, or Record fails, the worktree remains for
-inspection. A failed verification may leave an unverified commit, but creates no
-checkpoint or review-ready ticket status.
-Reflect adds a short failure-stage comment to Resolve and a Rally note without
-copying raw stderr into either store. `reflect factory status` includes the
-latest note, and `reflect factory summary` counts stopped tickets. Resolve
-remains `in_progress` until a verified checkpoint is created. After a
-late failure, inspect the worktree and complete the handoff manually; automatic
-resume and retry are future work.
-
-The default `--auto semi` permits agent reads and file writes but denies
-unattended Bash requests. `--auto full` allows more shell work, subject to
-Reflect's normal permission checks. The `--verify` command is an operator
-supplied shell command executed in the worktree; use a command you trust.
-
-Record currently stores summary and verification metadata locally under the
-repository's Git common directory. It does not capture transcripts or sync
-checkpoints to remotes. Resolve events can sync through its own `sync` command.
+Run focused tests for the changed behavior and build the Reflect executable.
+For terminal UI changes, cover resizing, input routing, pending approvals,
+concurrent tools, and session continuity. Provider changes also need Relay's
+facade and streaming lifecycle checks.

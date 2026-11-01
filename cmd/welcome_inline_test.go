@@ -59,12 +59,12 @@ func TestBuildWelcomeMessage_InlineShowsSetupGuidance(t *testing.T) {
 
 func TestBuildWelcomeMessage_InlineShowsGuidance(t *testing.T) {
 	out := buildWelcomeMessageWithSnapshot(nil, "", nil, nil, reflectconfig.Settings{}, 1, 0, 0, 100, 24, welcomeStatusSnapshot{agentsOK: true}, "")
-	for _, want := range []string{"Reflect", "Project instructions loaded", "1 skill", `Try "explain this repo"`, "/help"} {
+	for _, want := range []string{"Reflect", "/help"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("welcome missing %q: %s", want, out)
 		}
 	}
-	for _, hidden := range []string{"MCPs (0)", "Action Mode", "Trusted", "Skills (", "AGENTS.md", "____"} {
+	for _, hidden := range []string{"MCPs (0)", "Action Mode", "Trusted", "Skills (", "AGENTS.md", "Project instructions loaded", "1 skill", `Try "explain this repo"`, "Ctrl+L", "Shift+Tab"} {
 		if strings.Contains(out, hidden) {
 			t.Errorf("welcome repeats clutter %q: %s", hidden, out)
 		}

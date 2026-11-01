@@ -2,8 +2,10 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/GrayCodeAI/reflect/internal/fsutil"
@@ -53,6 +55,11 @@ func DiscoverComponents(pluginDir string) (DiscoveredComponents, error) {
 		}
 		out.MCPServers = append(out.MCPServers, m.Components.MCP...)
 	}
+	for _, rel := range []string{skillsDir, hooksDir, mcpFile} {
+		if err := withinPlugin(pluginDir, rel); err != nil {
+			return out, err
+		}
+	}
 
 	// tools/
 	if st, err := os.Stat(filepath.Join(pluginDir, "tools")); err == nil && st.IsDir() {
@@ -63,6 +70,9 @@ func DiscoverComponents(pluginDir string) (DiscoveredComponents, error) {
 	skillsRoot := filepath.Join(pluginDir, skillsDir)
 	if m.Components != nil && len(m.Components.Skills) > 0 {
 		for _, name := range m.Components.Skills {
+			if err := withinPlugin(pluginDir, filepath.Join(skillsDir, name, "SKILL.md")); err != nil {
+				return out, err
+			}
 			p := filepath.Join(skillsRoot, name)
 			if skillMD := filepath.Join(p, "SKILL.md"); fileExists(skillMD) {
 				out.Skills = append(out.Skills, p)
@@ -76,6 +86,9 @@ func DiscoverComponents(pluginDir string) (DiscoveredComponents, error) {
 					continue
 				}
 				p := filepath.Join(skillsRoot, e.Name())
+				if err := withinPlugin(pluginDir, filepath.Join(skillsDir, e.Name(), "SKILL.md")); err != nil {
+					return out, err
+				}
 				if fileExists(filepath.Join(p, "SKILL.md")) {
 					out.Skills = append(out.Skills, p)
 				}
@@ -106,7 +119,13 @@ func DiscoverComponents(pluginDir string) (DiscoveredComponents, error) {
 		}
 		if json.Unmarshal(data, &file) == nil {
 			out.MCPServers = append(out.MCPServers, file.Servers...)
-			for name, spec := range file.ServerMap {
+			names := make([]string, 0, len(file.ServerMap))
+			for name := range file.ServerMap {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				spec := file.ServerMap[name]
 				if spec.Name == "" {
 					spec.Name = name
 				}
@@ -116,6 +135,28 @@ func DiscoverComponents(pluginDir string) (DiscoveredComponents, error) {
 	}
 
 	return out, nil
+}
+
+func withinPlugin(root, rel string) error {
+	if filepath.IsAbs(rel) || rel == ".." || strings.HasPrefix(filepath.Clean(rel), ".."+string(filepath.Separator)) {
+		return fmt.Errorf("plugin component escapes package: %s", rel)
+	}
+	resolved, err := filepath.EvalSymlinks(filepath.Join(root, rel))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	base, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
+	relative, err := filepath.Rel(base, resolved)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("plugin component symlink escapes package: %s", rel)
+	}
+	return nil
 }
 
 // ComponentSummary returns a short human-readable description of components.

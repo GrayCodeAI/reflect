@@ -38,20 +38,18 @@ func hasString(values []string, want string) bool {
 
 func (m *chatModel) mcpSummary() string {
 	var b strings.Builder
-	configured := len(m.settings.MCPServers) + len(mcpServers)
+	servers := configuredStartupMCPServers(m.settings)
+	configured := len(servers)
 	if configured == 0 {
 		b.WriteString("No MCP servers configured.")
 	} else {
 		b.WriteString(fmt.Sprintf("MCP servers configured: %d\n", configured))
-		for _, cfg := range m.settings.MCPServers {
-			name := cfg.Name
-			if name == "" {
-				name = cfg.Command
+		for _, server := range servers {
+			command := server.command
+			if server.isRemote() {
+				command = server.url
 			}
-			b.WriteString(fmt.Sprintf("  %s: %s %s\n", name, cfg.Command, strings.Join(cfg.Args, " ")))
-		}
-		for _, cmd := range mcpServers {
-			b.WriteString("  cli: " + cmd + "\n")
+			b.WriteString(fmt.Sprintf("  %s: %s %s\n", server.name, command, strings.Join(server.args, " ")))
 		}
 	}
 	if m.registry != nil {

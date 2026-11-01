@@ -55,7 +55,7 @@ func buildStatusInfo(m *chatModel) string {
 	info := fmt.Sprintf(
 		"Session: %s\nModel: %s/%s\nShell mode: %s\nWork mode: %s\nAuto-commit: %s\nFolder trust: %s\nSpec stage: %s\nMessages: %d\nTools: %d visible / %d registered\nGit: %s\n%s",
 		m.sessionID, m.session.Provider(), m.session.Model(),
-		shell, work, ac, tr.String(),
+		shell, work.DisplayName(), ac, tr.String(),
 		specStageLabel(m.session), m.session.MessageCount(),
 		visible, toolCount,
 		engine.GitSafetyAdvice(git),

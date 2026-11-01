@@ -11,12 +11,12 @@ func controlPlaneOnboardingHint(sess *engine.Session) string {
 	return ""
 }
 
-// workModeSwitchSummary is the polished confirmation after /mode plan|act|review.
+// workModeSwitchSummary is the polished confirmation after /mode plan|build|review.
 func workModeSwitchSummary(sess *engine.Session, wm engine.WorkMode) string {
 	hint := ""
 	switch wm {
 	case engine.WorkModePlan:
-		hint = "Research only — no file writes; bash is read-only."
+		hint = "Research and prepare one plan. Project files stay read-only; Shift+Tab switches to Build."
 	case engine.WorkModeReview:
 		hint = "Inspect with evidence — no writes; bash is read-only."
 	default:
@@ -26,5 +26,5 @@ func workModeSwitchSummary(sess *engine.Session, wm engine.WorkMode) string {
 	if sess != nil && sess.Tools() != nil && sess.Tools().Registry() != nil {
 		visible = len(sess.Tools().Registry().RelayTools())
 	}
-	return fmt.Sprintf("Work mode → %s\n%s\nModel-visible tools: %d  ·  /status for full control plane", wm, hint, visible)
+	return fmt.Sprintf("Work mode → %s\n%s\nModel-visible tools: %d  ·  /status for details", wm.DisplayName(), hint, visible)
 }

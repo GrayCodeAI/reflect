@@ -458,6 +458,10 @@ func (m chatModel) View() tea.View {
 	var frame strings.Builder
 	frame.WriteString(m.renderChatPane())
 
+	if m.modePicker != nil && m.modePicker.open {
+		return m.terminalView(m.modePicker.Render(viewWidth))
+	}
+
 	// Command palette overlay
 	if m.commandPalette != nil && m.commandPalette.IsOpen() {
 		paletteView := m.commandPalette.Render(viewWidth)

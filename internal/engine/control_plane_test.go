@@ -42,6 +42,22 @@ func TestWorkModePlanFiltersToolsAndBash(t *testing.T) {
 	}
 }
 
+func TestWorkModeBuildKeepsLegacyIdentifier(t *testing.T) {
+	for _, value := range []string{"build", "act"} {
+		mode, err := ParseWorkMode(value)
+		if err != nil || mode != WorkModeAct || string(mode) != "act" || mode.DisplayName() != "Build" {
+			t.Fatalf("%q mode = %q, %v", value, mode, err)
+		}
+	}
+	for _, name := range PlanModelTools {
+		for _, unwanted := range []string{"Write", "Edit", "Specify", "Plan", "Tasks"} {
+			if name == unwanted {
+				t.Fatalf("everyday planning advertises %s", unwanted)
+			}
+		}
+	}
+}
+
 func TestLazyRelayToolsAndPromote(t *testing.T) {
 	reg := tool.NewRegistry(tool.FileReadTool{}, tool.ImpactTool{})
 	reg.EnableLazyModelSurface([]string{"Read"})

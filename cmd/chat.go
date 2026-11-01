@@ -225,7 +225,9 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings reflec
 
 	// Surface startup warnings (missing API key, network, sessions dir).
 	// validateStartup is fully implemented but was previously never called.
-	if warnings := validateStartup(settings); len(warnings) > 0 {
+	startupSettings := settings
+	startupSettings.Provider = effectiveProvider
+	if warnings := validateStartup(startupSettings); len(warnings) > 0 {
 		var warnText strings.Builder
 		warnText.WriteString("Startup check:\n")
 		for _, w := range warnings {

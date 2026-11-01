@@ -57,6 +57,7 @@ func (m *chatModel) recordWALError(err error) {
 		return
 	}
 	m.durabilityWarning = "Warning: session persistence is failing — recent messages may be lost if reflect crashes. Check disk space and permissions."
+	m.invalidateInputLayoutCache()
 }
 
 // All reflect color/icon/glyph constants live in theme.go. This file holds
@@ -163,9 +164,12 @@ type (
 	systemPromptContextReadyMsg struct {
 		context string
 	}
-	loopTickMsg                struct{ command string }
-	toolUseMsg                 struct{ name, id string }
-	toolResultMsg              struct{ name, content string }
+	loopTickMsg   struct{ command string }
+	toolUseMsg    struct{ name, id, summary string }
+	toolResultMsg struct {
+		name, id, content string
+		state             engine.ToolState
+	}
 	permissionAskMsg           struct{ req safety.PermissionRequest }
 	permissionPromptTimeoutMsg struct{ seq int }
 	promptCountdownTickMsg     struct{ generation uint64 }
@@ -189,9 +193,12 @@ type (
 )
 
 type displayMsg struct {
-	role      string
-	content   string
-	timeoutAt time.Time // deadline for permission prompts (zero = none)
+	role                      string
+	content                   string
+	timeoutAt                 time.Time // deadline for permission prompts (zero = none)
+	toolID, toolName, summary string
+	toolState                 engine.ToolState
+	resolved                  bool // resolved prompts become compact transcript entries
 }
 
 const interactivePromptTimeout = 5 * time.Minute
@@ -288,6 +295,9 @@ type chatModel struct {
 	configGatewayRegionSel     int // Generic gateway region picker index
 	pluginRuntime              *plugin.Runtime
 	spinnerVerb                string
+	modePicker                 *WorkModePicker
+	streamWorkMode             engine.WorkMode
+	streamUsesSpec             bool
 	// Per-turn token counters shown next to the spinner (↑ input, ↓ output).
 	// Reset each time the user submits a message; updated by usageUpdateMsg.
 	turnInputTokens          int
@@ -313,8 +323,9 @@ type chatModel struct {
 	backgrounded                 bool   // terminal lost focus during current turn (for completion notification)
 	notifiedComplete             bool   // completion notification was sent this turn (prevent duplicates)
 	uiFocus                      uiFocusArea
-	contentLines                 int   // total lines in scrollback content (for footer position)
-	lastMouseY                   int   // last pointer row (0-based); -1 = unknown; used when Cursor reports stale wheel Y
+	contentLines                 int // total lines in scrollback content (for footer position)
+	lastMouseY                   int // last pointer row (0-based); -1 = unknown; used when Cursor reports stale wheel Y
+	lastMouseX                   int
 	mouseOverride                *bool // runtime /mouse toggle; persisted via settings
 	vim                          *VimState
 	wal                          sessionWAL

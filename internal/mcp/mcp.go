@@ -85,7 +85,12 @@ const defaultCallTimeout = 30 * time.Second
 
 // Connect starts an MCP server process via stdio transport.
 func Connect(ctx context.Context, name, command string, args ...string) (*Server, error) {
-	cmd := exec.CommandContext(ctx, command, args...) // #nosec G204 -- command comes from the configured MCP server definition
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	// ctx bounds the handshake, not the session. Startup cancels its discovery
+	// context as soon as tools are loaded; Close owns the child after that.
+	cmd := exec.Command(command, args...) // #nosec G204 -- command comes from the configured MCP server definition
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("mcp: stdin pipe: %w", err)
@@ -123,7 +128,7 @@ func Connect(ctx context.Context, name, command string, args ...string) (*Server
 		"clientInfo":      map[string]interface{}{"name": "reflect", "version": clientVersion},
 	})
 	if err != nil {
-		_ = cmd.Process.Kill()
+		_ = s.Close()
 		return nil, fmt.Errorf("mcp: initialize: %w", err)
 	}
 

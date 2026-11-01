@@ -170,6 +170,7 @@ func (m chatModel) activatePermissionRequest(req safety.PermissionRequest) (tea.
 		return m.activateNextPermissionRequest()
 	}
 	m.permReq = &req
+	m.focusInteractiveRequest()
 	m.permReqSeq++
 	m.promptGeneration++
 	m.permTimeoutAt = time.Now().Add(interactivePromptTimeout)
@@ -361,6 +362,7 @@ func (m chatModel) handleAskUser(msg askUserMsg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) activateAskUserRequest(msg askUserMsg) (tea.Model, tea.Cmd) {
 	m.askReq = &msg
+	m.focusInteractiveRequest()
 	m.askReqSeq++
 	m.promptGeneration++
 	m.askTimeoutAt = time.Now().Add(interactivePromptTimeout)
@@ -392,6 +394,7 @@ func (m chatModel) handleApprovalAsk(msg approvalAskMsg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) activateApprovalRequest(req approvalAskMsg) (tea.Model, tea.Cmd) {
 	m.approvalReq = &req
+	m.focusInteractiveRequest()
 	m.approvalReqSeq++
 	m.promptGeneration++
 	m.approvalTimeoutAt = time.Now().Add(interactivePromptTimeout)
@@ -409,6 +412,7 @@ func (m chatModel) handlePromptCountdownTick(msg promptCountdownTickMsg) (tea.Mo
 	if m.permTimeoutAt.IsZero() && m.approvalTimeoutAt.IsZero() && m.askTimeoutAt.IsZero() && m.credentialTimeoutAt.IsZero() {
 		return m, nil
 	}
+	m.invalidateViewportCache()
 	m.viewDirty = true
 	m.updateViewportContent()
 	return m, promptCountdownTickCmd(msg.generation)
@@ -426,6 +430,7 @@ func (m chatModel) activateNextPrompt() (tea.Model, tea.Cmd) {
 	if m.hasActiveInteractivePrompt() {
 		return m, nil
 	}
+	m.retirePromptCards()
 	if len(m.approvalQueue) > 0 {
 		req := m.approvalQueue[0]
 		m.approvalQueue = m.approvalQueue[1:]
@@ -500,6 +505,7 @@ func (m *chatModel) clearInteractivePrompts(reason string) {
 	m.approvalTimeoutAt = time.Time{}
 	m.askTimeoutAt = time.Time{}
 	m.credentialTimeoutAt = time.Time{}
+	m.retirePromptCards()
 }
 
 func (m chatModel) handleApprovalTimeout(msg approvalPromptTimeoutMsg) (tea.Model, tea.Cmd) {
@@ -582,6 +588,7 @@ func (m chatModel) handleCredentialAsk(msg credentialAskMsg) (tea.Model, tea.Cmd
 
 func (m chatModel) activateCredentialRequest(msg credentialAskMsg) (tea.Model, tea.Cmd) {
 	m.credentialReq = &msg
+	m.focusInteractiveRequest()
 	m.credentialReqSeq++
 	m.promptGeneration++
 	m.credentialTimeoutAt = time.Now().Add(interactivePromptTimeout)

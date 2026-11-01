@@ -237,7 +237,7 @@ func isWriteTool(toolName string) bool {
 // isReadOnlyTool reports whether a tool only reads state.
 func isReadOnlyTool(toolName string) bool {
 	switch canonicalToolName(toolName) {
-	case "Read", "LS", "Glob", "Grep", "SmartReader", "SmartRead", "Outline", "ToolHealth", "CodeSearch", "CodeGraph", "Impact", "GitHistory":
+	case "Read", "LS", "Glob", "Grep", "Skill", "SmartReader", "SmartRead", "Outline", "ToolHealth", "CodeSearch", "CodeGraph", "Impact", "GitHistory":
 		return true
 	}
 	return false

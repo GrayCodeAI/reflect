@@ -56,6 +56,17 @@ func TestPermissionService_MarkToolUntrustedClosesDynamicTrustGap(t *testing.T) 
 	}
 }
 
+func TestPermissionService_UntrustedSkillStillRequiresApproval(t *testing.T) {
+	s := NewPermissionService(nil)
+	s.SetAutonomy(safety.AutonomySemi)
+	s.SetKnownTools([]string{"Skill"})
+	s.MarkToolUntrusted("Skill")
+	d := s.CheckToolDecision(context.Background(), safety.ToolCallInfo{Name: "Skill", Args: map[string]interface{}{"skill": "untrusted-review"}})
+	if d.Outcome != safety.DecisionDeny || d.Reason != safety.ReasonPromptUnavailable {
+		t.Fatalf("read-only skill classification bypassed external-tool trust: %+v", d)
+	}
+}
+
 func TestPermissionService_SetSpecStage(t *testing.T) {
 	s := NewPermissionService(nil)
 	stages := []safety.SpecStage{safety.SpecStageNone, safety.SpecStageSpecify, safety.SpecStagePlan, safety.SpecStageTasks, safety.SpecStageImplementing}
