@@ -22,7 +22,9 @@ var autonomyTiers = []safety.AutonomyLevel{
 // autonomyTierNames removed — names resolved by autonomyTierName switch.
 
 // DefaultAutonomy is the default host-execution permission tier.
-const DefaultAutonomy = safety.AutonomySemi
+// Operator (Full): auto-run commands, prompt only for risky actions —
+// matches Claude Code's default auto mode.
+const DefaultAutonomy = safety.AutonomyFull
 
 // yoloConfirmToken is the exact string a user must type (case-insensitive) to
 // confirm entry into YOLO ("Autonomous") unattended mode via the picker.
