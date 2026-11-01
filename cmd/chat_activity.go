@@ -6,6 +6,7 @@ import (
 	"unicode"
 
 	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func singleLineActivity(value string) string {
@@ -23,7 +24,7 @@ func renderToolActivity(msg displayMsg, width int) string {
 	style := toolStyle
 	switch msg.toolState {
 	case engine.ToolStateCompleted:
-		marker, style = "✓", statusDimStyle
+		marker, style = icons.Check(), statusDimStyle
 	case engine.ToolStateFailed, engine.ToolStateTimedOut:
 		marker, style = "!", errorStyle
 	case engine.ToolStateCancelled:
