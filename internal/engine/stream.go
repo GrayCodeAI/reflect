@@ -56,10 +56,11 @@ func (s *Session) buildTurnOptions(tc turnContext) types.ChatOptions {
 
 	baseSystem := s.Persistence().System()
 	if smallTalk {
-		// The identity preamble already coaches the model to answer
-		// greetings without tools — the role/tool/practice sections
-		// below it only add prefill cost on this turn.
-		baseSystem = prompt.System()
+		// Keep this path free of workspace/memory/workflow nudges as well as
+		// schemas. Those instructions can turn a greeting into repository work.
+		opts := s.ChatLLM().BuildOptions(prompt.System(), activeModel, maxTok, nil)
+		opts.ToolChoice = &types.ToolChoiceOption{Type: "none"}
+		return opts
 	}
 	baseOpts := s.ChatLLM().BuildOptions(baseSystem, activeModel, maxTok, nil)
 	opts := baseOpts
@@ -130,9 +131,7 @@ func (s *Session) buildTurnOptions(tc turnContext) types.ChatOptions {
 		if lastUserMsg != "" {
 			s.Tools().Registry().PromoteForIntent(lastUserMsg)
 		}
-		if !smallTalk {
-			opts.Tools = s.Tools().Registry().RelayTools()
-		}
+		opts.Tools = s.Tools().Registry().RelayTools()
 	}
 	return opts
 }
@@ -404,7 +403,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 	memoryDone:
 
 		// Payload tiering: classify the latest user request once per turn.
-		// Early conversational turns get a minimal system prompt and no tool
+		// Conversational turns get a minimal system prompt and no tool
 		// schemas; anything resembling work keeps the full prompt and the
 		// promoted tool surface. This keeps simple turns cheap on slow
 		// (local/remote) models without starving real requests of tools.
@@ -416,7 +415,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 				break
 			}
 		}
-		smallTalk := lastUserMsg != "" && isSmallTalkPrompt(lastUserMsg) && !sessionHasToolUse(s.Persistence().RawMessages())
+		smallTalk := isSmallTalkPrompt(lastUserMsg)
 
 		// Assemble the per-turn ChatOptions (system prompt tiering, ephemeral
 		// injections, promoted tools) via the extracted helper so agentLoop
@@ -724,6 +723,17 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 				textContent.Reset()
 				textContent.WriteString(cleanText)
 				toolCalls = append(toolCalls, inlineCalls...)
+			}
+		}
+		// Tool-free turns are authoritative even if a provider emits unsolicited
+		// tool calls. Do not inspect the repository or render tool activity just
+		// because a model ignored tool_choice=none.
+		if smallTalk && len(toolCalls) > 0 {
+			toolCalls = nil
+			if strings.TrimSpace(textContent.String()) == "" {
+				reply := "I'm Reflect, developed by GrayCodeAI. How can I help?"
+				textContent.WriteString(reply)
+				emit(StreamEvent{Type: "content", Content: reply})
 			}
 		}
 
@@ -1053,59 +1063,10 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 	}
 }
 
-// isSmallTalkPrompt reports whether prompt is a pure conversational
-// exchange (greeting, pleasantry, identity question) that needs neither the
-// full system prompt nor any tool schemas. The system prompt instructs the
-// model to answer these directly, so sending the tool surface would only
-// add prompt-prefill cost.
-// isSmallTalkPrompt detects short greetings/closings so the payload can be
-// tiered down. The match must be conservative: this function decides whether
-// to SKIP the full prompt context, so a false positive (dropping context for a
-// real request like "hi there, who fixes this bug?") is far costlier than a
-// false negative (sending a slightly bigger payload for genuine small talk).
-//
-// It returns true when the whole prompt is small talk: an exact match against
-// a closed phrase list, or a phrase followed only by short filler (no comma or
-// clause that introduces a real request).
-func isSmallTalkPrompt(prompt string) bool {
-	text := strings.ToLower(strings.TrimSpace(prompt))
-	text = strings.Trim(text, " \t\r\n.,!?;:")
-	for _, phrase := range smallTalkPhrases {
-		if text == phrase {
-			return true
-		}
-		// Allow a trailing filler word (e.g. "hi there") but stop at a comma or
-		// anything that looks like a real request clause.
-		if strings.HasPrefix(text, phrase+" ") {
-			remainder := text[len(phrase)+1:]
-			if !strings.ContainsAny(remainder, ",;:?") && len(remainder) <= 12 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-var smallTalkPhrases = []string{
-	"hi", "hi there", "hello", "hey", "hey there",
-	"how are you", "how are you doing", "how's it going", "how's it going today",
-	"what's up", "who are you", "what can you do",
-	"thanks", "thank you", "thanks a lot",
-	"good morning", "good afternoon", "good evening", "nice to meet you",
-	"goodbye", "bye",
-}
-
-// sessionHasToolUse reports whether any message in the conversation already
-// executed a tool. Once tools are in play, later turns keep the full prompt
-// and tool surface even if they read like small talk ("thanks"), so the
-// follow-up context is not lost.
-func sessionHasToolUse(msgs []types.RelayMessage) bool {
-	for _, m := range msgs {
-		if len(m.ToolResults) > 0 {
-			return true
-		}
-	}
-	return false
+// isSmallTalkPrompt shares the same conservative classification as the
+// terminal-context boundary, before environment metadata is added.
+func isSmallTalkPrompt(message string) bool {
+	return prompt.IsSmallTalk(message)
 }
 
 // extractDataURI extracts the first base64 data URI from a string.

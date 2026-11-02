@@ -52,6 +52,7 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Dead shell-injection surface removed**: `AssumptionTracker.VerifyCommandSucceeds` ran caller-supplied strings through `sh -c`, bypassing the permission stack; it had zero callers and is deleted. `SelfHealer.RunScript` no longer shell-evaluates the script path (double evaluation) and invokes it directly via `/bin/sh`.
 
 ### Fixed
+- Simple greetings stay conversational without listing files or reading project instructions, including after earlier tool use; real requests such as "Hi fix bug" keep their tools.
 - Batch tool execution now runs post-processing, redaction, and completion hooks and emits one final result per call.
 - Plan and Review modes enforce read-only execution even after tool discovery. Loading a local skill uses its read-only permission policy.
 - Installed plugin MCP servers and skills are discovered through the normal trust boundary; MCP child processes outlive the handshake timeout.

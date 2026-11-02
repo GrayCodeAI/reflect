@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/GrayCodeAI/reflect/internal/prompt"
 )
 
 // TerminalContext captures and tracks terminal state changes between queries.
@@ -65,6 +67,12 @@ func (tc *TerminalContext) MarkExitCode(code int) {
 
 // BuildContext returns a delta-based context string and resets tracking state.
 func (tc *TerminalContext) BuildContext(query string) string {
+	// Keep greetings as the user's actual message. Metadata would turn "Hi"
+	// into a workspace-shaped request and defeat the engine's no-tool path.
+	// Preserve pending deltas for the next real task instead of consuming them.
+	if prompt.IsSmallTalk(query) {
+		return query
+	}
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 
