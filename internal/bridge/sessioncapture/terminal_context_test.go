@@ -5,12 +5,30 @@ import (
 	"testing"
 )
 
-func TestTerminalContext_BuildContext_Empty(t *testing.T) {
+func TestTerminalContext_BuildContext_FirstTask(t *testing.T) {
 	tc := NewTerminalContext()
-	got := tc.BuildContext("hello")
+	got := tc.BuildContext("list files")
 	// First call always includes CWD since lastCWD is empty
-	if got == "hello" {
+	if got == "list files" {
 		t.Error("expected CWD to be included on first call")
+	}
+}
+
+func TestTerminalContext_GreetingPreservesPendingContext(t *testing.T) {
+	tc := NewTerminalContext()
+	tc.captureCmd = ""
+	tc.MarkCommand("go test ./...")
+	tc.MarkExitCode(1)
+	for _, message := range []string{"Hi", "Hello!", "thanks", "who are you?"} {
+		if got := tc.BuildContext(message); got != message {
+			t.Fatalf("greeting gained terminal context: %q", got)
+		}
+	}
+	got := tc.BuildContext("why did the tests fail?")
+	for _, want := range []string{"[cwd:", "[recent: go test ./...]", "[exit: 1]"} {
+		if !contains(got, want) {
+			t.Fatalf("greeting consumed pending task context %q: %s", want, got)
+		}
 	}
 }
 
