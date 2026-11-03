@@ -96,7 +96,7 @@ func validateShellCommand(ctx context.Context, command string) error {
 	if procEnvironRe.MatchString(command) {
 		return fmt.Errorf("blocked: /proc/*/environ access can expose environment variables")
 	}
-	if envDumpRe.MatchString(command) {
+	if hasBlockedEnvironmentDump(command) {
 		return fmt.Errorf("blocked: dumping environment variables can expose API keys")
 	}
 	if reflectEnvReadRe.MatchString(command) {
@@ -127,6 +127,45 @@ func validateShellCommand(ctx context.Context, command string) error {
 	}
 
 	return nil
+}
+
+// A named Go diagnostic is not an environment dump. Keep the exception
+// literal and segment-local so a second command or expansion cannot use it
+// to bypass the environment protection. Proxy and authentication settings
+// are deliberately excluded because their values can contain credentials.
+func hasBlockedEnvironmentDump(command string) bool {
+	for _, segment := range splitShellSegments(command) {
+		if envDumpRe.MatchString(segment) && !isNamedGoDiagnostic(segment) {
+			return true
+		}
+	}
+	return false
+}
+
+func isNamedGoDiagnostic(command string) bool {
+	if strings.ContainsAny(command, "$`\\()<>") {
+		return false
+	}
+	args := tokenizeShellWords(command)
+	if len(args) < 3 || commandBase(args[0]) != "go" || args[1] != "env" {
+		return false
+	}
+	args = args[2:]
+	if args[0] == "-json" {
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		return false
+	}
+	for _, name := range args {
+		switch name {
+		case "GOTOOLCHAIN", "GOFLAGS", "GOROOT", "GOPATH", "GOMOD", "GOWORK", "GOVERSION",
+			"GOOS", "GOARCH", "GOHOSTOS", "GOHOSTARCH", "GOCACHE", "GOMODCACHE", "GOBIN", "CGO_ENABLED":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // validateTerminalInput applies the destructive-command subset of the shell

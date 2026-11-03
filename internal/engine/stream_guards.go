@@ -31,7 +31,7 @@ func (s *Session) checkGuardConditions(ctx context.Context, ch chan<- StreamEven
 	}
 
 	if snowball.ShouldAbort() {
-		ch <- StreamEvent{Type: "content", Content: "\n\n" + snowball.Summary()}
+		ch <- StreamEvent{Type: "content", Content: "\n\nStopped: " + snowball.StopReason() + " Send a follow-up to continue from this conversation."}
 		ch <- StreamEvent{Type: "done"}
 		return false
 	}

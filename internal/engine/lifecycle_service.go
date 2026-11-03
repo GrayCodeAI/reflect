@@ -97,7 +97,7 @@ func NewLifecycleService(log *logger.Logger) *LifecycleService {
 	return &LifecycleService{
 		limits:         lifecycle.NewLimitTracker(lifecycle.DefaultLimits()),
 		loopDet:        control.NewLoopDetector(10, control.DoomLoopThreshold),
-		snowball:       branching.NewSnowballDetector(500000),
+		snowball:       branching.NewSnowballDetector(0),
 		beliefs:        NewBeliefState(),
 		backtrack:      control.NewBacktrackEngine(),
 		lifecycle:      nil, // constructed in New() with cwd

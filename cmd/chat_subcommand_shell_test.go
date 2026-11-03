@@ -71,6 +71,21 @@ func TestRunSubcommand_BashToolBlocksEnvDumpEvenWhenBypassed(t *testing.T) {
 	}
 }
 
+func TestRunSubcommand_AllowsNamedGoDiagnostics(t *testing.T) {
+	m := newTestChatModel()
+	m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
+
+	result, _ := (&runSubcommand{}).Handle(m, []string{"go", "env", "GOTOOLCHAIN"}, "/run go env GOTOOLCHAIN")
+	cm := requireChatModel(t, result)
+	if len(cm.messages) == 0 {
+		t.Fatal("expected display message")
+	}
+	last := cm.messages[len(cm.messages)-1]
+	if last.role == "error" || strings.Contains(last.content, "blocked:") || !strings.Contains(last.content, "$ go env GOTOOLCHAIN") {
+		t.Fatalf("safe Go diagnostic failed in CLI: role=%s output=%q", last.role, last.content)
+	}
+}
+
 func TestTestSubcommand_DetectsNonzeroExit(t *testing.T) {
 	m := newTestChatModel()
 	m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
