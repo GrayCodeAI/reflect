@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GrayCodeAI/reflect/internal/engine"
 	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
@@ -25,8 +26,8 @@ func (m *chatModel) invalidateViewportCache() {
 // toolResultCollapseLines are collapsed to toolResultPreviewLines with a
 // toggle indicator; the user presses Enter in scrollback focus to expand.
 const (
-	toolResultCollapseLines = 15 // collapse rendered output longer than this
-	toolResultPreviewLines  = 8  // preview lines shown when collapsed
+	toolResultCollapseLines = 3 // collapse rendered output longer than this
+	toolResultPreviewLines  = 2 // preview lines shown when collapsed
 )
 
 func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidth int, expanded map[int]bool) string {
@@ -122,7 +123,8 @@ func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidt
 			toolWrapped := wrapText(display, viewWidth-6, 0)
 			inner.WriteString(toolDimStyle.Render("    " + strings.ReplaceAll(toolWrapped, "\n", "\n    ")))
 		}
-		b.WriteString(collapseToolResult(inner.String(), i, expanded))
+		failed := msg.toolState == engine.ToolStateFailed || msg.toolState == engine.ToolStateTimedOut
+		b.WriteString(collapseToolResult(inner.String(), i, expanded, failed))
 	case "thinking":
 		thinkWrapped := wrapText(msg.content, viewWidth-4, 3)
 		b.WriteString(dimStyle.Render(icons.Brain() + " " + thinkWrapped))
@@ -189,18 +191,26 @@ func renderDisplayMessage(msg displayMsg, i int, messages []displayMsg, viewWidt
 // [+N lines] toggle indicator when the result is not expanded. Short results
 // (≤ toolResultCollapseLines) pass through unchanged. The expanded map is keyed
 // by message index.
-func collapseToolResult(rendered string, msgIdx int, expanded map[int]bool) string {
+func collapseToolResult(rendered string, msgIdx int, expanded map[int]bool, failed bool) string {
 	if expanded[msgIdx] {
 		return rendered
 	}
 	// Count visible lines. ANSI styling codes don't contain '\n', so a simple
 	// split accurately reflects the rendered line count.
 	lines := strings.Split(rendered, "\n")
-	if len(lines) <= toolResultCollapseLines {
+	threshold := toolResultCollapseLines
+	if failed {
+		threshold = 2 * toolResultPreviewLines
+	}
+	if len(lines) <= threshold {
 		return rendered
 	}
 	preview := strings.Join(lines[:toolResultPreviewLines], "\n")
 	hidden := len(lines) - toolResultPreviewLines
+	if failed {
+		preview += "\n…\n" + strings.Join(lines[len(lines)-toolResultPreviewLines:], "\n")
+		hidden -= toolResultPreviewLines
+	}
 	toggle := fmt.Sprintf("[+%d lines — Enter to expand]", hidden)
 	return preview + "\n" + toolDimStyle.Render("    "+toggle)
 }
@@ -310,15 +320,14 @@ func trailingNewlines(s string) string {
 
 // toolResultIndexAtViewportCenter returns the index of the tool_result message
 // whose rendered content contains the viewport's center line, or -1 if none.
-// It fully renders each tool_result (ignoring collapse state) to compute true
-// line heights, then finds which message spans the center Y offset.
+// Use the visible collapse state so shortcuts target what is on screen.
 func (m *chatModel) toolResultIndexAtViewportCenter(viewWidth int) int {
 	if m.viewport.Height() <= 0 {
 		return -1
 	}
 	centerY := m.viewport.YOffset() + m.viewport.Height()/2
 	cumulative := 0
-	expanded := m.fullExpandedMap(len(m.messages))
+	expanded := m.toolResultExpanded
 	for i, msg := range m.messages {
 		if msg.role != "tool_result" {
 			// Still need to count lines for non-tool messages to track offset.
@@ -326,7 +335,7 @@ func (m *chatModel) toolResultIndexAtViewportCenter(viewWidth int) int {
 			cumulative += strings.Count(rendered, "\n")
 			continue
 		}
-		// Render fully (expanded) to get true line count.
+		// Count the rows currently displayed, including collapsed previews.
 		rendered := renderDisplayMessage(msg, i, m.messages, viewWidth, expanded)
 		lineCount := strings.Count(rendered, "\n")
 		if centerY >= cumulative && centerY < cumulative+lineCount {
@@ -335,22 +344,6 @@ func (m *chatModel) toolResultIndexAtViewportCenter(viewWidth int) int {
 		cumulative += lineCount
 	}
 	return -1
-}
-
-// fullExpandedMap returns a map where every index is expanded — used to compute
-// true (uncollapsed) line heights for viewport position math.
-// Uses a cached map to avoid repeated allocations.
-func (m *chatModel) fullExpandedMap(n int) map[int]bool {
-	if m.cachedExpandedMap != nil && m.cachedExpandedLen == n {
-		return m.cachedExpandedMap
-	}
-	expanded := make(map[int]bool, n)
-	for i := 0; i < n; i++ {
-		expanded[i] = true
-	}
-	m.cachedExpandedMap = expanded
-	m.cachedExpandedLen = n
-	return expanded
 }
 
 // codeBlockAtViewportCenter finds the fenced code block in an assistant message
@@ -381,7 +374,7 @@ func (m *chatModel) codeBlockAtViewportCenter() (string, bool) {
 
 	// Slow path: render messages incrementally, stopping early when we pass center.
 	cumulative := 0
-	expanded := m.fullExpandedMap(len(m.messages))
+	expanded := m.toolResultExpanded
 	for i, msg := range m.messages {
 		rendered := renderDisplayMessage(msg, i, m.messages, viewWidth, expanded)
 		lineCount := strings.Count(rendered, "\n")

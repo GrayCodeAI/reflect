@@ -3,6 +3,7 @@ package tool
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,7 +101,7 @@ func TestBashDeadlineTerminatesDescendants(t *testing.T) {
 	input := json.RawMessage(`{"command":"sleep 1; echo survived > survived.txt"}`)
 	started := time.Now()
 	output, err := (BashTool{}).Execute(ctx, input)
-	if err != nil || !strings.Contains(output, "timed out") {
+	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected deadline result, got %q, %v", output, err)
 	}
 	if elapsed := time.Since(started); elapsed > 750*time.Millisecond {

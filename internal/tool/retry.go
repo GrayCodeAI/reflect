@@ -81,16 +81,18 @@ func RetryExecutor(ctx context.Context, t Tool, input []byte, policy RetryPolicy
 		return t.Execute(ctx, input)
 	}
 	var lastErr error
+	var lastOutput string
 	delay := policy.BaseDelay
 	for attempt := 0; attempt <= policy.MaxRetries; attempt++ {
 		if err := ctx.Err(); err != nil {
-			return "", err
+			return lastOutput, err
 		}
 		out, err := t.Execute(ctx, input)
 		if err == nil {
 			return out, nil
 		}
 		lastErr = err
+		lastOutput = out
 		transient := IsTransientError(err)
 		retry := transient
 		if policy.ShouldRetry != nil {
@@ -112,7 +114,7 @@ func RetryExecutor(ctx context.Context, t Tool, input []byte, policy RetryPolicy
 			delay = policy.MaxDelay
 		}
 	}
-	return "", lastErr
+	return lastOutput, lastErr
 }
 
 // IsTransientFileErr reports whether err is a transient file-I/O error

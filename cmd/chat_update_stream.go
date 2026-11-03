@@ -113,7 +113,7 @@ func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
 	}
 	// The preceding tool_use message renders the tool name as this block's
 	// header, so the result contains only the returned content.
-	m.messages = append(m.messages, displayMsg{role: "tool_result", content: msg.content})
+	m.messages = append(m.messages, displayMsg{role: "tool_result", content: msg.content, toolState: msg.state, toolID: msg.id, toolName: msg.name})
 	m.viewDirty = true
 	// Persist completed tool results incrementally so a crash mid-turn does
 	// not lose them before the final session save.

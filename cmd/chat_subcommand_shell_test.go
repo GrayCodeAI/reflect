@@ -30,6 +30,17 @@ func TestRunSubcommand_UsesBashToolForSafeCommand(t *testing.T) {
 	}
 }
 
+func TestRunSubcommand_ReportsFailedPipelineWithDiagnostics(t *testing.T) {
+	m := newTestChatModel()
+	m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
+	result, _ := (&runSubcommand{}).Handle(m, []string{"printf 'build diagnostic\\n'; false | tail -5"}, "/run printf 'build diagnostic\\n'; false | tail -5")
+	cm := requireChatModel(t, result)
+	last := cm.messages[len(cm.messages)-1]
+	if last.role != "error" || !strings.Contains(last.content, "build diagnostic") || !strings.Contains(last.content, "exit code:") {
+		t.Fatalf("failed check appeared successful or lost its diagnostic: role=%s output=%q", last.role, last.content)
+	}
+}
+
 func TestRunSubcommand_RespectsSpecStageGate(t *testing.T) {
 	m := newTestChatModel()
 	m.session.PermSvc().SetSpecStage(safety.SpecStageSpecify)

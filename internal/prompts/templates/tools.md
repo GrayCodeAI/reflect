@@ -22,7 +22,9 @@ When exploring a codebase:
 When making changes:
 - Read the file first to understand context
 - Make minimal, focused edits
-- Verify changes compile/run if possible
+- Prefer Edit/Write for source changes. Replace complete code blocks rather than deleting matching lines with shell substitutions.
+- Inspect the final diff, format modified source, and run the relevant build or tests before claiming a fix is complete. Repair syntax errors immediately.
+- If a check fails, use its diagnostics to fix the cause. Do not repeat unchanged checks merely to count passing packages.
 
 When using Bash:
 - Prefer non-destructive commands
