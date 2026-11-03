@@ -143,6 +143,50 @@ func TestLimitTracker_BashAndFileTracking(t *testing.T) {
 	}
 }
 
+func TestLimitTrackerBeginRequestResetsOperationsAndPreservesLimits(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		limits SafetyLimits
+		record func(*LimitTracker)
+	}{
+		{name: "tools", limits: SafetyLimits{MaxToolCalls: 1}, record: func(lt *LimitTracker) { lt.RecordToolCall("Read") }},
+		{name: "bash", limits: SafetyLimits{MaxBashCommands: 1}, record: func(lt *LimitTracker) { lt.RecordToolCall("Bash") }},
+		{name: "writes", limits: SafetyLimits{MaxFileWrites: 1}, record: func(lt *LimitTracker) { lt.RecordToolCall("Write") }},
+		{name: "turns", limits: SafetyLimits{MaxTurns: 1}, record: func(lt *LimitTracker) { lt.RecordTurn() }},
+		{name: "output", limits: SafetyLimits{MaxOutputTokens: 1}, record: func(lt *LimitTracker) { lt.RecordTokens(1) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lt := NewLimitTracker(tc.limits)
+			tc.record(lt)
+			if exceeded, _ := lt.IsExceeded(); !exceeded {
+				t.Fatal("fixture did not exhaust limit")
+			}
+			lt.BeginRequest()
+			if exceeded, reason := lt.IsExceeded(); exceeded {
+				t.Fatalf("previous request blocked follow-up: %s", reason)
+			}
+			tc.record(lt)
+			if exceeded, _ := lt.IsExceeded(); !exceeded {
+				t.Fatal("configured limit was lost after request reset")
+			}
+		})
+	}
+}
+
+func TestLimitTrackerBeginRequestPreservesSessionSpending(t *testing.T) {
+	lt := NewLimitTracker(SafetyLimits{MaxBudgetUSD: 1})
+	lt.RecordCost(0.6)
+	lt.BeginRequest()
+	lt.RecordCost(0.5)
+	if exceeded, reason := lt.IsExceeded(); !exceeded || !strings.Contains(reason, "cost limit") {
+		t.Fatalf("follow-up bypassed session spending limit: exceeded=%v reason=%q", exceeded, reason)
+	}
+	lt.BeginRequest()
+	if exceeded, _ := lt.IsExceeded(); !exceeded {
+		t.Fatal("new request cleared an exhausted spending limit")
+	}
+}
+
 func TestLimitTracker_ConcurrentAccessors(t *testing.T) {
 	lt := NewLimitTracker(DefaultLimits())
 

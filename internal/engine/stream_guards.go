@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/GrayCodeAI/reflect/internal/engine/control"
 
@@ -82,7 +83,14 @@ func (s *Session) emitExhaustion(ctx context.Context, ch chan<- StreamEvent, rea
 			return
 		}
 	}
-	ch <- StreamEvent{Type: "content", Content: fmt.Sprintf("\n\nLimit reached: %s", reason)}
+	message := fmt.Sprintf("\n\nLimit reached: %s", reason)
+	for _, prefix := range []string{"tool call limit", "file write limit", "bash command limit", "turn limit", "output token limit"} {
+		if strings.HasPrefix(reason, prefix) {
+			message += ". Send a follow-up to continue; this limit resets with each new request."
+			break
+		}
+	}
+	ch <- StreamEvent{Type: "content", Content: message}
 	ch <- StreamEvent{Type: "done"}
 }
 
