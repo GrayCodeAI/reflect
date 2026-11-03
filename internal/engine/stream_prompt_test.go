@@ -20,6 +20,7 @@ func TestIsSmallTalkPrompt(t *testing.T) {
 	}{
 		{prompt: "Hi", skip: true},
 		{prompt: "Hello!", skip: true},
+		{prompt: "Who are you?", skip: true},
 		{prompt: "what can you do?", skip: true},
 		{prompt: "how's it going", skip: true},
 		{prompt: "good morning", skip: true},
@@ -63,7 +64,7 @@ func TestConversationStaysToolFreeAfterTerminalContextAndHistory(t *testing.T) {
 			read := &countedReadTool{}
 			client := &conversationalStreamClient{resilienceBoundaryClient: &resilienceBoundaryClient{streams: [][]types.RelayStreamEvent{{
 				{Type: "content", Content: tc.content},
-				// A provider may ignore tool_choice=none. The host must still
+				// A provider may emit unsolicited tool calls. The host must still
 				// avoid repository inspection and tool activity in the UI.
 				{Type: "tool_call", ToolCall: &types.ToolCall{ID: "unexpected", Name: "Read", Arguments: map[string]interface{}{"id": 1}}},
 				{Type: "done", StopReason: "tool_use"},
@@ -103,10 +104,48 @@ func TestConversationStaysToolFreeAfterTerminalContextAndHistory(t *testing.T) {
 				t.Fatalf("unexpected greeting: %q, requests=%d", reply.String(), len(client.options))
 			}
 			opts := client.options[0]
-			if len(opts.Tools) != 0 || opts.ToolChoice == nil || opts.ToolChoice.Type != "none" || strings.Contains(opts.System, "WORKSPACE_INSTRUCTIONS") {
+			if len(opts.Tools) != 0 || opts.ToolChoice != nil || strings.Contains(opts.System, "WORKSPACE_INSTRUCTIONS") {
 				t.Fatalf("greeting exposed project tools or instructions: %+v", opts)
 			}
 		})
+	}
+}
+
+func TestIdentityFollowingGreetingStaysToolFree(t *testing.T) {
+	client := &conversationalStreamClient{resilienceBoundaryClient: &resilienceBoundaryClient{streams: [][]types.RelayStreamEvent{
+		{{Type: "content", Content: "Hi!"}, {Type: "done", StopReason: "end_turn"}},
+		{{Type: "content", Content: "I'm Reflect, developed by GrayCodeAI."}, {Type: "done", StopReason: "end_turn"}},
+	}}}
+	s := NewSessionWithClient(client, "test", "test-model", "WORKSPACE_INSTRUCTIONS", tool.NewRegistry(&countedReadTool{}), false)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	for _, text := range []string{"Hi", "Who are you?"} {
+		s.AddUser(sessioncapture.NewTerminalContext().BuildContext(text))
+		events, err := s.Stream(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var reply strings.Builder
+		for event := range events {
+			switch event.Type {
+			case "tool_use", "tool_result", "error":
+				t.Errorf("%q emitted %s: %s", text, event.Type, event.Content)
+			case "content":
+				reply.WriteString(event.Content)
+			}
+		}
+		if reply.Len() == 0 {
+			t.Fatalf("%q returned no reply", text)
+		}
+	}
+	if len(client.options) != 2 {
+		t.Fatalf("requests = %d, want 2", len(client.options))
+	}
+	for i, opts := range client.options {
+		// Strict gateways reject even tool_choice=none without tools.
+		if len(opts.Tools) != 0 || opts.ToolChoice != nil {
+			t.Errorf("request %d must omit tools and tool choice: %+v", i+1, opts)
+		}
 	}
 }
 
