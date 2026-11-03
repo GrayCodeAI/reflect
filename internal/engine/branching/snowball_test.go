@@ -90,6 +90,24 @@ func TestSnowballDetector_ShouldAbort_GrowthRate3x(t *testing.T) {
 	}
 }
 
+func TestSnowballDetectorContinuesProductiveLargeWork(t *testing.T) {
+	for _, maxTokens := range []int{0, -1} {
+		sd := NewSnowballDetector(maxTokens)
+		for range 3 {
+			sd.RecordTurn(10000, 1)
+		}
+		for range 30 {
+			sd.RecordTurn(40000, 1)
+		}
+		if sd.ShouldAbort() || sd.IsSnowballing() {
+			t.Fatalf("productive work hit a hidden limit: %s", sd.Summary())
+		}
+		if strings.Contains(sd.Summary(), "x/turn") {
+			t.Fatalf("window comparison mislabeled as per-turn growth: %s", sd.Summary())
+		}
+	}
+}
+
 func TestSnowballDetector_Summary(t *testing.T) {
 	sd := NewSnowballDetector(100000)
 

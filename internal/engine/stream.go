@@ -234,7 +234,9 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 	toolTurns := 0 // turns that used tools (for skill distillation)
 	var toolsUsedSet map[string]bool
 	var filesModifiedSet map[string]bool
-	snowball := branching.NewSnowballDetector(500000)                 // 500K token ceiling
+	// Explicit session budgets own token limits. Re-reading conversation
+	// history across turns must not impose an unrelated lifetime ceiling.
+	snowball := branching.NewSnowballDetector(0)
 	loopDet := control.NewLoopDetector(10, control.DoomLoopThreshold) // 10-step window, 3 repeats = doom loop
 
 	for {

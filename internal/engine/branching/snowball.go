@@ -16,6 +16,7 @@ type SnowballDetector struct {
 }
 
 // NewSnowballDetector creates a detector with the given absolute token ceiling.
+// A non-positive ceiling leaves token limits to the configured session budget.
 // The default growth threshold is 2.0x (last 3 turns vs first 3 turns).
 func NewSnowballDetector(maxTokens int) *SnowballDetector {
 	return &SnowballDetector{
@@ -31,13 +32,8 @@ func (sd *SnowballDetector) RecordTurn(tokens int, progress float64) {
 	sd.turnProgress = append(sd.turnProgress, progress)
 }
 
-// IsSnowballing returns true if the last 3 turns consumed threshold-x+ tokens
-// compared to the first 3 turns, i.e. token consumption is accelerating without
-// a proportional bound. The progress-per-token dimension is intentionally not
-// used here: with the coarse progress signal available per turn it collapses
-// to a pure growth check and adds no independent information (see RecordTurn
-// call sites). Keeping this a honest growth-rate detector avoids a false sense
-// of a second, stricter signal.
+// IsSnowballing reports rising usage accompanied by declining activity.
+// Growing prompts alone are normal during productive work and must not stop it.
 func (sd *SnowballDetector) IsSnowballing() bool {
 	n := len(sd.turnTokens)
 	if n < 6 {
@@ -54,14 +50,14 @@ func (sd *SnowballDetector) IsSnowballing() bool {
 	}
 
 	growthRate := float64(lastAvg) / float64(firstAvg)
-	return growthRate >= sd.threshold
+	return growthRate >= sd.threshold && sd.progressTrend() == "declining"
 }
 
 // ShouldAbort returns true if total tokens exceed maxTokens or the growth rate
-// exceeds 3x between the first and last 3-turn windows.
+// exceeds 3x between the first and last 3-turn windows while activity declines.
 func (sd *SnowballDetector) ShouldAbort() bool {
 	total := sumInt(sd.turnTokens)
-	if total > sd.maxTokens {
+	if sd.maxTokens > 0 && total > sd.maxTokens {
 		return true
 	}
 
@@ -76,7 +72,16 @@ func (sd *SnowballDetector) ShouldAbort() bool {
 		return false
 	}
 
-	return float64(lastAvg)/float64(firstAvg) >= 3.0
+	return float64(lastAvg)/float64(firstAvg) >= 3.0 && sd.progressTrend() == "declining"
+}
+
+// StopReason explains the active stop condition without exposing debug output
+// or claiming that a large cumulative input count means context is full.
+func (sd *SnowballDetector) StopReason() string {
+	if sd.maxTokens > 0 && sumInt(sd.turnTokens) > sd.maxTokens {
+		return fmt.Sprintf("Token limit reached (%s/%s total input and output tokens).", formatTokenCount(sumInt(sd.turnTokens)), formatTokenCount(sd.maxTokens))
+	}
+	return "Token usage increased sharply while tool activity declined."
 }
 
 // Summary returns a human-readable summary of the snowball state.
@@ -91,7 +96,7 @@ func (sd *SnowballDetector) Summary() string {
 		firstAvg := avgInt(sd.turnTokens[:3])
 		lastAvg := avgInt(sd.turnTokens[n-3:])
 		if firstAvg > 0 {
-			growthStr = fmt.Sprintf("growing %.1fx/turn", float64(lastAvg)/float64(firstAvg))
+			growthStr = fmt.Sprintf("%.1fx initial usage", float64(lastAvg)/float64(firstAvg))
 		} else {
 			growthStr = "no baseline"
 		}
