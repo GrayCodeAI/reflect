@@ -156,6 +156,12 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		}
 	}
 	sessionStart := time.Now()
+	// Each Stream handles a new user request, including all of its model/tool
+	// iterations. Earlier requests must not consume this request's allowance.
+	// The tracker retains session spending and its configured limits.
+	if limits := s.LifecycleSvc().Limits(); limits != nil && ctx.Err() == nil {
+		limits.BeginRequest()
+	}
 
 	// Start session-level trace span
 	var sessionSpan *oteltrace.Span

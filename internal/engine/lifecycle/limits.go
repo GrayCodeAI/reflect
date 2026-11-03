@@ -6,7 +6,8 @@ import (
 	"sync"
 )
 
-// SafetyLimits caps what the agent can do in a single session.
+// SafetyLimits caps operations within one user request. Spending limits apply
+// to the whole session so starting a follow-up cannot bypass its budget.
 type SafetyLimits struct {
 	MaxToolCalls    int     // max total tool invocations (default: 200)
 	MaxFileWrites   int     // max files created/modified (default: 50)
@@ -34,6 +35,18 @@ func NewLimitTracker(limits SafetyLimits) *LimitTracker {
 	return &LimitTracker{limits: limits}
 }
 
+// BeginRequest starts fresh operational counters without changing configured
+// limits or the session's accumulated spending.
+func (lt *LimitTracker) BeginRequest() {
+	lt.mu.Lock()
+	defer lt.mu.Unlock()
+	lt.toolCalls = 0
+	lt.fileWrites = 0
+	lt.bashCmds = 0
+	lt.turns = 0
+	lt.outTokens = 0
+}
+
 // RecordToolCall records a tool invocation. Tools named "Bash" or "bash" also
 // increment the bash command counter; "Write" or "Edit" increment file writes.
 func (lt *LimitTracker) RecordToolCall(toolName string) {
@@ -55,7 +68,7 @@ func (lt *LimitTracker) RecordCost(usd float64) {
 	lt.costUSD += usd
 }
 
-// RecordTokens adds output tokens to the running total.
+// RecordTokens adds output tokens to the current request's running total.
 func (lt *LimitTracker) RecordTokens(n int) {
 	lt.mu.Lock()
 	defer lt.mu.Unlock()
