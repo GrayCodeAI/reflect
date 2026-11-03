@@ -58,9 +58,9 @@ func (s *Session) buildTurnOptions(tc turnContext) types.ChatOptions {
 	if smallTalk {
 		// Keep this path free of workspace/memory/workflow nudges as well as
 		// schemas. Those instructions can turn a greeting into repository work.
-		opts := s.ChatLLM().BuildOptions(prompt.System(), activeModel, maxTok, nil)
-		opts.ToolChoice = &types.ToolChoiceOption{Type: "none"}
-		return opts
+		// Omit tool choice along with tools: strict gateways reject even
+		// "none" when no tool definitions are supplied.
+		return s.ChatLLM().BuildOptions(prompt.System(), activeModel, maxTok, nil)
 	}
 	baseOpts := s.ChatLLM().BuildOptions(baseSystem, activeModel, maxTok, nil)
 	opts := baseOpts
@@ -727,7 +727,7 @@ func (s *Session) agentLoop(ctx context.Context, ch chan<- StreamEvent) {
 		}
 		// Tool-free turns are authoritative even if a provider emits unsolicited
 		// tool calls. Do not inspect the repository or render tool activity just
-		// because a model ignored tool_choice=none.
+		// because a model returned tools that were not offered for this turn.
 		if smallTalk && len(toolCalls) > 0 {
 			toolCalls = nil
 			if strings.TrimSpace(textContent.String()) == "" {
