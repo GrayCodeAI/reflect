@@ -69,7 +69,12 @@ func (m chatModel) handleVoiceResult(msg voiceResultMsg) (tea.Model, tea.Cmd) {
 func (m chatModel) handleStreamRetry(msg streamRetryMsg) (tea.Model, tea.Cmd) {
 	m.partial.Reset()
 	m.turnEstimatedOutputRunes = 0
-	m.messages = stripCurrentTurnThinking(m.messages)
+	clean := stripCurrentTurnThinking(m.messages)
+	if len(clean) != len(m.messages) {
+		m.toolResultExpanded = nil
+	}
+	m.messages = clean
+	m.invalidateViewportCache()
 	m.turn.Reset()
 	m.messages = append(m.messages, displayMsg{role: "system", content: "↻ " + msg.content})
 	m.viewDirty = true
@@ -77,6 +82,9 @@ func (m chatModel) handleStreamRetry(msg streamRetryMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m chatModel) handleToolUse(msg toolUseMsg) (tea.Model, tea.Cmd) {
+	if msg.id != "" && m.currentTurnToolMessage("tool_use", msg.id) >= 0 {
+		return m, nil // A replay must not relaunch or reopen a settled activity.
+	}
 	m.turn.ObserveTool()
 	if m.partial.Len() > 0 {
 		m.messages = append(m.messages, displayMsg{role: "assistant", content: m.partial.String()})
@@ -92,9 +100,18 @@ func (m chatModel) handleToolUse(msg toolUseMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
+	if msg.id != "" && m.currentTurnToolMessage("tool_result", msg.id) >= 0 {
+		return m, nil // One terminal observation per identified call.
+	}
+	if msg.state == "" {
+		msg.state = engine.ToolStateCompleted
+	}
 	m.turn.ObserveTool()
 	for i := len(m.messages) - 1; i >= 0; i-- {
 		entry := &m.messages[i]
+		if entry.role == "user" {
+			break
+		}
 		if entry.role != "tool_use" || entry.toolState != engine.ToolStateValidating {
 			continue
 		}
@@ -102,9 +119,6 @@ func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
 			continue
 		}
 		entry.toolState = msg.state
-		if entry.toolState == "" {
-			entry.toolState = engine.ToolStateCompleted
-		}
 		m.invalidateViewportCache()
 		break
 	}
@@ -120,9 +134,42 @@ func (m chatModel) handleToolResult(msg toolResultMsg) (tea.Model, tea.Cmd) {
 	m.ensureWAL()
 	if m.wal != nil {
 		m.walSeq++
-		m.recordWALError(m.wal.Append(session.Message{Role: "tool_result", Content: msg.content}))
+		durable := session.Message{Role: "tool_result", Content: msg.content}
+		if msg.id != "" {
+			durable.Role, durable.Content = "user", ""
+			durable.ToolResults = []session.ToolResult{{
+				ToolUseID: msg.id, Content: msg.content,
+				IsError: msg.state == engine.ToolStateFailed || msg.state == engine.ToolStateTimedOut || msg.state == engine.ToolStateCancelled,
+			}}
+		}
+		m.recordWALError(m.wal.Append(durable))
 	}
 	return m, nil
+}
+
+func (m *chatModel) currentTurnToolMessage(role, id string) int {
+	for i := len(m.messages) - 1; i >= 0; i-- {
+		if m.messages[i].role == "user" {
+			break
+		}
+		if m.messages[i].role == role && m.messages[i].toolID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func (m *chatModel) settlePendingToolActivities(state engine.ToolState) {
+	for i := len(m.messages) - 1; i >= 0; i-- {
+		entry := &m.messages[i]
+		if entry.role == "user" {
+			break
+		}
+		if entry.role == "tool_use" && entry.toolState == engine.ToolStateValidating {
+			entry.toolState = state
+			m.invalidateViewportCache()
+		}
+	}
 }
 
 func (m chatModel) activeToolName() string {
@@ -155,6 +202,11 @@ func (m chatModel) handleSelectionResumed() (tea.Model, tea.Cmd) {
 func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	wasCancelled := m.streamCancelled
+	if wasCancelled {
+		m.settlePendingToolActivities(engine.ToolStateCancelled)
+	} else {
+		m.settlePendingToolActivities(toolStateIncomplete)
+	}
 	if m.streamCancelled {
 		m.streamCancelled = false
 		m.waiting = false

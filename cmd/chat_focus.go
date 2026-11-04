@@ -59,6 +59,12 @@ func (m *chatModel) goHome() {
 	}
 	if !hasWelcome {
 		m.messages = append([]displayMsg{{role: "welcome", content: m.welcomeCache}}, m.messages...)
+		expanded := make(map[int]bool, len(m.toolResultExpanded))
+		for index, open := range m.toolResultExpanded {
+			expanded[index+1] = open
+		}
+		m.toolResultExpanded = expanded
+		m.invalidateViewportCache()
 	}
 	m.uiFocus = focusScrollback
 	m.autoScroll = false
@@ -128,7 +134,7 @@ func (m chatModel) renderScrollbackFocusBar(width int) string {
 	if !m.inScrollbackFocus() {
 		return ""
 	}
-	hint := "wheel/Up/Dn scroll · Enter: expand tool result · Tab → prompt"
+	hint := "wheel/Up/Dn scroll · Enter: activity details · Tab → prompt"
 	hintW := lipgloss.Width(hint)
 	if width < hintW+4 {
 		width = hintW + 4

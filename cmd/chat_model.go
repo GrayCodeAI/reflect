@@ -343,7 +343,7 @@ type chatModel struct {
 	slashSugGen                  int             // generation counter; bumped to invalidate slashSugCache
 	slashSugCachedGen            int             // generation at the time slashSugCache was computed
 	contextualHelp               *ContextualHelp // rich help entries for /help <topic>
-	toolResultExpanded           map[int]bool    // per-message index: expanded state for long tool results
+	toolResultExpanded           map[int]bool    // first transcript index of each expanded activity group
 	connStatusKey                string          // gateway+model+creds fingerprint
 	connStatusVal                string
 	deferredSystemContext        string
@@ -364,8 +364,8 @@ type chatModel struct {
 	vpRenderedMsgs  int
 	vpRenderWidth   int
 	vpLastMsgLen    int
-
-	// Cached expanded map for viewport position math (avoids repeated allocations).
+	vpTailStart     int // first message in the final mutable display block
+	vpTailOffset    int // byte offset of that block in vpStableContent
 
 	// Streaming-partial render cache: rendered output of the completed
 	// markdown blocks of m.partial (see renderStreamTail).
@@ -478,15 +478,17 @@ func (m *chatModel) trimOldMessages() {
 	if trimCount == 0 {
 		return
 	}
-	kept := make([]displayMsg, 0, len(trimmed))
-	for _, message := range trimmed {
-		kept = append(kept, displayMsg{role: message.Role, content: message.Content})
-	}
-	m.messages = kept
 	startIdx := 0
 	if len(projected) > 0 && projected[0].Role == "welcome" {
 		startIdx = 1
 	}
+	// Keep the original entries: projecting through Role/Content discarded
+	// call IDs, terminal states, summaries, and resolved permission state.
+	kept := make([]displayMsg, 0, len(trimmed))
+	kept = append(kept, m.messages[:startIdx]...)
+	kept = append(kept, displayMsg{role: trimmed[startIdx].Role, content: trimmed[startIdx].Content})
+	kept = append(kept, m.messages[startIdx+trimCount:]...)
+	m.messages = kept
 	// Expansion state is keyed by message index; reindex the survivors so
 	// Enter-to-expand keeps targeting the right messages and stale keys for
 	// trimmed messages are pruned (M18: the map grew without bound).

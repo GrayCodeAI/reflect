@@ -6,8 +6,33 @@ import (
 	"unicode"
 
 	"github.com/GrayCodeAI/reflect/internal/engine"
+	sessionfeature "github.com/GrayCodeAI/reflect/internal/features/session"
 	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
+
+// A saved call without an observed result is incomplete, not a live tool or
+// an assumed success. This is a host display state, never a Relay wire value.
+const toolStateIncomplete engine.ToolState = "incomplete"
+
+func displayFromHydrated(message sessionfeature.HydratedDisplayMessage) displayMsg {
+	msg := displayMsg{role: message.Role, content: message.Content}
+	if message.Call != nil {
+		msg.toolID, msg.toolName = message.Call.ID, message.Call.Name
+		msg.summary = engine.ToolActivitySummary(message.Call.Name, message.Call.Arguments)
+		if msg.role == "tool_use" {
+			msg.content = message.Call.Name
+			msg.toolState = toolStateIncomplete
+		}
+	}
+	if message.Result != nil {
+		msg.toolID = message.Result.ToolUseID
+		msg.toolState = engine.ToolStateCompleted
+		if message.Result.IsError {
+			msg.toolState = engine.ToolStateFailed
+		}
+	}
+	return msg
+}
 
 func singleLineActivity(value string) string {
 	value = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", " ").Replace(sanitizeDisplay(value))
@@ -29,6 +54,8 @@ func renderToolActivity(msg displayMsg, width int) string {
 		marker, style = "!", errorStyle
 	case engine.ToolStateCancelled:
 		marker, style = "×", statusDimStyle
+	case toolStateIncomplete:
+		marker, style = "?", warnStyle
 	}
 	heading := style.Render(marker + " " + singleLineActivity(msg.content))
 	if detail := singleLineActivity(msg.summary); strings.TrimSpace(detail) != "" {

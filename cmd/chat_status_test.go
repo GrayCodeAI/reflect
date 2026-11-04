@@ -90,6 +90,25 @@ func TestFormatContextUsedLabel(t *testing.T) {
 	}
 }
 
+func TestSessionUsageAndLatestPromptHaveDistinctLabels(t *testing.T) {
+	sess := engine.NewSession("", "test-model", "system", nil)
+	// Two requests resend shared context. The total includes both requests;
+	// the context gauge describes the latest prompt, not that running total.
+	sess.RecordAPIUsage(8_000, 50)
+	sess.RecordAPIUsage(9_900, 50)
+	sess.CostValue().PromptTokens = 17_900
+	sess.CostValue().CompletionTokens = 100
+	m := chatModel{session: sess}
+	contextLabel := ansi.Strip(formatConnectionContextLabel(m, "1.0m"))
+	usageLabel := ansi.Strip(renderStatusBarPrimaryRight(&m))
+	if !strings.Contains(contextLabel, "10k/1.0m ctx (<1%)") {
+		t.Fatalf("latest prompt was confused with cumulative usage: %q", contextLabel)
+	}
+	if !strings.Contains(usageLabel, "18k session tokens") {
+		t.Fatalf("session input/output total is ambiguous: %q", usageLabel)
+	}
+}
+
 func TestChatConnectionStatus_WithModel(t *testing.T) {
 	reflectconfig.InvalidateConfigUICache()
 	isolateCredentialHome(t)

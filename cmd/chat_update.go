@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GrayCodeAI/reflect/internal/engine"
 	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	"charm.land/bubbles/v2/spinner"
@@ -394,8 +395,11 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewDirty = true
 				return m, m.input.Focus()
 			case tea.KeyEnter:
-				// Toggle expansion of the tool result nearest the viewport center.
+				// Toggle the activity group under the viewport center.
 				if idx := m.toolResultIndexAtViewportCenter(m.width); idx >= 0 {
+					if m.toolResultExpanded == nil {
+						m.toolResultExpanded = make(map[int]bool)
+					}
 					m.toolResultExpanded[idx] = !m.toolResultExpanded[idx]
 					m.invalidateViewportCache()
 					m.viewDirty = true
@@ -508,6 +512,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cancel()
 					m.cancel = nil
 					m.streamCancelled = true
+					m.settlePendingToolActivities(engine.ToolStateCancelled)
 					m.messages = append(m.messages, displayMsg{role: "system", content: icons.Stop() + " Cancelled."})
 					if m.partial.Len() > 0 {
 						m.messages = append(m.messages, displayMsg{role: "assistant", content: m.partial.String()})
@@ -526,6 +531,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cancel()
 					m.cancel = nil
 					m.streamCancelled = true
+					m.settlePendingToolActivities(engine.ToolStateCancelled)
 					m.messages = append(m.messages, displayMsg{role: "system", content: icons.Stop() + " Cancelled."})
 					if m.partial.Len() > 0 {
 						m.messages = append(m.messages, displayMsg{role: "assistant", content: m.partial.String()})
@@ -958,6 +964,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleStreamDone()
 
 	case streamErrMsg:
+		m.settlePendingToolActivities(toolStateIncomplete)
 		m.messages = append(m.messages, displayMsg{role: "error", content: friendlyError(msg.err)})
 		m.partial.Reset()
 		// Resolve any pending permission/approval/askUser prompts to unblock

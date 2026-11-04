@@ -23,7 +23,7 @@ func TestToolActivitySummariesExposeActionFieldsOnly(t *testing.T) {
 		{"Write", map[string]interface{}{"path": "main.go", "content": "private body"}, "main.go"},
 		{"Unknown", map[string]interface{}{"token": "secret", "content": "private body"}, ""},
 	} {
-		if got := toolActivitySummary(tc.name, tc.args); got != tc.want {
+		if got := ToolActivitySummary(tc.name, tc.args); got != tc.want {
 			t.Errorf("%s: got %q want %q", tc.name, got, tc.want)
 		}
 	}

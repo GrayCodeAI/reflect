@@ -87,6 +87,7 @@ func (m *chatModel) handleSessionCommand(cmd string, parts []string, text string
 		m.loopCancel = nil
 		m.parallelCancel = nil
 		m.messages = []displayMsg{{role: "system", content: "Conversation cleared."}}
+		m.toolResultExpanded = nil
 		m.invalidateViewportCache()
 		m.viewDirty = true
 		m.autoScroll = false
@@ -142,9 +143,10 @@ func (m *chatModel) handleSessionCommand(cmd string, parts []string, text string
 			m.sessionID = s.ID
 			m.invalidateViewportCache()
 			m.messages = []displayMsg{{role: "welcome", content: m.welcomeCache}}
+			m.toolResultExpanded = nil
 			hydrated := sessionfeature.Hydrate(s)
 			for _, message := range hydrated.Display {
-				m.messages = append(m.messages, displayMsg{role: message.Role, content: message.Content})
+				m.messages = append(m.messages, displayFromHydrated(message))
 			}
 			m.session.LoadMessages(hydrated.Runtime)
 			m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Recovered: %s\nSession %s ready (%d msgs)", note, s.ID, len(s.Messages))})
@@ -168,9 +170,10 @@ func (m *chatModel) handleSessionCommand(cmd string, parts []string, text string
 		m.sessionID = saved.ID
 		m.invalidateViewportCache()
 		m.messages = []displayMsg{{role: "welcome", content: m.welcomeCache}}
+		m.toolResultExpanded = nil
 		hydrated := sessionfeature.Hydrate(saved)
 		for _, message := range hydrated.Display {
-			m.messages = append(m.messages, displayMsg{role: message.Role, content: message.Content})
+			m.messages = append(m.messages, displayFromHydrated(message))
 		}
 		m.session.LoadMessages(hydrated.Runtime)
 		m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Resumed session %s", saved.ID)})

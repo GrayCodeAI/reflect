@@ -26,12 +26,13 @@ func TestCollapsedToolResultHitTestingUsesVisibleRows(t *testing.T) {
 	m := &chatModel{width: 80, viewport: viewport.New(viewport.WithWidth(80), viewport.WithHeight(1))}
 	m.messages = []displayMsg{
 		{role: "tool_result", content: strings.Repeat("first result\n", 50)},
+		{role: "assistant", content: "Checking the next file."},
 		{role: "tool_result", content: strings.Repeat("second result\n", 10)},
 	}
-	prefix := renderDisplayMessage(m.messages[0], 0, m.messages, 80, nil)
+	prefix := renderMessagesRange(m.messages, 0, 2, 80, nil)
 	m.viewport.SetContent(renderMessagesRange(m.messages, 0, len(m.messages), 80, nil))
 	m.viewport.SetYOffset(strings.Count(prefix, "\n"))
-	if got := m.toolResultIndexAtViewportCenter(80); got != 1 {
+	if got := m.toolResultIndexAtViewportCenter(80); got != 2 {
 		t.Fatalf("Enter targets message %d, want visible second result", got)
 	}
 }
@@ -42,7 +43,7 @@ func TestCodeCopyAfterCollapsedToolUsesVisibleRows(t *testing.T) {
 		{role: "tool_result", content: strings.Repeat("long result\n", 50)},
 		{role: "assistant", content: "Example:\n\n```go\nfmt.Println(\"hello\")\n```"},
 	}
-	prefix := renderDisplayMessage(m.messages[0], 0, m.messages, 80, nil)
+	prefix := renderMessagesRange(m.messages, 0, 1, 80, nil)
 	m.viewport.SetContent(renderMessagesRange(m.messages, 0, len(m.messages), 80, nil))
 	m.viewport.SetYOffset(strings.Count(prefix, "\n") + 2)
 	if code, ok := m.codeBlockAtViewportCenter(); !ok || !strings.Contains(code, "fmt.Println") {

@@ -328,7 +328,8 @@ func formatConnectionContextLabel(m chatModel, windowLabel string) string {
 	if window <= 0 {
 		return windowLabel + " ctx"
 	}
-	usedLabel := formatContextUsedLabel(sessionContextUsedTokens(m.session))
+	used := sessionContextUsedTokens(m.session)
+	usedLabel := formatContextUsedLabel(used)
 	pct := contextUsagePercent(m, windowLabel)
 
 	// Per-part coloring so the eye can scan the percentage at a glance:
@@ -348,7 +349,7 @@ func formatConnectionContextLabel(m chatModel, windowLabel string) string {
 	b.WriteString(valueStyle.Render(usedLabel))
 	b.WriteString(muted.Render("/" + windowLabel))
 	b.WriteString(muted.Render(" ctx ("))
-	b.WriteString(pctStyle.Render(fmt.Sprintf("%d%%", pct)))
+	b.WriteString(pctStyle.Render(formatContextPercentLabel(used, window)))
 	b.WriteString(muted.Render(")"))
 	return b.String()
 }
