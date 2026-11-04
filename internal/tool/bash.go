@@ -395,27 +395,22 @@ func (BashTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 		if workdir == "" {
 			workdir, _ = os.Getwd()
 		}
-		out, err := sandbox.Run(ctx, sbCfg, workdir, p.Command)
+		// Match host Bash semantics even when the sandbox transport uses sh.
+		out, err := sandbox.Run(ctx, sbCfg, workdir, bashSandboxCommand(p.Command))
 		result := strings.TrimSpace(out)
 		result = TruncateOutput(result)
-		if err != nil {
-			if ctx.Err() == context.DeadlineExceeded {
-				return result + "\n\n(command timed out)", nil
-			}
-			return fmt.Sprintf("%s\n\nexit code: %s", result, err.Error()), nil
-		}
-		return result, nil
+		return bashExecutionResult(ctx, result, err)
 	}
 
 	if p.RunInBackground {
-		id, err := startBackgroundBash(ctx, p.Command, "bash", []string{"-c", p.Command})
+		id, err := startBackgroundBash(ctx, p.Command, "bash", []string{"-o", "pipefail", "-c", p.Command})
 		if err != nil {
 			return "", err
 		}
 		return fmt.Sprintf("Started background task %s. Use TaskOutput with task_id=%q to read output, or TaskStop to stop it.", id, id), nil
 	}
 
-	cmd := exec.CommandContext(ctx, "bash", "-c", p.Command) // #nosec G204 -- command parsed from tool-configured command string (lint/test command)
+	cmd := exec.CommandContext(ctx, "bash", "-o", "pipefail", "-c", p.Command) // #nosec G204 -- command parsed from tool-configured command string (lint/test command)
 	// Never pass provider API keys to the child: the guard regexes block
 	// obvious dumps, but any process the agent runs can otherwise read
 	// ANTHROPIC_API_KEY etc. from the inherited environment.
@@ -447,11 +442,19 @@ func (BashTool) Execute(ctx context.Context, input json.RawMessage) (string, err
 	result = TruncateOutput(result)
 	result = strings.TrimRight(result, "\n")
 
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return result + "\n\n(command timed out)", nil
-		}
-		return fmt.Sprintf("%s\n\nexit code: %s", result, err.Error()), nil
+	return bashExecutionResult(ctx, result, err)
+}
+
+func bashExecutionResult(ctx context.Context, output string, err error) (string, error) {
+	if err == nil {
+		return output, nil
 	}
-	return result, nil
+	if ctx.Err() != nil {
+		return output, ctx.Err()
+	}
+	return output, fmt.Errorf("exit code: %w", err)
+}
+
+func bashSandboxCommand(command string) string {
+	return "bash -o pipefail -c '" + strings.ReplaceAll(command, "'", "'\\''") + "'"
 }

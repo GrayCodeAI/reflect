@@ -366,8 +366,6 @@ type chatModel struct {
 	vpLastMsgLen    int
 
 	// Cached expanded map for viewport position math (avoids repeated allocations).
-	cachedExpandedMap map[int]bool
-	cachedExpandedLen int
 
 	// Streaming-partial render cache: rendered output of the completed
 	// markdown blocks of m.partial (see renderStreamTail).

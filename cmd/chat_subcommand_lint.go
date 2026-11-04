@@ -23,12 +23,13 @@ func (l *lintSubcommand) Handle(m *chatModel, args []string, text string) (tea.M
 	if len(args) >= 1 {
 		cmdStr = strings.TrimSpace(strings.TrimPrefix(text, "/lint"))
 	}
-	result, isErr := runSlashShellCommand(m, cmdStr)
-	if isErr {
+	status := runSlashShellCommandResult(m, cmdStr)
+	result := status.Output
+	if status.IsError && !status.CommandFailed {
 		m.messages = append(m.messages, displayMsg{role: "error", content: result})
 		return m, nil
 	}
-	if result == "" {
+	if !status.IsError {
 		m.messages = append(m.messages, displayMsg{role: "system", content: "No lint issues."})
 	} else {
 		m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("Lint issues:\n%s", result)})

@@ -2,8 +2,10 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"slices"
 	"strings"
 
@@ -195,6 +197,20 @@ func isNetworkReadOnlyTool(name string) bool {
 // permission, approval, timeout, retry, truncation, hook,
 // and post-processing path used by model-initiated Bash tool calls.
 func (s *Session) RunUserShellCommand(ctx context.Context, command string, timeoutSeconds int) (string, bool) {
+	result := s.RunUserShellCommandResult(ctx, command, timeoutSeconds)
+	return result.Output, result.IsError
+}
+
+// ShellCommandResult distinguishes failed commands from denied tool calls so
+// test/lint commands can offer repair feedback without treating denials as code defects.
+type ShellCommandResult struct {
+	Output        string
+	IsError       bool
+	CommandFailed bool
+}
+
+// RunUserShellCommandResult includes the process failure status alongside output.
+func (s *Session) RunUserShellCommandResult(ctx context.Context, command string, timeoutSeconds int) ShellCommandResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -208,7 +224,8 @@ func (s *Session) RunUserShellCommand(ctx context.Context, command string, timeo
 		Name:      "Bash",
 		Arguments: args,
 	}, tool.BashTool{}, ch, 0, command)
-	return result.output, result.isErr
+	var exitErr *exec.ExitError
+	return ShellCommandResult{Output: result.output, IsError: result.isErr, CommandFailed: errors.As(result.err, &exitErr)}
 }
 
 // executeSingleTool runs one tool call with permission checks and all post-processing.
@@ -239,7 +256,9 @@ func (s *Session) executeSingleToolWithTool(ctx context.Context, tc types.ToolCa
 	output, execErr, isErr := core.output, core.err, core.isErr
 	if isErr {
 		s.Logger().Warn("tool execution error", map[string]interface{}{"tool": tc.Name, "error": execErr.Error()})
-		output = fmt.Sprintf("Error: %s", execErr.Error())
+		if strings.TrimSpace(output) == "" {
+			output = fmt.Sprintf("Error: %s", execErr.Error())
+		}
 		if s.LifecycleSvc().Backtrack() != nil {
 			s.LifecycleSvc().Backtrack().MarkOutcome(turnCount, "failure")
 		}

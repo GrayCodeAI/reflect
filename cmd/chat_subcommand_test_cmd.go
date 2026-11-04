@@ -23,8 +23,9 @@ func (t *testSubcommand) Handle(m *chatModel, args []string, text string) (tea.M
 	if len(args) >= 1 {
 		cmdStr = strings.TrimSpace(strings.TrimPrefix(text, "/test"))
 	}
-	result, isErr := runSlashShellCommand(m, cmdStr)
-	if isErr {
+	status := runSlashShellCommandResult(m, cmdStr)
+	result, isErr := status.Output, status.IsError
+	if isErr && !status.CommandFailed {
 		m.messages = append(m.messages, displayMsg{role: "error", content: result})
 		return m, nil
 	}

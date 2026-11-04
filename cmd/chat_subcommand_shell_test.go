@@ -30,6 +30,17 @@ func TestRunSubcommand_UsesBashToolForSafeCommand(t *testing.T) {
 	}
 }
 
+func TestRunSubcommand_ReportsFailedPipelineWithDiagnostics(t *testing.T) {
+	m := newTestChatModel()
+	m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
+	result, _ := (&runSubcommand{}).Handle(m, []string{"printf 'build diagnostic\\n'; false | tail -5"}, "/run printf 'build diagnostic\\n'; false | tail -5")
+	cm := requireChatModel(t, result)
+	last := cm.messages[len(cm.messages)-1]
+	if last.role != "error" || !strings.Contains(last.content, "build diagnostic") || !strings.Contains(last.content, "exit code:") {
+		t.Fatalf("failed check appeared successful or lost its diagnostic: role=%s output=%q", last.role, last.content)
+	}
+}
+
 func TestRunSubcommand_RespectsSpecStageGate(t *testing.T) {
 	m := newTestChatModel()
 	m.session.PermSvc().SetSpecStage(safety.SpecStageSpecify)
@@ -106,5 +117,40 @@ func TestTestSubcommand_DetectsNonzeroExit(t *testing.T) {
 	msgs := cm.session.RawMessages()
 	if len(msgs) != 1 || !strings.Contains(msgs[0].Content, "Please fix these test failures") {
 		t.Fatalf("session messages = %#v, want failure context", msgs)
+	}
+}
+
+func TestLintSubcommandQueuesActualFailureOnly(t *testing.T) {
+	for _, tc := range []struct {
+		command string
+		failed  bool
+	}{
+		{command: "printf 'compiler diagnostic'; false | tail -5", failed: true},
+		{command: "printf '0 issues.'"},
+	} {
+		t.Run(tc.command, func(t *testing.T) {
+			m := newTestChatModel()
+			m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
+			result, _ := (&lintSubcommand{}).Handle(m, []string{tc.command}, "/lint "+tc.command)
+			cm := requireChatModel(t, result)
+			messages := cm.session.RawMessages()
+			if tc.failed {
+				if len(messages) != 1 || !strings.Contains(messages[0].Content, "Please fix these lint issues") || !strings.Contains(messages[0].Content, "compiler diagnostic") {
+					t.Fatalf("lost repair diagnostics: %#v", messages)
+				}
+			} else if len(messages) != 0 || !strings.Contains(cm.messages[len(cm.messages)-1].content, "No lint issues") {
+				t.Fatalf("successful linter triggered unnecessary repairs: %#v", messages)
+			}
+		})
+	}
+}
+
+func TestTestSubcommandDoesNotTreatDenialAsTestFailure(t *testing.T) {
+	m := newTestChatModel()
+	m.session.PermSvc().SetAutonomy(safety.AutonomyYOLO)
+	result, _ := (&testSubcommand{}).Handle(m, []string{"env"}, "/test env")
+	cm := requireChatModel(t, result)
+	if len(cm.session.RawMessages()) != 0 || cm.messages[len(cm.messages)-1].role != "error" {
+		t.Fatal("blocked command was queued as a code repair")
 	}
 }

@@ -147,11 +147,15 @@ func startBackgroundBash(ctx context.Context, command string, execName string, e
 		} else if waitErr != nil {
 			status = taskruntime.StatusFailed
 			errMsg = waitErr.Error()
+			task.exitText = "exit code: " + waitErr.Error()
 		}
 		out := task.output.String()
+		if task.exitText != "" {
+			out += "\n\n" + task.exitText
+		}
 		task.mu.Unlock()
-		close(task.done)
 		taskruntime.Default.FinishExternal(id, status, out, errMsg)
+		close(task.done)
 		shellCancel()
 	}()
 
@@ -206,6 +210,8 @@ func (t *backgroundTask) snapshot() (status, output string) {
 		status = "completed"
 		if t.stopped {
 			status = "stopped"
+		} else if t.exitText != "" {
+			status = "failed"
 		}
 	default:
 	}
