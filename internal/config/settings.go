@@ -44,39 +44,54 @@ type Settings struct {
 	MaxBudgetUSD    float64  `json:"max_budget_usd,omitempty"`  // cost cap per session
 	// Optional local token ceilings. Disabled by default (provider rate limits
 	// own throughput). Set a positive value to opt in; -1 also means disabled.
-	HourlyTokenLimit        int                    `json:"hourly_token_limit,omitempty"`
-	DailyTokenLimit         int                    `json:"daily_token_limit,omitempty"`
-	SessionTokenLimit       int                    `json:"session_token_limit,omitempty"`
-	MCPServers              []MCPServerConfig      `json:"mcp_servers,omitempty"`
-	CustomProviders         []CustomProviderConfig `json:"custom_providers,omitempty"`
-	RepoMap                 *bool                  `json:"repo_map,omitempty"`
-	RepoMapMaxTokens        int                    `json:"repo_map_max_tokens,omitempty"`
-	AutoCommit              *bool                  `json:"auto_commit,omitempty"`                // auto-commit file changes
-	Autonomy                int                    `json:"autonomy,omitempty"`                   // autonomy level 0-4
-	AutonomyExplicit        bool                   `json:"autonomy_explicit,omitempty"`          // distinguishes persisted Supervised (0) from unset
-	AutonomyOverrides       map[string]bool        `json:"autonomy_overrides,omitempty"`         // per-flag overrides (e.g. "auto_execute_bash": false)
-	NeverAllow              []string               `json:"never_allow,omitempty"`                // personal hard ceiling: deny rules even YOLO can't override
-	SpecAllowTests          bool                   `json:"spec_allow_tests,omitempty"`           // allow safe test commands during spec stage
-	ModelRoles              *routing.ModelRoles    `json:"model_roles,omitempty"`                // per-role model overrides
-	SmartRouting            *smartrouting.Config   `json:"smart_routing,omitempty"`              // cheap-simple / strong turn routing (opt-in)
-	AutoCompactThresholdPct int                    `json:"auto_compact_threshold_pct,omitempty"` // token % to trigger auto-compact (default 85)
-	Frugal                  bool                   `json:"frugal,omitempty"`                     // aggressive cost optimization: cascade to cheap models, lower max_tokens, earlier compaction
-	Attribution             *Attribution           `json:"attribution,omitempty"`
-	DeploymentRouting       *bool                  `json:"deployment_routing,omitempty"`       // use catalog deployment router when true / unset + provider.json qualifies
-	GLMThinkingEnabled      *bool                  `json:"glm_thinking_enabled,omitempty"`     // global thinking fallback (Z.AI-era name); prefer ModelThinking / ThinkingEnabled
-	ModelThinking           map[string]bool        `json:"model_thinking,omitempty"`           // per-model thinking; missing = provider default
-	TuiMouse                *bool                  `json:"tui_mouse,omitempty"`                // TUI mouse capture; false preserves native click-drag copy
-	ReplMode                *bool                  `json:"repl_mode,omitempty"`                // Start in REPL mode instead of TUI
-	ScrollSpeed             int                    `json:"scroll_speed,omitempty"`             // scroll speed 1-100 (default 50)
-	ScrollMode              string                 `json:"scroll_mode,omitempty"`              // auto, wheel, trackpad
-	InvertScroll            bool                   `json:"invert_scroll,omitempty"`            // natural scrolling invert
-	CompactMode             bool                   `json:"compact_mode,omitempty"`             // reduce outer padding
-	PaginatorLines          int                    `json:"paginator_lines,omitempty"`          // scrollback buffer lines (0 = unlimited)
-	Sandbox                 string                 `json:"sandbox,omitempty"`                  // off | docker — isolated tool execution (Mirror-style)
-	PaginatorShowLineNums   *bool                  `json:"paginator_show_line_nums,omitempty"` // show line numbers in scrollback
+	HourlyTokenLimit  int                    `json:"hourly_token_limit,omitempty"`
+	DailyTokenLimit   int                    `json:"daily_token_limit,omitempty"`
+	SessionTokenLimit int                    `json:"session_token_limit,omitempty"`
+	MCPServers        []MCPServerConfig      `json:"mcp_servers,omitempty"`
+	CustomProviders   []CustomProviderConfig `json:"custom_providers,omitempty"`
+	// RepoMap is tri-state: nil (unset) auto-injects a small churn-weighted
+	// repo map for qualifying repos, false opts out entirely, true forces the
+	// legacy hierarchical summary map.
+	RepoMap                 *bool                `json:"repo_map,omitempty"`
+	RepoMapMaxTokens        int                  `json:"repo_map_max_tokens,omitempty"`
+	AutoCommit              *bool                `json:"auto_commit,omitempty"`                // auto-commit file changes
+	Autonomy                int                  `json:"autonomy,omitempty"`                   // autonomy level 0-4
+	AutonomyExplicit        bool                 `json:"autonomy_explicit,omitempty"`          // distinguishes persisted Supervised (0) from unset
+	AutonomyOverrides       map[string]bool      `json:"autonomy_overrides,omitempty"`         // per-flag overrides (e.g. "auto_execute_bash": false)
+	NeverAllow              []string             `json:"never_allow,omitempty"`                // personal hard ceiling: deny rules even YOLO can't override
+	SpecAllowTests          bool                 `json:"spec_allow_tests,omitempty"`           // allow safe test commands during spec stage
+	ModelRoles              *routing.ModelRoles  `json:"model_roles,omitempty"`                // per-role model overrides
+	SmartRouting            *smartrouting.Config `json:"smart_routing,omitempty"`              // cheap-simple / strong turn routing (opt-in)
+	AutoCompactThresholdPct int                  `json:"auto_compact_threshold_pct,omitempty"` // token % to trigger auto-compact (default 85)
+	Frugal                  bool                 `json:"frugal,omitempty"`                     // aggressive cost optimization: cascade to cheap models, lower max_tokens, earlier compaction
+	Attribution             *Attribution         `json:"attribution,omitempty"`
+	DeploymentRouting       *bool                `json:"deployment_routing,omitempty"`       // use catalog deployment router when true / unset + provider.json qualifies
+	GLMThinkingEnabled      *bool                `json:"glm_thinking_enabled,omitempty"`     // global thinking fallback (Z.AI-era name); prefer ModelThinking / ThinkingEnabled
+	ModelThinking           map[string]bool      `json:"model_thinking,omitempty"`           // per-model thinking; missing = provider default
+	TuiMouse                *bool                `json:"tui_mouse,omitempty"`                // TUI mouse capture; false preserves native click-drag copy
+	ReplMode                *bool                `json:"repl_mode,omitempty"`                // Start in REPL mode instead of TUI
+	ScrollSpeed             int                  `json:"scroll_speed,omitempty"`             // scroll speed 1-100 (default 50)
+	ScrollMode              string               `json:"scroll_mode,omitempty"`              // auto, wheel, trackpad
+	InvertScroll            bool                 `json:"invert_scroll,omitempty"`            // natural scrolling invert
+	CompactMode             bool                 `json:"compact_mode,omitempty"`             // reduce outer padding
+	PaginatorLines          int                  `json:"paginator_lines,omitempty"`          // scrollback buffer lines (0 = unlimited)
+	Sandbox                 string               `json:"sandbox,omitempty"`                  // off | docker — isolated tool execution (Mirror-style)
+	PaginatorShowLineNums   *bool                `json:"paginator_show_line_nums,omitempty"` // show line numbers in scrollback
 }
 
 const CurrentPolicySchemaVersion = 1
+
+// Auto repo-map defaults: when the repo_map setting is unset (nil), a small
+// churn-weighted map is injected automatically for git repos with more than
+// DefaultRepoMapAutoMinTrackedFiles tracked files, bounded to
+// DefaultRepoMapAutoBudget tokens. Setting repo_map to false opts out.
+const (
+	// DefaultRepoMapAutoBudget is the token budget of the auto-injected map.
+	DefaultRepoMapAutoBudget = 1024
+	// DefaultRepoMapAutoMinTrackedFiles is the tracked-file threshold above
+	// which the auto-injected map is enabled.
+	DefaultRepoMapAutoMinTrackedFiles = 20
+)
 
 // ToolPreset maps a named preset to a list of allowed tools.
 type ToolPreset struct {

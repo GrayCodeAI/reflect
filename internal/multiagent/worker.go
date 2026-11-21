@@ -61,6 +61,12 @@ func EngineWorker(provider, model, systemPrompt string) WorkerFunc {
 			ModelOverride:    model,
 		})
 		sess := engine.NewReflectSession(ctx, selection, provider, model, systemPrompt, registry)
+		// Attribute this worker's usage-ledger records to the mission and
+		// feature (per-helper cost reporting).
+		sess.SetUsageAttribution(engine.UsageAttribution{
+			SubagentID: "worker:" + feature.ID,
+			MissionID:  cfg.MissionID,
+		})
 
 		// Configure for autonomous operation
 		level := safety.AutonomyLevel(cfg.AutonomyLevel)
@@ -250,6 +256,12 @@ func ReadOnlyValidationWorker(provider, model, systemPrompt string) WorkerFunc {
 			ModelOverride:    model,
 		})
 		sess := engine.NewReflectSession(ctx, selection, provider, model, systemPrompt, registry)
+		// Attribute the read-only validator's usage-ledger records to the
+		// mission and feature (per-helper cost reporting).
+		sess.SetUsageAttribution(engine.UsageAttribution{
+			SubagentID: "validator:" + feature.ID,
+			MissionID:  cfg.MissionID,
+		})
 
 		level := safety.AutonomyLevel(cfg.AutonomyLevel)
 		if level < safety.AutonomyFull {

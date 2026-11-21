@@ -67,6 +67,55 @@ func TestMissingLedgerIsEmpty(t *testing.T) {
 	}
 }
 
+func TestAppendRoundTripAttribution(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "usage.jsonl")
+	rec := Record{
+		CreatedAtMS:  1700000000000,
+		Model:        "acme/m1",
+		InputTokens:  10,
+		OutputTokens: 2,
+		TotalCost:    0.0002,
+		TaskType:     "tool",
+		SubagentID:   "worker:feat-1",
+		MissionID:    "m-42",
+	}
+	if err := appendTo(path, rec); err != nil {
+		t.Fatalf("appendTo: %v", err)
+	}
+
+	got, err := ReadFrom(path)
+	if err != nil {
+		t.Fatalf("ReadFrom: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("ReadFrom returned %d records, want 1", len(got))
+	}
+	if got[0].TaskType != "tool" || got[0].SubagentID != "worker:feat-1" || got[0].MissionID != "m-42" {
+		t.Errorf("attribution lost in round trip: %+v", got[0])
+	}
+}
+
+func TestReadFromParsesPreAttributionLedger(t *testing.T) {
+	// A ledger written before the attribution fields existed must keep
+	// parsing with empty attribution (schema version 1 compatibility).
+	path := filepath.Join(t.TempDir(), "usage.jsonl")
+	content := `{"schema_version":1,"kind":"generation","fact":{"created_at_ms":1700000000000,"model":"m","input_tokens":3,"output_tokens":1,"total_cost":0.0003}}
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	got, err := ReadFrom(path)
+	if err != nil {
+		t.Fatalf("ReadFrom: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("ReadFrom returned %d records, want 1", len(got))
+	}
+	if got[0].TaskType != "" || got[0].SubagentID != "" || got[0].MissionID != "" {
+		t.Errorf("legacy record gained attribution: %+v", got[0])
+	}
+}
+
 func TestSummarize(t *testing.T) {
 	const hourMS = int64(60 * 60 * 1000)
 	const dayMS = 24 * hourMS
@@ -93,6 +142,75 @@ func TestSummarize(t *testing.T) {
 	}
 	if sum.TotalCostUSD != 0.015 {
 		t.Errorf("TotalCostUSD = %v, want 0.015", sum.TotalCostUSD)
+	}
+	if sum.ByHelper != nil {
+		t.Errorf("ByHelper = %+v, want nil when no record carries attribution", sum.ByHelper)
+	}
+}
+
+func TestSummarizeByHelper(t *testing.T) {
+	now := time.Now().UnixMilli()
+	records := []Record{
+		// Main session: excluded from ByHelper.
+		{CreatedAtMS: now, Model: "a/m", InputTokens: 100, OutputTokens: 10, TotalCost: 0.01},
+		// Spawned subagent.
+		{CreatedAtMS: now, Model: "a/m", InputTokens: 50, OutputTokens: 5, TotalCost: 0.02, SubagentID: "explore"},
+		// Mission worker with both identities.
+		{CreatedAtMS: now, Model: "a/m", InputTokens: 5, OutputTokens: 1, TotalCost: 0.03, SubagentID: "worker:feat-1", MissionID: "m-42"},
+		// Mission record without a worker identity.
+		{CreatedAtMS: now, Model: "a/m", InputTokens: 1, OutputTokens: 1, TotalCost: 0.04, MissionID: "m-42"},
+	}
+
+	sum := Summarize(records, 0)
+	if sum.Generations != 4 {
+		t.Fatalf("Generations = %d, want 4", sum.Generations)
+	}
+	if len(sum.ByHelper) != 3 {
+		t.Fatalf("ByHelper = %+v, want 3 helper groups", sum.ByHelper)
+	}
+	// Sorted by cost descending: mission m-42, mission m-42/worker:feat-1,
+	// subagent explore.
+	want := []struct {
+		helper string
+		cost   float64
+		tokens int
+	}{
+		{"mission m-42", 0.04, 2},
+		{"mission m-42/worker:feat-1", 0.03, 6},
+		{"subagent explore", 0.02, 55},
+	}
+	for i, w := range want {
+		h := sum.ByHelper[i]
+		if h.Helper != w.helper {
+			t.Errorf("ByHelper[%d].Helper = %q, want %q", i, h.Helper, w.helper)
+		}
+		if h.TotalCostUSD != w.cost {
+			t.Errorf("ByHelper[%d].TotalCostUSD = %v, want %v", i, h.TotalCostUSD, w.cost)
+		}
+		if h.TotalTokens != w.tokens {
+			t.Errorf("ByHelper[%d].TotalTokens = %d, want %d", i, h.TotalTokens, w.tokens)
+		}
+	}
+	// Totals still cover every record, attributed or not.
+	if sum.TotalCostUSD != 0.1 {
+		t.Errorf("TotalCostUSD = %v, want 0.1", sum.TotalCostUSD)
+	}
+}
+
+func TestHelperKey(t *testing.T) {
+	cases := map[string]struct {
+		rec  Record
+		want string
+	}{
+		"main session":  {Record{}, ""},
+		"subagent only": {Record{SubagentID: "plan"}, "subagent plan"},
+		"mission only":  {Record{MissionID: "m-1"}, "mission m-1"},
+		"both":          {Record{SubagentID: "worker:feat-2", MissionID: "m-1"}, "mission m-1/worker:feat-2"},
+	}
+	for name, tc := range cases {
+		if got := HelperKey(tc.rec); got != tc.want {
+			t.Errorf("HelperKey(%s) = %q, want %q", name, got, tc.want)
+		}
 	}
 }
 

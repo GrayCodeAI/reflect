@@ -192,6 +192,12 @@ func (s *Session) spawnSubAgent(ctx context.Context, norm agentcontracts.Normali
 	}
 
 	sub := s.SubSession(model, subSystemPrompt, registry)
+	// Attribute the child's usage-ledger records to this helper identity
+	// (per-helper cost reporting); the mission id was inherited in SubSession.
+	sub.SetUsageAttribution(UsageAttribution{
+		SubagentID: string(norm.SubagentType),
+		MissionID:  s.usageAttribution().MissionID,
+	})
 	sub.PermSvc().SetPermissionFn(s.PermSvc().PermissionFn())
 	// Explore/plan: hard read-only bash allowlist (in addition to tool filter).
 	if engagent.IsReadOnlyMode(mode) || norm.CapabilityMode == agentcontracts.CapReadOnly {

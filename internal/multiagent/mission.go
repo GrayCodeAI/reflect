@@ -64,6 +64,12 @@ type Config struct {
 	// responds. Never serialized — wired at run time from Mission.ApprovalGate.
 	ApprovalGate *MissionApprovalGate `json:"-"`
 
+	// MissionID is stamped by Run/RunWaves with the owning mission's ID so
+	// workers can attribute their usage-ledger records to this mission
+	// (per-helper cost reporting). Additive; empty for configs built outside
+	// a mission run.
+	MissionID string `json:"mission_id,omitempty"`
+
 	// ParentSession, when non-nil, carries the parent session/journal for
 	// delegated policy inheritance (DSH 2.4). Never serialized.
 	ParentSession any `json:"-"`
@@ -233,6 +239,12 @@ func (m *Mission) featurePointers() []*Feature {
 }
 
 func (m *Mission) runFeatureSet(ctx context.Context, workerFn WorkerFunc, missionDir string, features []*Feature) error {
+	// Stamp the mission identity into the worker config before any worker
+	// forks so every worker copy carries it for usage-ledger attribution.
+	// The orchestrator goroutine is the only writer at this point.
+	if m.Config.MissionID == "" {
+		m.Config.MissionID = m.ID
+	}
 	sem := make(chan struct{}, m.Config.MaxWorkers)
 	var wg sync.WaitGroup
 

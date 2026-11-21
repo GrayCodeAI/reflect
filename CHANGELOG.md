@@ -52,6 +52,8 @@ Releases are cut by hand from a release PR; see [docs/RELEASING.md](docs/RELEASI
 - **Dead shell-injection surface removed**: `AssumptionTracker.VerifyCommandSucceeds` ran caller-supplied strings through `sh -c`, bypassing the permission stack; it had zero callers and is deleted. `SelfHealer.RunScript` no longer shell-evaluates the script path (double evaluation) and invokes it directly via `/bin/sh`.
 
 ### Fixed
+- Git snapshots now keep a separate history for each project. Earlier versions shared a history across projects. To inspect those older commits, run `git --git-dir="<state-dir>/snapshots/.git" log --stat`, using your Reflect state directory for `<state-dir>`.
+- The shell installer stages each upgrade under the install prefix. A failed launcher replacement preserves the previous launcher and cleans up its temporary files.
 - Simple greetings stay conversational without listing files or reading project instructions, including after earlier tool use; real requests such as "Hi fix bug" keep their tools.
 - Batch tool execution now runs post-processing, redaction, and completion hooks and emits one final result per call.
 - Plan and Review modes enforce read-only execution even after tool discovery. Loading a local skill uses its read-only permission policy.

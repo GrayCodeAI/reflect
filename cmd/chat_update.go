@@ -544,14 +544,21 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.updateViewportContent()
 				return m, nil
 			}
-			// Queue message on Enter while agent is working
+			// Steering: text submitted while the agent is working splices
+			// into the live run between tool batches instead of waiting for
+			// the whole run to finish. Falls back to the deferred turn queue
+			// only when the session exposes no steering surface.
 			if msg.String() == "enter" {
 				text := strings.TrimSpace(m.input.Value())
 				if text != "" {
 					m.pushHistory(text)
-					m.enqueueMessage(text)
-					m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("%s Queued: %s", icons.Mail(), text)})
 					m.input.Reset()
+					if m.steerActiveRun(text) {
+						m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("%s Steering active run: %s", icons.Bolt(), text)})
+					} else {
+						m.enqueueMessage(text)
+						m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("%s Queued: %s", icons.Mail(), text)})
+					}
 					m.viewDirty = true
 					m.updateViewportContent()
 				}
@@ -965,6 +972,9 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamErrMsg:
 		m.settlePendingToolActivities(toolStateIncomplete)
+		// Steering the aborted run never consumed is not lost: hand it back
+		// to the deferred queue for the next completed turn.
+		m.reclaimUnconsumedSteering()
 		m.messages = append(m.messages, displayMsg{role: "error", content: friendlyError(msg.err)})
 		m.partial.Reset()
 		// Resolve any pending permission/approval/askUser prompts to unblock

@@ -33,6 +33,13 @@ type Record struct {
 	ReasoningTokens        int     `json:"reasoning_tokens,omitempty"`
 	BillableWebSearchCalls int     `json:"billable_web_search_calls,omitempty"`
 	TotalCost              float64 `json:"total_cost"`
+
+	// Helper attribution (additive; schema version 1 stays, since these
+	// fields are optional, omitted for main-session records, and ignored by
+	// readers that predate them). Empty values mean the main session.
+	TaskType   string `json:"task_type,omitempty"`   // engine request classification ("tool", "question", "code")
+	SubagentID string `json:"subagent_id,omitempty"` // spawned helper identity (subagent type, mission worker, validator)
+	MissionID  string `json:"mission_id,omitempty"`  // multi-agent mission run the helper belongs to
 }
 
 // LedgerPath returns the on-disk location of the usage ledger.
@@ -140,27 +147,61 @@ type ModelUsage struct {
 	TotalCostUSD     float64 `json:"total_cost_usd"`
 }
 
+// HelperUsage aggregates one helper identity (spawned subagent or mission
+// worker) across the window. Helper is the display form of a record's
+// attribution (see HelperKey).
+type HelperUsage struct {
+	Helper       string  `json:"helper"`
+	Generations  int     `json:"generations"`
+	InputTokens  int     `json:"input_tokens"`
+	OutputTokens int     `json:"output_tokens"`
+	TotalTokens  int     `json:"total_tokens"`
+	TotalCostUSD float64 `json:"total_cost_usd"`
+}
+
 // Summary is the full report for a window.
 type Summary struct {
-	Generations  int          `json:"generations"`
-	SinceMS      int64        `json:"since_ms"`
-	UntilMS      int64        `json:"until_ms"`
-	ByModel      []ModelUsage `json:"by_model"`
-	TotalTokens  int          `json:"total_tokens"`
-	TotalCostUSD float64      `json:"total_cost_usd"`
+	Generations  int           `json:"generations"`
+	SinceMS      int64         `json:"since_ms"`
+	UntilMS      int64         `json:"until_ms"`
+	ByModel      []ModelUsage  `json:"by_model"`
+	ByHelper     []HelperUsage `json:"by_helper,omitempty"`
+	TotalTokens  int           `json:"total_tokens"`
+	TotalCostUSD float64       `json:"total_cost_usd"`
+}
+
+// HelperKey returns the display identity of a record's attributed helper:
+// "" for records with no attribution (main session), "subagent <id>" for a
+// spawned helper, "mission <id>" for a mission-scoped record, and
+// "mission <id>/<worker>" when both are set.
+func HelperKey(r Record) string {
+	switch {
+	case r.SubagentID != "" && r.MissionID != "":
+		return "mission " + r.MissionID + "/" + r.SubagentID
+	case r.MissionID != "":
+		return "mission " + r.MissionID
+	case r.SubagentID != "":
+		return "subagent " + r.SubagentID
+	}
+	return ""
 }
 
 // Summarize aggregates records whose CreatedAtMS falls within [now-dur, now].
-// Records at or after `since` (unix ms) are included.
+// Records at or after `since` (unix ms) are included. ByHelper is populated
+// only when at least one record in the window carries helper attribution;
+// otherwise it stays nil so summaries of unattributed ledgers are unchanged.
 func Summarize(records []Record, since int64) Summary {
 	byModel := map[string]*ModelUsage{}
+	byHelper := map[string]*HelperUsage{}
 	order := []string{}
 	totalTokens, totalCost := 0, 0.0
+	generations := 0
 
 	for _, r := range records {
 		if since > 0 && r.CreatedAtMS < since {
 			continue
 		}
+		generations++
 		m, ok := byModel[r.Model]
 		if !ok {
 			m = &ModelUsage{Model: r.Model}
@@ -177,24 +218,42 @@ func Summarize(records []Record, since int64) Summary {
 		m.TotalCostUSD += r.TotalCost
 		totalTokens += r.InputTokens + r.OutputTokens + r.CacheReadTokens + r.CacheWriteTokens + r.ReasoningTokens
 		totalCost += r.TotalCost
+
+		if key := HelperKey(r); key != "" {
+			h, ok := byHelper[key]
+			if !ok {
+				h = &HelperUsage{Helper: key}
+				byHelper[key] = h
+			}
+			h.Generations++
+			h.InputTokens += r.InputTokens
+			h.OutputTokens += r.OutputTokens
+			h.TotalTokens += r.InputTokens + r.OutputTokens + r.CacheReadTokens + r.CacheWriteTokens + r.ReasoningTokens
+			h.TotalCostUSD += r.TotalCost
+		}
 	}
 
-	sum := Summary{Generations: len(recordsFor(records, since)), ByModel: make([]ModelUsage, 0, len(order)), TotalTokens: totalTokens, TotalCostUSD: totalCost}
+	sum := Summary{Generations: generations, ByModel: make([]ModelUsage, 0, len(order)), TotalTokens: totalTokens, TotalCostUSD: totalCost}
 	sort.Slice(order, func(i, j int) bool { return order[i] < order[j] })
 	for _, name := range order {
 		sum.ByModel = append(sum.ByModel, *byModel[name])
 	}
-	return sum
-}
-
-func recordsFor(records []Record, since int64) []Record {
-	var out []Record
-	for _, r := range records {
-		if since == 0 || r.CreatedAtMS >= since {
-			out = append(out, r)
+	if len(byHelper) > 0 {
+		helpers := make([]HelperUsage, 0, len(byHelper))
+		for _, h := range byHelper {
+			helpers = append(helpers, *h)
 		}
+		// Most expensive helper first; alphabetical tie-break keeps the
+		// report deterministic.
+		sort.Slice(helpers, func(i, j int) bool {
+			if helpers[i].TotalCostUSD != helpers[j].TotalCostUSD {
+				return helpers[i].TotalCostUSD > helpers[j].TotalCostUSD
+			}
+			return helpers[i].Helper < helpers[j].Helper
+		})
+		sum.ByHelper = helpers
 	}
-	return out
+	return sum
 }
 
 // ParsePeriod converts an fx-style period flag ("24h", "7d", "30d") into a

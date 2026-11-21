@@ -867,6 +867,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /v1/sessions/{id}/steer:
+    post:
+      operationId: steerSession
+      tags: [agent]
+      summary: Steer an in-flight generation
+      description: |
+        Splices a guidance message into the session's active generation. The
+        message is injected between tool batches; the run is not interrupted.
+        Requires an in-flight generation for the session.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+      responses:
+        "200":
+          description: Guidance queued for the active generation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  steered:
+                    type: boolean
+        "400":
+          description: Invalid session id or missing message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: No active generation for the session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /v1/sessions/{id}/graph:
     get:
       operationId: getSessionGraph

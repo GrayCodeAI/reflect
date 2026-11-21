@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -17,6 +18,8 @@ import (
 	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
+	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/streaming"
 	"github.com/GrayCodeAI/reflect/internal/errhint"
 	"github.com/GrayCodeAI/reflect/internal/multiagent/agents"
 	"github.com/GrayCodeAI/reflect/internal/notify"
@@ -42,6 +45,7 @@ var (
 	execFanout       int
 	execEphemeral    bool
 	execJSON         bool
+	execSteerFile    string
 )
 
 // ExitCodeError wraps a non-zero exit code so it can be returned from RunE
@@ -85,13 +89,14 @@ Supports piping from stdin, JSON output format, and autonomy levels.
 Use --ephemeral to skip session persistence (ideal for CI runs).
 Use --json for JSON output (alias for --output-format json).
 Use --output-format stream-json for newline-delimited progress events.
+Use --steer-file to feed guidance into the live run between tool batches.
 
 Autonomy Levels:
   supervised (default)  Ask for permission on every tool call
   basic                 Auto-allow read-only tools
   semi                  Auto-allow reads and writes, ask for Bash
   full                  Auto-allow everything except destructive commands
-  yolo                  Never ask for permission
+  yolo                   Never ask for permission
 
 Examples:
   reflect exec "analyze this codebase"
@@ -99,6 +104,7 @@ Examples:
   reflect exec --json "what files are in src/"
   reflect exec --ephemeral --json "run tests and report" > result.json
   echo "explain main.go" | reflect exec -
+  reflect exec --steer-file steer.txt "refactor the parser"
   reflect exec --agent reviewer "review the latest commit"
   reflect exec --model claude-sonnet-4-6 "quick fix: typo in README"`,
 	Args: cobra.MaximumNArgs(1),
@@ -119,6 +125,7 @@ func init() {
 	execCmd.Flags().StringVar(&execWorktreeName, "worktree-name", "", "Branch name for worktree (auto-generated if empty)")
 	execCmd.Flags().BoolVar(&execEphemeral, "ephemeral", false, "Skip session persistence (CI mode)")
 	execCmd.Flags().BoolVarP(&execJSON, "json", "j", false, "JSON output (alias for --output-format json)")
+	execCmd.Flags().StringVar(&execSteerFile, "steer-file", "", "Feed steering guidance from a file ('-' for live stdin lines): each non-empty line splices into the run between tool batches")
 }
 
 func runExec(_ *cobra.Command, args []string) error {
@@ -275,6 +282,14 @@ func runExec(_ *cobra.Command, args []string) error {
 
 	// Add the user prompt
 	sess.AddUser(prompt)
+
+	// Optional mid-run steering: enqueue --steer-file guidance before the
+	// run so it splices into the agent loop between tool batches.
+	if execSteerFile != "" {
+		if steerErr := pumpExecSteering(sess, execSteerFile); steerErr != nil {
+			return fmt.Errorf("--steer-file: %w", steerErr)
+		}
+	}
 
 	// Run the agent loop
 	ctx := context.Background()
@@ -459,6 +474,50 @@ func resolveExecPrompt(args []string) (string, error) {
 		return strings.TrimSpace(string(data)), nil
 	}
 	return args[0], nil
+}
+
+// --- Mid-run steering -------------------------------------------------------
+
+// steerMaxLineBytes bounds a single steering line fed via --steer-file.
+const steerMaxLineBytes = 1 << 20
+
+// pumpExecSteering enqueues steering guidance from a file (or "-" for live
+// stdin lines) onto the session's steering queue, so the agent loop splices
+// it between tool batches while the run is live. A regular file is read
+// synchronously before the run starts — its lines are queued in order and
+// drain at the first tool-batch boundary. "-" streams stdin from a goroutine
+// so an external producer can steer the run while it is in flight.
+func pumpExecSteering(sess *engine.Session, path string) error {
+	if sess == nil {
+		return nil
+	}
+	sq := sess.Persistence().Steering()
+	if sq == nil {
+		// Engine session without a steering surface: nothing to feed.
+		return nil
+	}
+	if path == "-" {
+		go pumpSteerReader(sq, os.Stdin)
+		return nil
+	}
+	f, err := os.Open(path) // #nosec G304 -- operator-supplied CLI path
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	pumpSteerReader(sq, f)
+	return nil
+}
+
+// pumpSteerReader enqueues each non-empty line of r as one steering message.
+func pumpSteerReader(sq *streaming.SteeringQueue, r io.Reader) {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 64*1024), steerMaxLineBytes)
+	for sc.Scan() {
+		if msg := strings.TrimSpace(sc.Text()); msg != "" {
+			sq.Enqueue(streaming.SteeringMessage{Content: msg})
+		}
+	}
 }
 
 // --- GitHub Actions integration ---------------------------------------------
@@ -951,6 +1010,14 @@ func execOnceInWorktree(prompt string, attemptIdx int) (*ExecResult, error) {
 	})
 
 	sess.AddUser(prompt)
+
+	// Apply the same mid-run steering as the single-run path so --steer-file
+	// does not silently no-op under --fanout.
+	if execSteerFile != "" {
+		if steerErr := pumpExecSteering(sess, execSteerFile); steerErr != nil {
+			return nil, fmt.Errorf("--steer-file: %w", steerErr)
+		}
+	}
 
 	ctx := context.Background()
 	var cancel context.CancelFunc

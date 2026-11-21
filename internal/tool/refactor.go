@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/GrayCodeAI/reflect/internal/lsp"
 )
 
 // Refactorer applies common refactoring patterns without requiring LLM calls.
@@ -19,6 +22,10 @@ import (
 // implementation needs go/ast + go/types (scope-aware resolution). Keep the
 // caller-facing contract small and verify results with a build/test before trusting
 // output on code where those edge cases matter.
+//
+// rename_symbol now prefers the language server's rename when one is configured
+// for the file's language (see RefactorTool.renameSymbol); the regex path here
+// remains the fallback and is noted in the tool output whenever it is used.
 type Refactorer struct {
 	mu sync.Mutex
 }
@@ -764,6 +771,10 @@ func FormatRefactoringResult(result *RefactoringResult) string {
 // RefactorTool exposes refactoring operations as a reflect tool.
 type RefactorTool struct {
 	refactorer *Refactorer
+	// Manager, when set, lets rename_symbol resolve targets through the
+	// language server configured for the file's language (scope-aware and
+	// workspace-wide) instead of the regex-based single-file fallback.
+	Manager *lsp.LSPManager
 }
 
 // NewRefactorTool creates a RefactorTool with its own Refactorer instance.
@@ -853,7 +864,7 @@ func (rt RefactorTool) Execute(ctx context.Context, input json.RawMessage) (stri
 		if p.OldName == "" || p.NewName == "" {
 			return "", fmt.Errorf("old_name and new_name are required for rename_symbol")
 		}
-		result, err = ref.RenameSymbol(p.File, p.OldName, p.NewName)
+		result, err = rt.renameSymbol(ctx, p.File, p.OldName, p.NewName)
 
 	case "inline_variable":
 		if p.Line == 0 {
@@ -903,6 +914,73 @@ func (rt RefactorTool) Execute(ctx context.Context, input json.RawMessage) (stri
 	}
 
 	return FormatRefactoringResult(result), nil
+}
+
+// renameSymbol renames a symbol, preferring the language server's rename
+// (scope-aware and workspace-wide) when one is available for the file's
+// language, and falling back to the regex-based single-file RenameSymbol
+// otherwise. Whenever the fallback runs, the result (or error) notes why the
+// language server was not used.
+func (rt RefactorTool) renameSymbol(ctx context.Context, file, oldName, newName string) (*RefactoringResult, error) {
+	if rt.Manager != nil {
+		cfg := rt.Manager.Config()
+		if cfg != nil {
+			if _, _, ok := cfg.ServerForFile(file); ok {
+				outcome, err := lspRenameEdits(ctx, rt.Manager, file, 0, 0, oldName, newName, false)
+				if err != nil {
+					// The language-server attempt failed before anything was
+					// written, so the regex fallback below is safe to try.
+					return rt.renameSymbolFallback(file, oldName, newName, err)
+				}
+				// Apply failures (permissions, protected paths, credentials)
+				// must not be masked by the fallback: propagate them.
+				if _, err := applyWorkspaceEdit(ctx, outcome.Edit); err != nil {
+					return nil, err
+				}
+				return &RefactoringResult{
+					File:    file,
+					Changes: outcome.Edits,
+					Type:    "rename_symbol",
+					Description: fmt.Sprintf("Renamed %q to %q via language-server rename (%d edit(s) across %d file(s))",
+						outcome.OldName, newName, outcome.Edits, outcome.Files),
+				}, nil
+			}
+			return rt.renameSymbolFallback(file, oldName, newName, fmt.Errorf("no language server configured for %s files", filepath.Ext(file)))
+		}
+		return rt.renameSymbolFallback(file, oldName, newName, fmt.Errorf("language-server manager has no configuration"))
+	}
+	return rt.renameSymbolFallback(file, oldName, newName, nil)
+}
+
+// renameSymbolFallback applies the regex-based single-file rename and
+// annotates the result (and any failure) with why the language server was
+// not used. cause may be nil when no language server was even attempted.
+func (rt RefactorTool) renameSymbolFallback(file, oldName, newName string, cause error) (*RefactoringResult, error) {
+	result, err := rt.refactorer.RenameSymbol(file, oldName, newName)
+	if err != nil {
+		if cause != nil {
+			return nil, fmt.Errorf("language-server rename unavailable (%s); regex fallback failed: %w", oneLineClip(cause.Error(), 120), err)
+		}
+		return nil, err
+	}
+	note := "regex fallback"
+	if cause != nil {
+		note += ": " + oneLineClip(cause.Error(), 120)
+	}
+	result.Description = fmt.Sprintf("%s — %s", result.Description, note)
+	return result, nil
+}
+
+// oneLineClip returns the first line of msg, clipped to at most max runes.
+func oneLineClip(msg string, max int) string {
+	if idx := strings.IndexByte(msg, '\n'); idx >= 0 {
+		msg = msg[:idx]
+	}
+	runes := []rune(msg)
+	if len(runes) > max {
+		return string(runes[:max]) + "…"
+	}
+	return msg
 }
 
 // Ensure RefactorTool satisfies Tool interface at compile time.

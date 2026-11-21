@@ -27,6 +27,7 @@ import (
 	"github.com/GrayCodeAI/reflect/internal/engine/safety"
 
 	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/streaming"
 	"github.com/GrayCodeAI/reflect/internal/netutil"
 	"github.com/GrayCodeAI/reflect/internal/observability/metrics"
 	"github.com/GrayCodeAI/reflect/internal/securitylog"
@@ -129,6 +130,12 @@ type Server struct {
 	// POST /v1/cancel to abort an in-flight generation (H10).
 	cancelMu sync.Mutex
 	cancels  map[string]*cancelEntry
+	// steerMu guards steerers, the sessionID -> steering-queue mapping used
+	// by POST /v1/sessions/{id}/steer to splice guidance into an in-flight
+	// generation. Like cancels, entries live for the duration of the
+	// generation only.
+	steerMu  sync.Mutex
+	steerers map[string]*streaming.SteeringQueue
 	// reviewWG tracks in-flight `reflect review run` subprocesses spawned by
 	// POST /v1/review so Stop can wait for them.
 	reviewWG sync.WaitGroup
@@ -263,6 +270,7 @@ func New(cfg Config, factory SessionFactory) *Server {
 		apiKey:         cfg.APIKey,
 		concurrencySem: make(chan struct{}, maxConcurrentFromEnv()),
 		cancels:        make(map[string]*cancelEntry),
+		steerers:       make(map[string]*streaming.SteeringQueue),
 		apiLimiter:     newIPLimiter(defaultAPIRatePerMin/60, defaultAPIBurst),
 		chatLimiter:    newIPLimiter(defaultChatRatePerMin/60, defaultChatBurst),
 		metrics:        metrics.NewRegistry(),
@@ -481,6 +489,7 @@ func (s *Server) routes() {
 	s.handle("GET /v1/ready", s.handleReady)
 	s.handle("POST /v1/chat", s.auth(s.rate(s.handleChat, s.chatLimiter)))
 	s.handle("POST /v1/cancel", s.auth(s.rate(s.handleCancel, s.apiLimiter)))
+	s.handle("POST /v1/sessions/{id}/steer", s.auth(s.rate(s.handleSteer, s.apiLimiter)))
 	s.handle("GET /v1/sessions", s.auth(s.rate(s.handleListSessions, s.apiLimiter)))
 	s.handle("GET /v1/sessions/{id}", s.auth(s.rate(s.handleGetSession, s.apiLimiter)))
 	s.handle("GET /v1/sessions/{id}/messages", s.auth(s.rate(s.handleGetMessages, s.apiLimiter)))
@@ -555,6 +564,27 @@ func (s *Server) cancelSession(sessionID string) bool {
 	}
 	e.cancel()
 	return true
+}
+
+// registerSteerer records the steering queue of a session's in-flight
+// generation so POST /v1/sessions/{id}/steer can splice guidance into it.
+func (s *Server) registerSteerer(sessionID string, sq *streaming.SteeringQueue) {
+	if sq == nil {
+		return
+	}
+	s.steerMu.Lock()
+	s.steerers[sessionID] = sq
+	s.steerMu.Unlock()
+}
+
+// unregisterSteerer removes a session's steering entry; it is a no-op when the
+// generation was replaced by a newer one holding a different queue.
+func (s *Server) unregisterSteerer(sessionID string, sq *streaming.SteeringQueue) {
+	s.steerMu.Lock()
+	if s.steerers[sessionID] == sq {
+		delete(s.steerers, sessionID)
+	}
+	s.steerMu.Unlock()
 }
 
 // maxConcurrentFromEnv reads REFLECT_DAEMON_MAX_CONCURRENT (clamped to >= 1) so
@@ -857,6 +887,12 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	genCtx, genCancel := context.WithCancel(r.Context())
 	s.registerCancel(sessionID, genCancel)
 	defer s.unregisterCancel(sessionID, genCancel)
+	// Expose the live generation's steering queue so POST
+	// /v1/sessions/{id}/steer can splice guidance into this run. Same
+	// lifetime as the cancel entry.
+	steerSQ := sess.Persistence().Steering()
+	s.registerSteerer(sessionID, steerSQ)
+	defer s.unregisterSteerer(sessionID, steerSQ)
 
 	events, err := sess.Stream(genCtx)
 	if err != nil {
@@ -1045,6 +1081,42 @@ func (s *Server) handleCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"cancelled": true})
+}
+
+// SteerRequest is the JSON body for POST /v1/sessions/{id}/steer.
+type SteerRequest struct {
+	Message string `json:"message"`
+}
+
+// handleSteer splices a guidance message into the in-flight generation for a
+// session: the message is queued on the generation's steering queue and the
+// agent loop injects it between tool batches. Like handleCancel it must not
+// take the per-session stripe lock — handleChat holds that lock for the whole
+// generation, so taking it here would deadlock.
+func (s *Server) handleSteer(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" || !validSessionID(id) {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "invalid session id", Code: "invalid_id"})
+		return
+	}
+	var req SteerRequest
+	if !decodeJSONBody(w, r, &req) {
+		return
+	}
+	msg := strings.TrimSpace(req.Message)
+	if msg == "" {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "message is required", Code: "invalid_message"})
+		return
+	}
+	s.steerMu.Lock()
+	sq := s.steerers[id]
+	s.steerMu.Unlock()
+	if sq == nil {
+		writeJSON(w, http.StatusNotFound, ErrorResponse{Error: "no active generation for session", Code: "no_active_generation"})
+		return
+	}
+	sq.Enqueue(streaming.SteeringMessage{Content: msg})
+	writeJSON(w, http.StatusOK, map[string]bool{"steered": true})
 }
 
 func newSessionID() (string, error) {

@@ -268,6 +268,10 @@ func (m chatModel) handleStreamDone() (tea.Model, tea.Cmd) {
 	m.backgrounded = false
 	m.notifiedComplete = false
 
+	// Steering the finished run never consumed (e.g. a conversational turn
+	// with no tool batches) becomes a deferred turn so it is never lost.
+	m.reclaimUnconsumedSteering()
+
 	if len(m.messageQueue) > 0 {
 		nextMsg := m.messageQueue[0]
 		m.messageQueue = m.messageQueue[1:]

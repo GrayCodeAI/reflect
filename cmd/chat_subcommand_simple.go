@@ -593,10 +593,17 @@ func init() {
 					m.messages = append(m.messages, displayMsg{role: "error", content: "Prompt cannot be empty"})
 					return m, nil
 				}
+				// A live run takes the guidance immediately via steering; an
+				// idle session persists it for the next run's steering splice
+				// (consumed by drainPersistedPromptQueue at stream start).
+				if m.waiting && m.steerActiveRun(prompt) {
+					m.messages = append(m.messages, displayMsg{role: "system", content: fmt.Sprintf("%s Steered into the active run: %s", icons.Bolt(), prompt)})
+					return m, nil
+				}
 				if err := tool.EnqueuePrompt(prompt, ""); err != nil {
 					m.messages = append(m.messages, displayMsg{role: "error", content: fmt.Sprintf("Failed to queue prompt: %v", err)})
 				} else {
-					m.messages = append(m.messages, displayMsg{role: "system", content: "Prompt queued."})
+					m.messages = append(m.messages, displayMsg{role: "system", content: "Prompt queued — it steers the next run."})
 				}
 				return m, nil
 			case "list", "ls":

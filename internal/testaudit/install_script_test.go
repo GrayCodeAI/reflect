@@ -235,6 +235,40 @@ func TestInstallScriptWithoutCosignVerifiesChecksumAndWarns(t *testing.T) {
 	}
 }
 
+func TestInstallScriptFailedUpgradeKeepsLauncher(t *testing.T) {
+	f := newInstallFixture(t)
+	f.addRelease(installTestVersion, "linux", "amd64")
+	f.requireInstalled(f.run("--version", installTestVersion, "--prefix", f.prefix), f.prefix, installTestVersion)
+
+	binDir := filepath.Join(f.prefix, "bin")
+	f.env["LAUNCHER"] = filepath.Join(binDir, "reflect")
+	f.env["REAL_MV"] = filepath.Join(f.toolDir, "mv")
+	f.writeStub("mv", `#!/bin/sh
+for dest do :; done
+if [ "$dest" = "$LAUNCHER" ]; then exit 1; fi
+exec "$REAL_MV" "$@"
+`)
+	f.addRelease("0.3.1", "linux", "amd64")
+	if result := f.run("--version", "0.3.1", "--prefix", f.prefix); result.exitCode == 0 {
+		t.Fatal("installer reported success after launcher replacement failed")
+	}
+	target, err := os.Readlink(f.env["LAUNCHER"])
+	if err != nil || target != "reflect-"+installTestVersion {
+		t.Fatalf("previous launcher = %q, %v", target, err)
+	}
+	entries, err := os.ReadDir(binDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		switch entry.Name() {
+		case "reflect", "reflect-" + installTestVersion, "reflect-0.3.1":
+		default:
+			t.Errorf("incomplete install left %q behind", entry.Name())
+		}
+	}
+}
+
 func TestInstallScriptRequireCosignFailsClosed(t *testing.T) {
 	f := newInstallFixture(t)
 	f.addRelease(installTestVersion, "linux", "amd64")

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/GrayCodeAI/reflect/internal/textutil"
 )
 
 type workTicket struct {
@@ -47,6 +49,7 @@ var (
 	workRallyBin    string
 	workRivetBin    string
 	workVerifyBlock string
+	workFixRounds   int
 	workRecallStore string
 	workRallyData   string
 	workRequest     string
@@ -62,9 +65,11 @@ var workCmd = &cobra.Command{
 commit the changes, verify the exact commit, and create a Record checkpoint.
 
 The worktree and branch remain available for review. Supply a verification command
-or a committed Rivet block; it runs after the agent exits. Pass --pr to push
-the verified branch and open a draft PR. Resolve, Record, Recall, and Rally
-must be installed as CLIs.`,
+or a committed Rivet block; it runs after the agent exits. With --fix-rounds N,
+a failed verification retries: Reflect runs again in the same worktree with the
+failure output appended to its prompt, the fix is committed, and the verification
+re-runs, up to N times. Pass --pr to push the verified branch and open a draft
+PR. Resolve, Record, Recall, and Rally must be installed as CLIs.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runWork,
 }
@@ -73,6 +78,7 @@ func init() {
 	workCmd.Flags().StringVar(&workRepo, "repo", ".", "Git repository containing the Resolve ticket")
 	workCmd.Flags().StringVar(&workVerify, "verify", "", "verification command to run in the worktree (or use --verify-block)")
 	workCmd.Flags().StringVar(&workVerifyBlock, "verify-block", "", "Rivet block to verify and run after the agent commits")
+	workCmd.Flags().IntVar(&workFixRounds, "fix-rounds", 0, "on failed --verify, retry with up to N fix sessions in the worktree before failing (0 disables; applies to --verify only)")
 	workCmd.Flags().StringVar(&workRivetBin, "rivet-bin", "", "path to the Rivet CLI; also routes --verify output through Rivet")
 	workCmd.Flags().StringVar(&workAuto, "auto", "semi", "Reflect exec autonomy level (semi or full)")
 	workCmd.Flags().StringVar(&workModel, "model", "", "model override for Reflect exec")
@@ -238,11 +244,7 @@ func runWork(cmd *cobra.Command, args []string) (runErr error) {
 		return err
 	}
 	prompt := workPrompt(ticket, verificationLabel, memories)
-	agentArgs := []string{"exec", "--cwd", worktree, "--auto", workAuto, "--json"}
-	if workModel != "" {
-		agentArgs = append(agentArgs, "--model", workModel)
-	}
-	agentArgs = append(agentArgs, prompt)
+	agentArgs := workAgentArgs(worktree, workAuto, workModel, prompt)
 	var result ExecResult
 	if err := workAgentJSON(cmd.Context(), self, agentArgs, &result); err != nil {
 		return fmt.Errorf("agent run failed (Reflect, worktree retained at %s): %w", worktree, err)
@@ -289,10 +291,30 @@ func runWork(cmd *cobra.Command, args []string) (runErr error) {
 		verification += "; raw log " + logPath
 		cmd.Printf("Verification log: %s\n", logPath)
 	} else {
-		verify := workVerificationCommand(cmd.Context(), workVerify)
-		verify.Dir, verify.Stdout, verify.Stderr = worktree, cmd.OutOrStdout(), cmd.ErrOrStderr()
-		if err := verify.Run(); err != nil {
-			return fmt.Errorf("verification failed for %s (worktree retained at %s): %w", commit, worktree, err)
+		spec := workFixSpec{
+			Self:      self,
+			Worktree:  worktree,
+			Auto:      workAuto,
+			Model:     workModel,
+			Command:   workVerify,
+			Ticket:    ticket,
+			FixRounds: workFixRounds,
+			Commit:    commit,
+		}
+		verifyCtx := cmd.Context()
+		verified, rounds, err := workVerifyFixRounds(cmd, spec,
+			func() (string, error) {
+				return workRunVerification(verifyCtx, spec.Worktree, spec.Command, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			},
+			func(round int, output string) (string, error) {
+				return workFixSession(verifyCtx, cmd, spec, round, workFixPrompt(spec.Ticket, spec.Command, output))
+			})
+		if err != nil {
+			return err
+		}
+		commit = verified
+		if rounds > 0 {
+			verification = fmt.Sprintf("%s: passed after %d fix round(s)", verificationLabel, rounds)
 		}
 	}
 	clean, err := workGit(worktree, "status", "--porcelain")
@@ -416,6 +438,128 @@ func workVerificationCommand(ctx context.Context, command string) *exec.Cmd {
 	}
 	//nolint:gosec // G204: verification command is operator-provided
 	return exec.CommandContext(ctx, "sh", "-c", command)
+}
+
+// workAgentArgs builds the exec invocation for an agent (or fix) session in
+// the ticket worktree.
+func workAgentArgs(worktree, auto, model, prompt string) []string {
+	args := []string{"exec", "--cwd", worktree, "--auto", auto, "--json"}
+	if model != "" {
+		args = append(args, "--model", model)
+	}
+	return append(args, prompt)
+}
+
+// workRunVerification runs the verification command once in worktree,
+// streaming combined output to the operator while capturing it so a failed
+// pass can be quoted back to the fix session.
+func workRunVerification(ctx context.Context, worktree, command string, stdout, stderr io.Writer) (string, error) {
+	var captured bytes.Buffer
+	verify := workVerificationCommand(ctx, command)
+	verify.Dir = worktree
+	verify.Stdout = io.MultiWriter(stdout, &captured)
+	verify.Stderr = io.MultiWriter(stderr, &captured)
+	err := verify.Run()
+	return captured.String(), err
+}
+
+// workFixSpec carries the state the verify/fix loop needs across rounds.
+type workFixSpec struct {
+	Self      string     // reflect binary used to start fix sessions
+	Worktree  string     // the ticket worktree; fix sessions run here
+	Auto      string     // autonomy level for fix sessions
+	Model     string     // optional model override for fix sessions
+	Command   string     // verification command being retried
+	Ticket    workTicket // ticket the fix rounds belong to
+	FixRounds int        // total fix sessions allowed; 0 keeps single-pass verify
+	Commit    string     // commit under verification; advances with fix commits
+}
+
+// workFixPrompt builds the follow-up session prompt for one fix round: the
+// original ticket plus the failed verification command and its output.
+func workFixPrompt(t workTicket, command, output string) string {
+	return fmt.Sprintf(
+		"The verification command for this worktree failed. Fix the code so the verification command passes.\n\n"+
+			"Work ID: %s\nTitle: %s\nDescription:\n%s\n\n"+
+			"Verification command: %s\n\nFailed verification output:\n%s\n\n"+
+			"Make the smallest complete change that makes the verification pass. "+
+			"Do not commit or create a pull request; the runner will verify and commit the result.",
+		t.ID, t.Title, t.Body, command, textutil.TruncateAppend(strings.TrimSpace(output), 4000),
+	)
+}
+
+// workVerifyFixRounds verifies the committed worktree and, while fix rounds
+// remain, retries: fix runs one fix session for the given round (returning
+// the new HEAD), then the loop re-verifies. It returns the verified commit
+// and the number of fix rounds used; a final failing round returns an error
+// naming the worktree so the operator can inspect it.
+func workVerifyFixRounds(cmd *cobra.Command, spec workFixSpec, verify func() (string, error), fix func(round int, output string) (string, error)) (string, int, error) {
+	for round := 0; ; round++ {
+		output, verifyErr := verify()
+		if verifyErr == nil {
+			if round > 0 {
+				cmd.Printf("Fix round %d/%d: verification passed\n", round, spec.FixRounds)
+			}
+			return spec.Commit, round, nil
+		}
+		if round >= spec.FixRounds {
+			if round > 0 {
+				cmd.Printf("Fix round %d/%d: verification still failing\n", round, spec.FixRounds)
+			}
+			return "", round, fmt.Errorf("verification failed for %s (worktree retained at %s): %w", spec.Commit, spec.Worktree, verifyErr)
+		}
+		cmd.Printf("Verification failed; starting fix round %d/%d\n", round+1, spec.FixRounds)
+		head, fixErr := fix(round+1, output)
+		if fixErr != nil {
+			return "", round, fixErr
+		}
+		spec.Commit = head
+	}
+}
+
+// workFixSession runs one fix round in the worktree: a follow-up exec session
+// whose prompt carries the failed verification output, then a commit of
+// whatever it changed so the next verification pass refers to a stable,
+// exact commit. It returns the new HEAD.
+func workFixSession(ctx context.Context, cmd *cobra.Command, spec workFixSpec, round int, prompt string) (string, error) {
+	var result ExecResult
+	if err := workAgentJSON(ctx, spec.Self, workAgentArgs(spec.Worktree, spec.Auto, spec.Model, prompt), &result); err != nil {
+		return "", fmt.Errorf("fix round %d failed (Reflect, worktree retained at %s): %w", round, spec.Worktree, err)
+	}
+	if result.ExitCode != 0 {
+		return "", fmt.Errorf("fix round %d exited %d (Reflect, worktree retained at %s)", round, result.ExitCode, spec.Worktree)
+	}
+	if _, err := workGit(spec.Worktree, "add", "-A"); err != nil {
+		return "", err
+	}
+	changed, err := workGit(spec.Worktree, "diff", "--cached", "--name-only")
+	if err != nil {
+		return "", err
+	}
+	if changed != "" {
+		message := fmt.Sprintf("resolve %s: %s (fix round %d)", spec.Ticket.ID, spec.Ticket.Title, round)
+		if _, err := workGit(spec.Worktree, "commit", "-m", message); err != nil {
+			return "", fmt.Errorf("commit fix round %d (worktree retained at %s): %w", round, spec.Worktree, err)
+		}
+	}
+	head, err := workGit(spec.Worktree, "rev-parse", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	if changed == "" {
+		cmd.Printf("Fix round %d/%d: no changes from fix session\n", round, spec.FixRounds)
+	} else {
+		cmd.Printf("Fix round %d/%d: committed %s\n", round, spec.FixRounds, workGitShort(head))
+	}
+	return head, nil
+}
+
+// workGitShort renders the first 7 characters of a commit SHA for display.
+func workGitShort(commit string) string {
+	if len(commit) > 7 {
+		return commit[:7]
+	}
+	return commit
 }
 
 func workRivetVerify(ctx context.Context, binary, worktree, logDir, command, block string, stdout, stderr io.Writer) (string, error) {

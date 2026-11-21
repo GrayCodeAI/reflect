@@ -82,11 +82,15 @@ func TestChatModel_MultiTurnQueuedConversationE2E(t *testing.T) {
 	m.input.SetValue("second question")
 	result, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = requireChatModel(t, result)
-	if len(m.messageQueue) != 1 || m.messageQueue[0] != "second question" {
-		t.Fatalf("queued messages = %v, want [second question]", m.messageQueue)
+	if len(m.messageQueue) != 0 {
+		t.Fatalf("deferred queue should stay empty while steering is live, got %v", m.messageQueue)
 	}
-	if got := lastSystemMessage(m.messages); !strings.Contains(got, "Queued: second question") {
-		t.Fatalf("expected queued message notice, got %q", got)
+	sq := m.session.Persistence().Steering()
+	if sq == nil || !sq.HasPending() {
+		t.Fatal("second question should be steered into the live run")
+	}
+	if got := lastSystemMessage(m.messages); !strings.Contains(got, "Steering active run: second question") {
+		t.Fatalf("expected steering notice, got %q", got)
 	}
 
 	result, _ = m.Update(streamChunkMsg("I fixed the failing test in auth_test.go"))

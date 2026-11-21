@@ -15,8 +15,10 @@ import (
 
 	reflectconfig "github.com/GrayCodeAI/reflect/internal/config"
 	"github.com/GrayCodeAI/reflect/internal/engine"
+	"github.com/GrayCodeAI/reflect/internal/engine/streaming"
 	"github.com/GrayCodeAI/reflect/internal/features/shellmode"
 	"github.com/GrayCodeAI/reflect/internal/session"
+	"github.com/GrayCodeAI/reflect/internal/tool"
 	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
@@ -152,4 +154,83 @@ func (m chatModel) submitUserMessage() (chatModel, tea.Cmd) {
 	m.partial.Reset()
 	m.startStream()
 	return m, tea.Batch(m.spinner.Tick, spinnerVerbTickCmd())
+}
+
+// --- Mid-run steering -------------------------------------------------------
+
+// steerActiveRun enqueues text on the session's steering queue so the engine
+// splices it into the live generation between tool batches (the same queue
+// the schedule manager feeds; see the drain point in engine stream.go). It
+// returns false when no session or steering queue is available, leaving the
+// caller on the legacy deferred-turn queue.
+func (m chatModel) steerActiveRun(text string) bool {
+	if m.session == nil {
+		return false
+	}
+	p := m.session.Persistence()
+	if p == nil {
+		return false
+	}
+	sq := p.Steering()
+	if sq == nil {
+		return false
+	}
+	sq.Enqueue(streaming.SteeringMessage{Content: text})
+	return true
+}
+
+// reclaimUnconsumedSteering returns steering messages still pending after a
+// run ended without draining them (e.g. a purely conversational turn with no
+// tool batches) to the deferred message queue, so the existing stream-done
+// auto-submit path delivers them instead of stranding them for an unrelated
+// future run.
+func (m *chatModel) reclaimUnconsumedSteering() {
+	if m.session == nil {
+		return
+	}
+	p := m.session.Persistence()
+	if p == nil {
+		return
+	}
+	sq := p.Steering()
+	if sq == nil {
+		return
+	}
+	for _, msg := range sq.Drain() {
+		if content := strings.TrimSpace(msg.Content); content != "" {
+			m.enqueueMessage(content)
+		}
+	}
+}
+
+// drainPersistedPromptQueue feeds persisted /prompt-queue items into the live
+// steering queue as a run starts. This is the persisted queue's consumer:
+// prompts queued while idle splice into the next generation between tool
+// batches (or resurface as follow-up turns via reclaimUnconsumedSteering
+// when the run ends without tool batches).
+func (m *chatModel) drainPersistedPromptQueue() {
+	if m.session == nil {
+		return
+	}
+	p := m.session.Persistence()
+	if p == nil {
+		return
+	}
+	sq := p.Steering()
+	if sq == nil {
+		return
+	}
+	for {
+		item, err := tool.DequeuePrompt()
+		if err != nil {
+			// Persisted queue state is unreadable; skip rather than fail the run.
+			return
+		}
+		if item == nil {
+			return
+		}
+		if content := strings.TrimSpace(item.Prompt); content != "" {
+			sq.Enqueue(streaming.SteeringMessage{Content: content})
+		}
+	}
 }
