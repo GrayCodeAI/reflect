@@ -11,7 +11,6 @@ import (
 	contracts "github.com/GrayCodeAI/reflect/internal/contracts/policy"
 	"github.com/GrayCodeAI/reflect/internal/engine"
 	"github.com/GrayCodeAI/reflect/internal/engine/safety"
-	"github.com/GrayCodeAI/reflect/internal/ui/icons"
 )
 
 func TestToolActivityMatchesConcurrentResultsByID(t *testing.T) {
@@ -31,7 +30,7 @@ func TestToolActivityMatchesConcurrentResultsByID(t *testing.T) {
 		t.Fatal("another tool is still active")
 	}
 	got := stripANSI(m.assembleViewportContent(80))
-	if !strings.Contains(got, "! Read  slow.go") || !strings.Contains(got, "· Read  fast.go") {
+	if !strings.Contains(got, "1 failed · 1 running · Read 2 files") || !strings.Contains(got, "Error: missing file") {
 		t.Fatalf("tool activity cache was stale: %s", got)
 	}
 	next, _ = m.handleToolResult(toolResultMsg{name: "Read", id: "fast", state: engine.ToolStateCompleted, content: "package main"})
@@ -39,7 +38,7 @@ func TestToolActivityMatchesConcurrentResultsByID(t *testing.T) {
 	if m.activeToolName() != "" || !m.toolStartTime.IsZero() {
 		t.Fatal("completed tools left a live activity label")
 	}
-	if got := stripANSI(m.assembleViewportContent(80)); !strings.Contains(got, icons.Check()+" Read  fast.go") {
+	if got := stripANSI(m.assembleViewportContent(80)); !strings.Contains(got, "1 failed · Read 2 files") || strings.Contains(got, "running") || strings.Contains(got, "package main") {
 		t.Fatalf("completion was not rendered: %s", got)
 	}
 }

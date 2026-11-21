@@ -10,6 +10,7 @@ import (
 
 func setupTestProject(t *testing.T) string {
 	t.Helper()
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	dir := t.TempDir()
 	run(t, dir, "git", "init")
 	run(t, dir, "git", "config", "user.email", "test@test.com")
@@ -20,6 +21,57 @@ func setupTestProject(t *testing.T) string {
 	run(t, dir, "git", "add", ".")
 	run(t, dir, "git", "commit", "-m", "initial")
 	return dir
+}
+
+func TestTrackerSeparatesProjectHistory(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
+	projectA, projectB := t.TempDir(), t.TempDir()
+	for _, dir := range []string{projectA, projectB} {
+		if err := os.WriteFile(filepath.Join(dir, "project.txt"), []byte(dir), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first, second := New(projectA), New(projectB)
+	if err := first.Init(); err != nil {
+		t.Fatal(err)
+	}
+	hash, err := first.Track("first project")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Init(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := second.Track("second project"); err != nil {
+		t.Fatal(err)
+	}
+	history, err := New(projectA).History(10)
+	if err != nil || len(history) != 1 || history[0].Hash != hash {
+		t.Fatalf("unexpected history for first project: %+v, %v", history, err)
+	}
+	if err := second.Restore(hash); err == nil {
+		t.Fatal("second project accepted the first project's snapshot")
+	}
+	data, err := os.ReadFile(filepath.Join(projectB, "project.txt"))
+	if err != nil || string(data) != projectB {
+		t.Fatalf("second project changed: %q, %v", data, err)
+	}
+}
+
+func TestTrackerFirstEmptySnapshot(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
+	tracker := New(t.TempDir())
+	if err := tracker.Init(); err != nil {
+		t.Fatal(err)
+	}
+	hash, err := tracker.Track("empty project")
+	if err != nil || hash == "" {
+		t.Fatalf("initial snapshot = %q, %v", hash, err)
+	}
+	next, err := tracker.Track("still empty")
+	if err != nil || next != hash {
+		t.Fatalf("unchanged snapshot = %q, %v; want %q", next, err, hash)
+	}
 }
 
 func run(t *testing.T, dir, name string, args ...string) {

@@ -78,6 +78,9 @@ func (m *chatModel) startStream() {
 		m.testStreamStarter()
 		return
 	}
+	// The persisted /prompt-queue finally has a consumer: items queued while
+	// idle splice into this run between tool batches via the steering queue.
+	m.drainPersistedPromptQueue()
 	m.streamCancelled = false
 	m.syncSessionSelection()
 	// Cancel any prior in-flight stream first: overwriting m.cancel would

@@ -1,8 +1,9 @@
 // Package repomap is the prompt-injection shim that produces a token-budgeted
 // repository overview for reflect's context layer. It builds an import/refer
-// graph over the source files in root, ranks the nodes with a PageRank
-// pass, and renders the highest-ranked files (and their top symbols) as a
-// compact text block capped at Options.Budget tokens.
+// graph over the source files in root, ranks the nodes with a PageRank pass
+// weighted by a bounded git-churn multiplier, and renders the highest-ranked
+// files (and their top symbols) as a compact text block capped at
+// Options.Budget tokens.
 //
 // # Relationship to internal/intelligence/repomap
 //
@@ -29,7 +30,10 @@
 // well-known build/vendor trees are skipped during the scan. The
 // PageRank pass uses the standard damped iteration with dangling-mass
 // redistribution and exits early once the total node-to-node delta
-// drops below 1e-9.
+// drops below 1e-9. The resulting score is then multiplied by a
+// git-churn factor in [1, 2] derived from the last 500 commits
+// (see churn.go); non-git directories fall back to the plain
+// PageRank ordering.
 package repomap
 
 import (
@@ -50,7 +54,10 @@ type FileNode struct {
 	Lang    string   // detected language ("go", "python", ...)
 	Symbols []Symbol // extracted symbols, in source order
 	Imports []string // raw import/reference targets (module paths, file refs)
-	Rank    float64  // PageRank score (filled in by Rank)
+	// Rank is the combined importance score: the import-graph PageRank
+	// (filled in by Rank), optionally scaled by a git-churn multiplier
+	// (ApplyChurn).
+	Rank float64
 }
 
 // Graph is the in-memory representation of a scanned repository.
@@ -83,6 +90,12 @@ const (
 // RepoMap scans root, ranks files, and returns a compact map string within the
 // given token budget. A budget <= 0 uses DefaultBudget.
 //
+// Ranking combines the import-graph PageRank pass with a bounded git-churn
+// multiplier: files touched often in the last DefaultChurnCommits commits are
+// boosted (up to 2x) relative to their PageRank score. Outside a git repo, or
+// on any git error, churn contributes nothing and the ordering is the pure
+// PageRank result.
+//
 // This is the primary entry point requested by the context layer.
 func RepoMap(root string, budget int) (string, error) {
 	g, err := Build(root)
@@ -90,6 +103,7 @@ func RepoMap(root string, budget int) (string, error) {
 		return "", err
 	}
 	g.Rank()
+	g.ApplyChurn(ChurnMultipliers(GitChurn(root, DefaultChurnCommits)))
 	return g.Render(Options{Budget: budget}), nil
 }
 

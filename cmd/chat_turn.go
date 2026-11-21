@@ -14,8 +14,12 @@ func turnHadThinkingOnly(messages []displayMsg) bool {
 func stripCurrentTurnThinking(messages []displayMsg) []displayMsg {
 	clean := chatfeature.StripCurrentTurnThinking(toFeatureMessages(messages))
 	out := make([]displayMsg, 0, len(clean))
-	for _, message := range clean {
-		out = append(out, displayMsg{role: message.Role, content: message.Content})
+	// The policy only removes entries. Select its ordered subsequence from
+	// the originals so call IDs, outcomes, and interactive metadata survive.
+	for _, original := range messages {
+		if len(out) < len(clean) && original.role == clean[len(out)].Role && original.content == clean[len(out)].Content {
+			out = append(out, original)
+		}
 	}
 	return out
 }

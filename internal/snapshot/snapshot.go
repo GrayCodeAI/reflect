@@ -2,6 +2,7 @@ package snapshot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -38,13 +39,14 @@ type FileDiff struct {
 }
 
 // New creates a Tracker for the given project directory.
-// The shadow git repository lives under Reflect's user state snapshots directory
-// rather than under projectDir, so that running reflect from inside a Go project
-// root no longer creates a nested <cwd>/cmd/.reflect/ tree at runtime.
+// Each project has its own Git history under Reflect's state directory.
 func New(projectDir string) *Tracker {
+	if abs, err := filepath.Abs(projectDir); err == nil {
+		projectDir = abs
+	}
 	return &Tracker{
 		projectDir: projectDir,
-		shadowDir:  storage.WorkspaceSnapshotsDir(),
+		shadowDir:  filepath.Join(storage.ProjectStateDir(projectDir), "snapshots"),
 	}
 }
 
@@ -97,15 +99,23 @@ func (t *Tracker) TrackCtx(ctx context.Context, message string) (string, error) 
 	}
 
 	// Add all files from project dir
-	if err := t.gitWorkCtx(ctx, "add", "--all", t.projectDir); err != nil {
+	if err := t.gitWorkCtx(ctx, "add", "--all", "--", t.projectDir); err != nil {
 		return "", fmt.Errorf("add: %w", err)
 	}
 
-	// Check if there are changes to commit
-	if err := t.gitWorkCtx(ctx, "diff", "--cached", "--quiet"); err == nil {
-		// No changes — return current HEAD
-		out, _ := t.gitWorkOutputCtx(ctx, "rev-parse", "--short", "HEAD")
-		return strings.TrimSpace(out), nil
+	err := t.gitWorkCtx(ctx, "diff", "--cached", "--quiet")
+	if err == nil {
+		var head string
+		head, err = t.gitWorkOutputCtx(ctx, "rev-parse", "--verify", "--quiet", "--short", "HEAD")
+		if err == nil {
+			return strings.TrimSpace(head), nil
+		}
+	}
+	// diff exits 1 for staged changes. rev-parse --verify --quiet exits 1
+	// for a new repository, which still needs a commit for an empty project.
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
+		return "", fmt.Errorf("check snapshot state: %w", err)
 	}
 
 	// Commit

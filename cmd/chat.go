@@ -374,7 +374,7 @@ func newChatModelWithRegistry(ref *progRef, systemPrompt string, settings reflec
 
 	if saved != nil {
 		for _, message := range sessionfeature.Hydrate(saved).Display {
-			m.messages = append(m.messages, displayMsg{role: message.Role, content: message.Content})
+			m.messages = append(m.messages, displayFromHydrated(message))
 		}
 	}
 

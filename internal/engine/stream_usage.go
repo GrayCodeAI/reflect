@@ -99,7 +99,10 @@ func (s *Session) recordStreamUsage(ch chan<- StreamEvent, providerUsage *types.
 		})
 	}
 
-	// Record this generation in the persistent usage ledger (fx `usage` parity).
+	// Record this generation in the persistent usage ledger (fx `usage`
+	// parity). TaskType/subagent/mission attribution enable per-helper
+	// spend reports.
+	attrib := s.usageAttribution()
 	_ = usage.Append(usage.Record{
 		CreatedAtMS:  apiStart.UnixMilli(),
 		Model:        model,
@@ -107,6 +110,9 @@ func (s *Session) recordStreamUsage(ch chan<- StreamEvent, providerUsage *types.
 		InputTokens:  prompt,
 		OutputTokens: completion,
 		TotalCost:    requestCost,
+		TaskType:     taskType,
+		SubagentID:   attrib.SubagentID,
+		MissionID:    attrib.MissionID,
 	})
 
 	s.recordUsageBudgetObservation(

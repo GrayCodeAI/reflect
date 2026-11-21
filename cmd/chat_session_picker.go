@@ -239,9 +239,10 @@ func (m *chatModel) resumeSessionByID(id string) (tea.Model, tea.Cmd) {
 	m.sessionID = saved.ID
 	m.invalidateViewportCache()
 	m.messages = []displayMsg{{role: "welcome", content: m.welcomeCache}}
+	m.toolResultExpanded = nil
 	hydrated := sessionfeature.Hydrate(saved)
 	for _, message := range hydrated.Display {
-		m.messages = append(m.messages, displayMsg{role: message.Role, content: message.Content})
+		m.messages = append(m.messages, displayFromHydrated(message))
 	}
 	m.session.LoadMessages(hydrated.Runtime)
 	m.messages = append(m.messages, displayMsg{role: "system", content: "Resumed session " + saved.ID})

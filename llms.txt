@@ -1,31 +1,115 @@
-# Reflect — coding agent CLI (Go)
+# reflect
 
-Reflect owns UX, orchestration, tools, permissions, sessions, product semantics.
-It uses Relay only through the engine facade and go.local.mod overlays for local development.
+> reflect is an independent, open-source AI coding agent from GrayCodeAI that lives in your terminal: a Go CLI and Bubble Tea TUI that reads and edits code, runs tests, and manages git through natural language, on any machine with a shell. Model routing goes through Relay, a separate, independently released model runtime consumed via its published public API — no sibling checkout is needed to build, test, or run this repo. Status: active development; contributor source builds are the primary path (see README "Status"). Install and quick-start instructions live in [README.md](README.md) — building from source requires Go 1.27.2+. This file is the agent-facing index: verification, repository map, docs, extension points, and boundaries.
 
-## Navigation
-- README.md / AGENTS.md — workflow, conventions, common pitfalls, workspace overlay
-- docs/IMPLEMENTATION-ROADMAP.md — feature status
-- docs/PERMISSION-MODEL-IMPROVEMENTS.md — permission engine
-- docs/OTEL-CONVENTIONS.md — shared tracing vocabulary
-- docs/plans/YOLOGDEV-ADOPTION-PLAN.md — adoption plan derived from yologdev portfolio
-- docs/session-decomposition.md — session-store internals
+## Verification
 
-## Entry points and structure
-- cmd/ — Cobra commands, TUI (Bubble Tea), compaction UI
-- internal/engine/ — ChatService, sessions, context governor, compaction
-- internal/multiagent/ — Mission, waves, staged PRD/verify/fix
-- internal/session/ — persistence, branch, fork, checkpoint, search, lifeboat
-- internal/hooks/ — lifecycle hooks, decisions, HTTP hooks
-- internal/memory/ (if present) — cross-session memory
-- internal/safety/ / security — path safety, traversal checks
+Run all of these before proposing changes:
 
-## Safety and testing
-- `go test ./...`, `go vet ./...`, `golangci-lint` configured in .golangci.yml
-- Race-sensitive areas: session store, multiagent mission (run with -race)
-- Lifeboat: internal/session/lifeboat.go captures working memory before compaction
+- Branch off `main` first (`feat/<desc>`, `fix/<desc>`, `chore/<desc>`); never commit directly to `main` — open a PR and require green CI (AGENTS.md workflow).
+- `go test ./...` — unit tests (`make test`). The suite is race-sensitive (session store, multiagent missions); CI runs everything with `-race` (`make test-race`).
+- `go vet ./...` (`make vet`).
+- gofumpt + goimports formatting: `make fmt` to fix, `make fmt-check` is the CI-safe check.
+- `make lint` — golangci-lint (pinned v2.14.0; configured in `.golangci.yml`).
+- `reflect verify` — self-verification of local changes before contributing (`reflect verify --fix` attempts fixes); auto-detects the repo's test/verify command via `internal/testrunner`.
+- `make ci` — the full local gate: version-check, module-check, fmt-check, vet, boundary guards, lint, race tests, govulncheck, OpenAPI validation. CI (`.github/workflows/ci.yml`) additionally enforces the commit policy, markdownlint, gosec, coverage floors (65% + per-package), the binary size budget, and deadcode/jscpd/fuzz/smoke jobs.
+
+## Repository map
+
+- `cmd/` — Cobra CLI commands and the Bubble Tea TUI (chat view, slash commands, config panels, mission/review/exec commands); `cmd/reflect/main.go` is the binary entry point; `cmd/compat-test` validates `testdata/compatibility-matrix.json`.
+- `internal/engine/` — the agent loop: ChatService (the Session's view of the LLM transport), context governor, compaction, vision/multimodal, self-improvement lifecycle (`internal/engine/lifecycle`).
+- `internal/multiagent/` — mission orchestration: parallel sub-agents in separate git worktrees, path-reservation ledger, family messaging, handoff, mission graphs.
+- `internal/session/` — session persistence (JSONL, WAL), autosave, branch/fork, checkpoints, handover, and lifeboat (working memory captured before context compaction so the active thread survives).
+- `internal/hooks/` — lifecycle hooks: hook decisions, HTTP hooks, file watcher, LSP feedback.
+- `internal/snapshot/` — session snapshot capture.
+- `internal/codegraph/` — repository code graph: embeddings, vector store, repo memory, multiview queries (cgo with a no-cgo stub fallback).
+- `internal/storage/` — resolved on-disk storage paths shared across packages.
+- `internal/tool/` — the 40+ built-in tools and their safety layer.
+- `internal/features/` — feature packages (chat commands, review, skills, eval, workspace, taste, welcome) behind the internal feature registry.
+- `internal/permissions/` — user approval system, permission tiers, auto-learning.
+- `internal/contracts/` — cross-repo DTO contracts: `types`, `graph`, `agent`, `policy`, `review`, `verify`, `events`, `harness`.
+- `internal/config/` settings, budget tracking, agent personas; `internal/token/` token counting and compression; `internal/mcp/` MCP client; `internal/daemon/` + `internal/api/` background HTTP/SSE server and HTTP API.
+- `internal/observability/` metrics, logging, tracing; `internal/resilience/` circuit breaker, rate limiting, retries; `internal/context/repomap` AST repo map; `internal/intelligence/` code intelligence.
+- Safety and hygiene packages: `internal/pathsafe`, `internal/toolsafety`, `internal/safewrite`, `internal/securitylog`, `internal/crash`; adopted-capability packages: `internal/smartrouting`, `internal/conversationarc`, `internal/relevanceprune`, `internal/replaycache`, `internal/errhint`, `internal/circuitbreaker`, `internal/installtxn`, `internal/testrunner`.
+- ~60 more focused packages live under `internal/` (run `ls internal/` for the full list); nothing outside the repo imports them.
+- `scripts/` — boundary-guard, workspace, and release scripts behind the Makefile targets. `testdata/` fixtures. `api/openapi.yaml` validated OpenAPI spec. `.github/actions/reflect` bundled CI GitHub Action.
+
+## Docs
+
+- [docs/README.md](docs/README.md) — index for `docs/`; points to the canonical repo inventory in graycode-eco.
+- [docs/architecture.md](docs/architecture.md) — reflect architecture overview.
+- [docs/BENCHMARKS.md](docs/BENCHMARKS.md) — published, reproducible CPU benchmarks (machine + commit recorded).
+- [docs/compatibility.md](docs/compatibility.md) — compatibility matrix; independent SemVer per repo.
+- [docs/COMPETITIVE.md](docs/COMPETITIVE.md) — reflect vs top 20 OSS: competitive analysis.
+- [docs/competitor-comparison.md](docs/competitor-comparison.md) — reflect vs top 20 coding agents: permission, sandbox, memory, tools (researched 2026-10-30).
+- [docs/DAEMON-PORT-THREAT-MODEL.md](docs/DAEMON-PORT-THREAT-MODEL.md) — threat model for the daemon HTTP server on port 4590.
+- [docs/DEVELOPER-PATH.md](docs/DEVELOPER-PATH.md) — what `reflect path` checks; developer-machine readiness.
+- [docs/DYNAMIC-MODELS.md](docs/DYNAMIC-MODELS.md) — dynamic model discovery: ownership and flow.
+- [docs/ECOSYSTEM-CONFIG.md](docs/ECOSYSTEM-CONFIG.md) — eco config-as-code spec (draft/historical; not implemented).
+- [docs/ecosystem-message-flow.md](docs/ecosystem-message-flow.md) — how one user message travels through reflect (relay + embedded token engine).
+- [docs/ecosystem-remediation-plan.md](docs/ecosystem-remediation-plan.md) — post-audit improvement recommendations (2026-07-11).
+- [docs/ECOSYSTEM-ROADMAP.md](docs/ECOSYSTEM-ROADMAP.md) — GrayCode ecosystem roadmap (2026; active).
+- [docs/ECOSYSTEM-WIRING.md](docs/ECOSYSTEM-WIRING.md) — ecosystem wiring (STALE 2026-09-18: predates eagle removal, lists 14 repos / 6 engines).
+- [docs/IMPLEMENTATION-ROADMAP.md](docs/IMPLEMENTATION-ROADMAP.md) — historical product roadmap and feature status.
+- [docs/intelligent-cli.md](docs/intelligent-cli.md) — intelligent CLI capabilities: small startup tool schema.
+- [docs/mcp-servers.md](docs/mcp-servers.md) — MCP server configuration.
+- [docs/monitoring-guide.md](docs/monitoring-guide.md) — monitoring the daemon and CLI for production health.
+- [docs/operations-checklist.md](docs/operations-checklist.md) — production operations checklist.
+- [docs/OTEL-CONVENTIONS.md](docs/OTEL-CONVENTIONS.md) — OpenTelemetry semantic conventions for AI agent spans (draft/shared spec).
+- [docs/PERMISSION-MODEL-IMPROVEMENTS.md](docs/PERMISSION-MODEL-IMPROVEMENTS.md) — reflect permission model: host execution, no Docker-backed sandbox.
+- [docs/plugin-development.md](docs/plugin-development.md) — plugin development guide.
+- [docs/RELEASING.md](docs/RELEASING.md) — hand-cut releases: release PR (VERSION + CHANGELOG), tag, CI publishes.
+- [docs/RESEARCH.md](docs/RESEARCH.md) — research and competitive comparison for the eco.
+- [docs/SECURITY-DEVELOPER.md](docs/SECURITY-DEVELOPER.md) — developer security model: API keys, keychain, agent isolation.
+- [docs/session-decomposition.md](docs/session-decomposition.md) — session god-object decomposition: design and migration status (in progress).
+- [docs/terminal-icons.md](docs/terminal-icons.md) — Nerd Font Codicon glyphs used by the TUI.
+- [docs/troubleshooting-guide.md](docs/troubleshooting-guide.md) — diagnosing common daemon and CLI issues.
+- [docs/versioning.md](docs/versioning.md) — versioning standard for GrayCodeAI repositories.
+- [docs/WORKFLOW.md](docs/WORKFLOW.md) — reflect and relay workflow: ownership split.
+- [docs/platform-capabilities.json](docs/platform-capabilities.json) — legacy platform capabilities data.
+- [docs/architecture/](docs/architecture/) — deep architecture set: current-vs-proposed, execution-graph, dependency rules, capability seams, contract spec, harness, ADRs 0001-0004 (indexed by its README.md).
+- [docs/design/](docs/design/) — ECOSYSTEM-MARKETPLACE, REFLECT-CLOUD-SAAS, three-repo architecture.
+- [docs/plans/](docs/plans/) — adoption and port plans (codex, goose, fx, pi, qwen-code, minimax, spec-driven phases, competitive gaps, grok-class long horizon).
+- [docs/user-guide/](docs/user-guide/) — 28 numbered guides, 01-getting-started through 28-workflow-budgets (skills, slash commands, permissions, sessions, theming).
+
+## Extension points
+
+From AGENTS.md; deeper detail in docs/user-guide/ and docs/plugin-development.md.
+
+- Project instructions: on launch, reflect walks from the working directory up to the nearest git root and injects the first match per directory level, priority `AGENTS.md` > `ZERO.md` > `.zero/AGENTS.md` (case-insensitive basename). Read once at session start; ~8 KiB per file, 32 KiB total cap.
+- Personal instructions: `~/.reflect/ZERO.md` (Windows: `%AppData%\reflect\ZERO.md`), injected as `## User guidelines` before project rules; project rules take precedence on conflict.
+- Specialists (sub-agents): scopes are built-in > user `~/.reflect/specialists/*.md` > project `./.zero/specialists/*.md`; project overrides user overrides built-in on name collision. Managed with `reflect specialist list|show|create|edit|delete|path`.
+- Skills: none bundled by default; markdown instruction files sourced from the separate GrayCodeAI/graycode-skills repo and installed on demand via `reflect skills search|install|list|remove`. Installed to `~/.reflect/skills/` (user) or `./.zero/skills/` / `./skills/` (project).
+- Hooks: `beforeReview`, `afterReview`, `sessionStart`, `sessionEnd` — managed with `reflect hook add|remove|list` (e.g. `reflect hook add beforeReview --command "lint-check"`).
+- MCP servers: `reflect mcp add --name <name> --url <url>`, `reflect mcp remove <name>`, `reflect mcp list`; configuration detail in docs/mcp-servers.md.
+- Plugins: `reflect plugin add --name <name> --path <path>`, `reflect plugin remove <name>`, `reflect plugin list`; guide in docs/plugin-development.md.
+
+## Contracts and boundaries
+
+- Relay is a separate published Go module pinned in `go.mod`. Reflect consumes it ONLY through its stable engine facade; this repo builds, tests, and runs with no sibling checkout (`GOWORK=off` is exported in the Makefile; do not create a parent `go.work`).
+- Provider protocols, adapters, catalog metadata, credential mappings, and provider contract tests are implemented in Relay's repository first; Reflect changes stay limited to host UX and facade integration.
+- Cross-repo contracts live in `internal/contracts/` (vendored from the removed `github.com/GrayCodeAI/eagle` module): `types`, `graph`, `agent`, `policy`, `review`, `verify`, `events`, `harness`. External consumers vendor these DTOs; there is no published contracts module yet.
+- For coordinated local Relay changes, create a gitignored `go.local.mod` overlay with an explicit Relay replacement (`make workspace RELAY_DIR=/path/to/relay`), then run `go test -modfile=go.local.mod ./...`. Never commit it; verify the normal `go.mod` graph separately before release.
+- Boundary guards run in CI and via `make boundaries`: relay-engine-guard (facade-only Relay imports), relay-client-guard (no production relay/client imports), ecosystem-guard, peer-guard, internal-layers-guard, package-boundaries-guard, feature-boundaries-guard, manifest-guard, and check-replace (no local replace directives in `go.mod`).
 
 ## Conventions
-- Go 1.27.2+, Conventional Commits
-- Host-neutral: never import Relay internals directly, use engine facade
-- VERSION is single source of truth (VERSION file + sync-version.py)
+
+- Go 1.27.2+. Release builds are `CGO_ENABLED=0` static binaries for linux/darwin/windows on amd64/arm64 (Makefile `build`/`build-all`).
+- Conventional Commits. Signed commits are required. No `Co-authored-by:` trailers — the CI commit policy enforces both.
+- VERSION (currently 0.0.1) is the single source of truth. `make version-sync` (scripts/sync-version.py) regenerates package/OpenAPI metadata; `make version-check` rejects stale metadata and runs in `make ci`.
+- Tests live next to the source (`foo_test.go` beside `foo.go`), table-driven where practical; the race detector is standard (`make test-race`); golden help fixtures regenerate via `make update-golden`.
+- Formatting is gofumpt + goimports (`make fmt`), not plain gofmt.
+- Feature branches off `main`; never commit directly; merge only with green CI.
+- Host-neutral rule: never import Relay internals directly — engine facade only (enforced by relay-engine-guard).
+
+## Links
+
+- Repository: https://github.com/GrayCodeAI/reflect
+- GitHub org: https://github.com/GrayCodeAI
+- README.md — product description, install, features, usage.
+- CONTRIBUTING.md — development setup, commit conventions, PR process.
+- SECURITY.md — report privately via a GitHub Security Advisory or security@reflect.ai; do not open public issues for vulnerabilities.
+- docs/README.md — the docs index.
+- Relay (model runtime): https://github.com/GrayCodeAI/relay
+- graycode-skills (skill registry): https://github.com/GrayCodeAI/graycode-skills
+- Canonical sibling inventory: https://github.com/GrayCodeAI/graycode-eco/blob/main/ecosystem.yaml

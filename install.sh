@@ -178,7 +178,12 @@ BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 ARCHIVE_NAME="${BINARY}_${VERSION}_${OS}_${ARCH}.${ARCHIVE_EXT}"
 
 TMP=$(mktemp -d 2>/dev/null || mktemp -d -t reflect-install)
-trap 'rm -rf "$TMP"' EXIT
+STAGE=''
+cleanup() {
+  rm -rf "$TMP"
+  if [ -n "$STAGE" ]; then rm -rf "$STAGE"; fi
+}
+trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
@@ -228,14 +233,19 @@ fi
 say "Checksum verified."
 
 # --- Extract ---------------------------------------------------------------------
-mkdir -p "$TMP/extract"
+# Stage on the destination filesystem so publishing a file is a rename even
+# when the download directory and install prefix are on different mounts.
+BINDIR="$PREFIX/bin"
+mkdir -p "$BINDIR"
+STAGE=$(mktemp -d "$BINDIR/.reflect-install.XXXXXXXX")
+mkdir "$STAGE/extract"
 if [ "$ARCHIVE_EXT" = zip ]; then
   command -v unzip >/dev/null 2>&1 || die "unzip is required to install Windows release archives"
-  unzip -q "$TMP/$ARCHIVE_NAME" -d "$TMP/extract"
+  unzip -q "$TMP/$ARCHIVE_NAME" -d "$STAGE/extract"
 else
-  tar -xzf "$TMP/$ARCHIVE_NAME" -C "$TMP/extract"
+  tar -xzf "$TMP/$ARCHIVE_NAME" -C "$STAGE/extract"
 fi
-[ -f "$TMP/extract/$BIN_NAME" ] || die "${ARCHIVE_NAME} does not contain ${BIN_NAME}"
+[ -f "$STAGE/extract/$BIN_NAME" ] || die "${ARCHIVE_NAME} does not contain ${BIN_NAME}"
 
 # --- Versioned install -----------------------------------------------------------
 # A binary is never overwritten in place. On macOS (and any codesigned
@@ -245,20 +255,19 @@ fi
 # processes on the old inode. The symlink is created under a temporary name and
 # renamed into place so the swap is atomic. Windows lacks reliable non-admin
 # symlinks, so the launcher there is a plain copy.
-BINDIR="$PREFIX/bin"
-mkdir -p "$BINDIR"
 if [ "$OS" = windows ]; then
-  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/reflect-${VERSION}.exe"
-  cp -f "$BINDIR/reflect-${VERSION}.exe" "$BINDIR/reflect.exe"
-  INSTALLED="$BINDIR/reflect-${VERSION}.exe (launcher: $BINDIR/reflect.exe)"
+  VERSIONED="reflect-${VERSION}.exe"
+  cp "$STAGE/extract/$BIN_NAME" "$STAGE/launcher"
+  INSTALLED="$BINDIR/$VERSIONED (launcher: $BINDIR/$BIN_NAME)"
 else
-  mv -f "$TMP/extract/$BIN_NAME" "$BINDIR/reflect-${VERSION}"
-  chmod 0755 "$BINDIR/reflect-${VERSION}"
-  rm -f "$BINDIR/reflect.tmp"
-  ln -s "reflect-${VERSION}" "$BINDIR/reflect.tmp"
-  mv -f "$BINDIR/reflect.tmp" "$BINDIR/reflect"
-  INSTALLED="$BINDIR/reflect-${VERSION} (linked: $BINDIR/reflect)"
+  VERSIONED="reflect-${VERSION}"
+  chmod 0755 "$STAGE/extract/$BIN_NAME"
+  ln -s "$VERSIONED" "$STAGE/launcher"
+  INSTALLED="$BINDIR/$VERSIONED (linked: $BINDIR/$BIN_NAME)"
 fi
+[ ! -d "$BINDIR/$VERSIONED" ] && [ ! -d "$BINDIR/$BIN_NAME" ] || die "install destination is a directory"
+mv -f "$STAGE/extract/$BIN_NAME" "$BINDIR/$VERSIONED"
+mv -f "$STAGE/launcher" "$BINDIR/$BIN_NAME"
 
 say ""
 say "Installed reflect ${TAG} to ${INSTALLED}"

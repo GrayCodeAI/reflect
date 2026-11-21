@@ -24,6 +24,9 @@ func writeMatchTree(t *testing.T, files map[string]string) string {
 }
 
 func TestCodeMatchGoFunctionPattern(t *testing.T) {
+	if !codeMatchAvailable {
+		t.Skip("CodeMatch requires a cgo build (tree-sitter grammars are linked at compile time)")
+	}
 	root := writeMatchTree(t, map[string]string{
 		"a/a.go": "package a\n\n// helper comment mentioning Handler\nfunc Handler(w io.Writer) { }\n\nfunc ignored() {}\n",
 	})
@@ -54,6 +57,9 @@ func TestCodeMatchGoFunctionPattern(t *testing.T) {
 }
 
 func TestCodeMatchCommentsDoNotFalsePositive(t *testing.T) {
+	if !codeMatchAvailable {
+		t.Skip("CodeMatch requires a cgo build (tree-sitter grammars are linked at compile time)")
+	}
 	root := writeMatchTree(t, map[string]string{
 		"a/a.go": "package a\n\n// func fakeDeclaration name: (identifier)\nfunc Real() {}\n",
 	})
@@ -69,6 +75,9 @@ func TestCodeMatchCommentsDoNotFalsePositive(t *testing.T) {
 }
 
 func TestCodeMatchPythonDef(t *testing.T) {
+	if !codeMatchAvailable {
+		t.Skip("CodeMatch requires a cgo build (tree-sitter grammars are linked at compile time)")
+	}
 	root := writeMatchTree(t, map[string]string{
 		"svc.py": "def handler(req):\n    return req\n\nclass C:\n    def method(self):\n        pass\n",
 	})
@@ -88,6 +97,9 @@ func TestCodeMatchPythonDef(t *testing.T) {
 }
 
 func TestCodeMatchLanguageFilterAndLimit(t *testing.T) {
+	if !codeMatchAvailable {
+		t.Skip("CodeMatch requires a cgo build (tree-sitter grammars are linked at compile time)")
+	}
 	root := writeMatchTree(t, map[string]string{
 		"x.go": "package x\nfunc A() {}\nfunc B() {}\nfunc C() {}\n",
 	})

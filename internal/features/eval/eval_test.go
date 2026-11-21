@@ -349,6 +349,9 @@ func TestGoTasksAlreadyCorrect(t *testing.T) {
 			if !ok {
 				t.Fatalf("task %q not found", id)
 			}
+			if id == "go-fix-race-condition" && !cgoAvailable {
+				t.Skip("task validation runs `go test -race`, which requires a cgo build")
+			}
 
 			workDir := t.TempDir()
 			err := task.SetupFn(workDir)

@@ -9,6 +9,7 @@ import (
 
 // TestTracker_Cleanup tests the Cleanup function which runs git gc.
 func TestTracker_Cleanup(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	// Create a temp project dir
 	projectDir := t.TempDir()
 
@@ -35,6 +36,7 @@ func TestTracker_Cleanup(t *testing.T) {
 
 // TestTracker_Cleanup_NoRepo tests Cleanup when there's no git repo.
 func TestTracker_Cleanup_NoRepo(t *testing.T) {
+	t.Setenv("REFLECT_STATE_DIR", t.TempDir())
 	tracker := New(t.TempDir())
 	// Don't init - should fail because git commands will fail without a repo
 	err := tracker.Cleanup(24 * time.Hour)

@@ -597,8 +597,8 @@ func TestLSPToolSchemaProvider(t *testing.T) {
 	var _ SchemaProvider = LSPTool{}
 	props := schemaProps(t, LSPTool{}.Parameters())
 	enum, ok := props["action"].(map[string]interface{})["enum"].([]interface{})
-	if !ok || len(enum) != 4 {
-		t.Fatalf("action enum = %v, want 4 options", props["action"])
+	if !ok || len(enum) != 6 {
+		t.Fatalf("action enum = %v, want 6 options", props["action"])
 	}
 	req, _ := LSPTool{}.Parameters()["required"].([]string)
 	if len(req) != 2 || req[0] != "action" || req[1] != "path" {

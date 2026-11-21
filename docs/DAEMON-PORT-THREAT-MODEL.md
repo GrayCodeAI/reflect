@@ -17,6 +17,7 @@ the threat model, attack surface, and mitigation controls.
 | `DELETE /v1/sessions/:id` | Configurable | Deletes a session |
 | `GET /v1/stats` | Configurable | Usage/cost statistics |
 | `POST /v1/cancel` | Configurable | Cancels the active generation |
+| `POST /v1/sessions/:id/steer` | Configurable | Splices guidance into the active generation (between tool batches; no interruption) |
 
 ---
 

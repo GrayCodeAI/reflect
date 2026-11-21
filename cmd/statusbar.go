@@ -202,7 +202,7 @@ func renderStatusBarUsage(m *chatModel) []string {
 	}
 	tokens := m.session.CostValue().PromptTokens + m.session.CostValue().CompletionTokens
 	parts := []string{
-		statusTokenStyle.Render(formatTokenCountCompact(tokens) + " tokens"),
+		statusTokenStyle.Render(formatTokenCountCompact(tokens) + " session tokens"),
 		statusCostStyle.Render(formatStatusCost(m.session.CostValue())),
 	}
 	sessionDur := time.Duration(0)

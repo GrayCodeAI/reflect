@@ -2,10 +2,10 @@ package engine
 
 import "strings"
 
-// toolActivitySummary is presentation-only. Permission identities and matching
+// ToolActivitySummary is presentation-only. Permission identities and matching
 // retain their existing contract. Only action fields, never file contents or
 // arbitrary argument maps, belong in the activity heading.
-func toolActivitySummary(name string, args map[string]interface{}) string {
+func ToolActivitySummary(name string, args map[string]interface{}) string {
 	var keys []string
 	switch canonicalToolName(name) {
 	case "Bash", "PowerShell":

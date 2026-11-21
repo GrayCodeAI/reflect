@@ -99,6 +99,10 @@ type Session struct {
 	// cross-session store (e.g. the chat client's SelfImprover). It is a
 	// callback so the engine stays decoupled from storage; nil disables it.
 	learnFn func(what, why, lesson, category string)
+	// usageAttrib carries optional per-helper attribution (subagent/mission
+	// identity) stamped onto this session's usage-ledger records; the zero
+	// value means the main interactive session. See usage_attribution.go.
+	usageAttrib UsageAttribution
 	// sec is the session's tamper-evident security event log, opened lazily on
 	// the first recorded event (see security_events.go).
 	sec *securityLog
@@ -282,6 +286,12 @@ func NewSessionWithClient(chat ChatClient, provider, model, systemPrompt string,
 	s.life.SetLintLoop(validation.NewLintLoop())
 	s.life.SetTestLoop(validation.NewTestLoop())
 	s.promptQueue = NewPromptQueue()
+	// The steering queue is the host-facing splice point for mid-run user
+	// guidance: the agent loop drains it between tool batches (see the
+	// drain point in stream.go). Attached at construction so it exists
+	// before any goroutine that can read it; hosts (TUI, daemon, exec)
+	// Enqueue without racing the loop.
+	s.persist.SetSteering(streaming.NewSteeringQueue())
 	s.announcements = NewAnnouncementFeed()
 	return s
 }
@@ -386,6 +396,10 @@ func (s *Session) SubSession(model, systemPrompt string, registry *tool.Registry
 	// cross-session lessons.
 	s.mu.RLock()
 	sub.learnFn = s.learnFn
+	// Children inherit the parent's mission attribution so helpers spawned
+	// by a mission worker stay billed to that mission; the child's own
+	// SubagentID is set by its spawn site.
+	sub.usageAttrib = UsageAttribution{MissionID: s.usageAttrib.MissionID}
 	s.mu.RUnlock()
 	// WireSubagent: propagate journal to sub-session's GoalTracker so
 	// goal.change events on sub-agent forks also record into the spine.

@@ -1,10 +1,13 @@
 package tool
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/GrayCodeAI/reflect/internal/lsp"
 )
 
 func TestNewRefactorer(t *testing.T) {
@@ -611,5 +614,172 @@ func TestFormatRefactoringResult_Nil(t *testing.T) {
 	output := FormatRefactoringResult(nil)
 	if output != "No result" {
 		t.Errorf("expected 'No result', got %q", output)
+	}
+}
+
+func TestRefactorToolRenameSymbol_RegexFallbackNoManager(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.go")
+	mustWriteFile(t, file, "package main\n\nvar counter = 0\n\nfunc bump() {\n\tcounter++\n}\n")
+
+	tool := NewRefactorTool() // no Manager: the regex fallback must run
+	input, err := json.Marshal(map[string]interface{}{
+		"action":   "rename_symbol",
+		"file":     file,
+		"old_name": "counter",
+		"new_name": "count",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := tool.Execute(testCtx(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "regex fallback") {
+		t.Errorf("output should note the regex fallback:\n%s", out)
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "counter") {
+		t.Errorf("old name still present: %q", string(data))
+	}
+}
+
+func TestRefactorToolRenameSymbol_FallbackWhenServerUnavailable(t *testing.T) {
+	// A configured server whose binary cannot start: the LSP attempt fails
+	// before writing anything and the regex fallback must complete the rename.
+	mgr := lsp.NewManager(&lsp.LSPConfig{Servers: map[string]lsp.ServerConfig{
+		"go": {Command: "nonexistent-lsp-command-xyz", Extensions: []string{".go"}},
+	}})
+	defer func() { _ = mgr.Close() }()
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.go")
+	mustWriteFile(t, file, "package main\n\nvar counter = 0\n")
+
+	tool := NewRefactorTool()
+	tool.Manager = mgr
+	input, err := json.Marshal(map[string]interface{}{
+		"action":   "rename_symbol",
+		"file":     file,
+		"old_name": "counter",
+		"new_name": "count",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := tool.Execute(testCtx(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"regex fallback", "lsp rename via go server"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "counter") {
+		t.Errorf("old name still present: %q", string(data))
+	}
+}
+
+func TestRefactorToolRenameSymbol_FallbackNoServerForExtension(t *testing.T) {
+	// Only a Go server is configured; the target is Python, so the fallback
+	// runs without ever attempting to spawn a server.
+	mgr := lsp.NewManager(&lsp.LSPConfig{Servers: map[string]lsp.ServerConfig{
+		"go": {Command: "gopls", Extensions: []string{".go"}},
+	}})
+	defer func() { _ = mgr.Close() }()
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "script.py")
+	mustWriteFile(t, file, "counter = 0\n")
+
+	tool := NewRefactorTool()
+	tool.Manager = mgr
+	input, err := json.Marshal(map[string]interface{}{
+		"action":   "rename_symbol",
+		"file":     file,
+		"old_name": "counter",
+		"new_name": "count",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := tool.Execute(testCtx(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"regex fallback", "no language server configured for .py files"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(data); got != "count = 0\n" {
+		t.Errorf("content = %q, want %q", got, "count = 0\n")
+	}
+}
+
+func TestRefactorToolRenameSymbol_FallbackErrorKeepsCause(t *testing.T) {
+	// When both the LSP attempt and the regex fallback fail, the error must
+	// surface the LSP cause alongside the fallback failure.
+	mgr := lsp.NewManager(&lsp.LSPConfig{Servers: map[string]lsp.ServerConfig{
+		"go": {Command: "nonexistent-lsp-command-xyz", Extensions: []string{".go"}},
+	}})
+	defer func() { _ = mgr.Close() }()
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.go")
+	mustWriteFile(t, file, "package main\n")
+
+	tool := NewRefactorTool()
+	tool.Manager = mgr
+	input, err := json.Marshal(map[string]interface{}{
+		"action":   "rename_symbol",
+		"file":     file,
+		"old_name": "missingSymbol",
+		"new_name": "renamed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tool.Execute(testCtx(), input)
+	if err == nil {
+		t.Fatal("expected error when the symbol exists nowhere")
+	}
+	for _, want := range []string{"language-server rename unavailable", "regex fallback failed"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error = %q, want substring %q", err.Error(), want)
+		}
+	}
+}
+
+func TestOneLineClip(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		max  int
+		want string
+	}{
+		{"plain", "hello world", 20, "hello world"},
+		{"clipped", "hello world", 5, "hello…"},
+		{"first line only", "line one\nline two", 20, "line one"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := oneLineClip(tc.in, tc.max); got != tc.want {
+				t.Errorf("oneLineClip(%q, %d) = %q, want %q", tc.in, tc.max, got, tc.want)
+			}
+		})
 	}
 }

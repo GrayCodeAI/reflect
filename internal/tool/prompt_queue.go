@@ -39,11 +39,12 @@ func queueStatePath() string {
 	return filepath.Join(storage.StateDir(), "prompt_queue.json")
 }
 
-// LoadPromptQueue loads the prompt queue from disk.
-func LoadPromptQueue() *PromptQueueState {
-	queueMu.Lock()
-	defer queueMu.Unlock()
-
+// loadPromptQueueLocked returns the in-memory queue state, loading it from
+// disk on first use. Callers must already hold queueMu: every exported
+// accessor in this file must take the mutex exactly once — the historical
+// re-entrant locking here deadlocked EnqueuePrompt, DequeuePrompt,
+// GetPromptQueue, and RemovePromptFromQueue on first use.
+func loadPromptQueueLocked() *PromptQueueState {
 	if queueState != nil {
 		return queueState
 	}
@@ -51,19 +52,33 @@ func LoadPromptQueue() *PromptQueueState {
 	queueState = &PromptQueueState{}
 	data, err := os.ReadFile(queueStatePath())
 	if err != nil {
-		if os.IsNotExist(err) {
-			return queueState // Empty state
-		}
-		return queueState
+		return queueState // Missing or unreadable: empty state.
 	}
 
 	if err := json.Unmarshal(data, queueState); err != nil {
-		return &PromptQueueState{} // Return empty on malformed
+		// Malformed: discard the partially decoded state and start empty.
+		queueState = &PromptQueueState{}
 	}
 	return queueState
 }
 
-// SavePromptQueue writes the prompt queue to disk.
+// ResetPromptQueueForTest discards the cached in-memory queue state so the
+// next access re-reads the on-disk file. Test isolation helper.
+func ResetPromptQueueForTest() {
+	queueMu.Lock()
+	queueState = nil
+	queueMu.Unlock()
+}
+
+// LoadPromptQueue loads the prompt queue from disk.
+func LoadPromptQueue() *PromptQueueState {
+	queueMu.Lock()
+	defer queueMu.Unlock()
+	return loadPromptQueueLocked()
+}
+
+// SavePromptQueue writes the prompt queue to disk. Callers must hold queueMu
+// (all in-package writers do).
 func SavePromptQueue(state *PromptQueueState) error {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
@@ -77,7 +92,7 @@ func EnqueuePrompt(prompt, subject string) error {
 	queueMu.Lock()
 	defer queueMu.Unlock()
 
-	state := LoadPromptQueue()
+	state := loadPromptQueueLocked()
 
 	item := NewPromptQueueItem(prompt, subject)
 	state.Items = append(state.Items, item)
@@ -110,7 +125,7 @@ func DequeuePrompt() (*PromptQueueItem, error) {
 	queueMu.Lock()
 	defer queueMu.Unlock()
 
-	state := LoadPromptQueue()
+	state := loadPromptQueueLocked()
 
 	if len(state.Items) == 0 {
 		return nil, nil
@@ -129,16 +144,21 @@ func ClearPromptQueue() error {
 	defer queueMu.Unlock()
 
 	state := &PromptQueueState{Items: nil}
+	// Keep the in-memory cache in sync with the cleared file, otherwise
+	// GetPromptQueue keeps serving the stale pre-clear items.
+	queueState = state
 
 	return SavePromptQueue(state)
 }
 
 // GetPromptQueue returns a copy of the current queue items.
 func GetPromptQueue() []PromptQueueItem {
-	queueMu.RLock()
-	defer queueMu.RUnlock()
+	// The lazy disk load mutates the shared cache, so this takes the full
+	// lock rather than RLock.
+	queueMu.Lock()
+	defer queueMu.Unlock()
 
-	state := LoadPromptQueue()
+	state := loadPromptQueueLocked()
 	items := make([]PromptQueueItem, len(state.Items))
 	copy(items, state.Items)
 	return items
@@ -149,7 +169,7 @@ func RemovePromptFromQueue(index int) error {
 	queueMu.Lock()
 	defer queueMu.Unlock()
 
-	state := LoadPromptQueue()
+	state := loadPromptQueueLocked()
 
 	if index < 0 || index >= len(state.Items) {
 		return nil // Invalid index, nothing to remove
